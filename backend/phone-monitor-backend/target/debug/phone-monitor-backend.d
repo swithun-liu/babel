@@ -1,0 +1,1 @@
+/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/phone-monitor-backend/target/debug/phone-monitor-backend: /Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/phone-monitor-backend/src/main.rs

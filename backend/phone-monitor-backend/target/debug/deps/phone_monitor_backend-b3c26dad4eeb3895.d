@@ -1,0 +1,5 @@
+/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/phone-monitor-backend/target/debug/deps/phone_monitor_backend-b3c26dad4eeb3895.rmeta: src/main.rs
+
+/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/phone-monitor-backend/target/debug/deps/phone_monitor_backend-b3c26dad4eeb3895.d: src/main.rs
+
+src/main.rs:
