@@ -69,7 +69,9 @@ pub struct Join {
 /// Implementation is very naïve.
 #[derive(Debug)]
 pub struct ChatServer {
+    // <人的id, recipient>
     sessions: HashMap<usize, Recipient<Message>>,
+    // <room名称, 里面人的id>
     rooms: HashMap<String, HashSet<usize>>,
     rng: ThreadRng,
     visitor_count: Arc<AtomicUsize>,
