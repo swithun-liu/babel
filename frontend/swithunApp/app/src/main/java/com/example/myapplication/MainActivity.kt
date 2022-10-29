@@ -51,7 +51,8 @@ fun DefaultPreview(model: MainViewModel = viewModel()) {
             isFahrenheit = model.isFahrenheit,
             result = model.result,
             convertTemp = { model.convertTemp(it) },
-            switchChange = { model.switchChange() }
+            switchChange = { model.switchChange() },
+            sendMessage = { model.sendMessage(it) }
         )
     }
 }
@@ -62,7 +63,8 @@ fun ScreenSetup(viewModel: MainViewModel) {
         isFahrenheit = viewModel.isFahrenheit,
         result = viewModel.result,
         convertTemp = { viewModel.convertTemp(it) },
-        switchChange = { viewModel.switchChange() }
+        switchChange = { viewModel.switchChange() },
+        sendMessage = { viewModel.sendMessage(it) }
     )
 }
 
@@ -72,6 +74,7 @@ fun MainScreen(
     result: String,
     convertTemp: (String) -> Unit,
     switchChange: () -> Unit,
+    sendMessage: (String) -> Unit
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxSize()) {
@@ -96,6 +99,9 @@ fun MainScreen(
         )
         Button(onClick = { convertTemp(textState) }) {
             Text(text = "Convert Temperature")
+        }
+        Button(onClick = { sendMessage(textState)}) {
+            Text(text = "Send Message")
         }
     }
 }
