@@ -78,10 +78,12 @@ impl Handler<Disconnect> for ChatServer {
     fn handle(&mut self, msg: Disconnect, ctx: &mut Self::Context) -> Self::Result {
         println!("Someone disconnected");
 
+        let mut old_size: usize = 0;
         if self.sessions.remove(&msg.id).is_some() {
+            old_size = self.visitor_count.fetch_update(Ordering::SeqCst, Ordering::SeqCst, |x| Some(x - 1)).unwrap();
             println!("ChatServer # handle # Disconnect $ remove {}", msg.id);
         }
-        self.send_message(("ChatServer # handle # Disconnect $ remove ".to_string() + &msg.id.to_string()).as_str())
+        self.send_message(("Disconnect $ remove ".to_string() + &msg.id.to_string() + &" ".to_string() + &(old_size - 1).to_string() + &"left".to_string()).as_str())
     }
 }
 
