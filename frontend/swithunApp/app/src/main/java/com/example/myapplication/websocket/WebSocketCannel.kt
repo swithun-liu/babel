@@ -1,5 +1,6 @@
 package com.example.myapplication.websocket
 
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -31,6 +32,7 @@ class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
     private val incomingFlow: Flow<RawData> = incoming.consumeAsFlow()
 
     init {
+        Log.d("swithun-xxxx", "WebSocketChannel init")
         val okHttpClient = OkHttpClient.Builder().build()
         val request = Request.Builder()
             .url("http://192.168.0.103:8088/ws")
@@ -63,6 +65,7 @@ class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
 
     override fun send(data: RawData) {
         scope.launch(Dispatchers.IO) {
+            Log.d("swithun-xxxx", "outgoing send data")
             outgoing.send(data)
         }
     }
@@ -71,22 +74,38 @@ class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
         private val incoming: Channel<RawData>,
         private val outgoing: Channel<RawData>
     ): WebSocketListener() {
-        override fun onOpen(webSocket: WebSocket, response: Response) { }
+        override fun onOpen(webSocket: WebSocket, response: Response) {
+            Log.d("swithun-xxxx", "[WebSocketChannelListener] - onOpen")
+        }
+
+        override fun onMessage(webSocket: WebSocket, text: String) {
+            Log.d("swithun-xxxx", "[WebSocketChannelListener] - onMessage text")
+            scope.launch(Dispatchers.IO) {
+                Log.d("swithun-xxxx", "incoming send data")
+                incoming.send(RawData(text))
+            }
+        }
 
         override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
+            Log.d("swithun-xxxx", "[WebSocketChannelListener] - onMessage")
             scope.launch(Dispatchers.IO) {
+                Log.d("swithun-xxxx", "incoming send data")
                 incoming.send(RawData(bytes.toString()))
             }
         }
 
-        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) { }
+        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+            Log.d("swithun-xxxx", "[WebSocketChannelListener] - onClosing")
+        }
 
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+            Log.d("swithun-xxxx", "[WebSocketChannelListener] - onClosed")
             incoming.close()
             outgoing.close()
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+            Log.d("swithun-xxxx", "[WebSocketChannelListener] - onFailure")
             incoming.close(t)
             outgoing.close(t)
         }

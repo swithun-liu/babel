@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -17,7 +16,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -27,7 +25,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            DefaultPreview()
             MyApplicationTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(
@@ -50,6 +47,7 @@ fun DefaultPreview(model: MainViewModel = viewModel()) {
         MainScreen(
             isFahrenheit = model.isFahrenheit,
             result = model.result,
+            remoteWord = model.remoteWord,
             convertTemp = { model.convertTemp(it) },
             switchChange = { model.switchChange() },
             sendMessage = { model.sendMessage(it) }
@@ -62,6 +60,7 @@ fun ScreenSetup(viewModel: MainViewModel) {
     MainScreen(
         isFahrenheit = viewModel.isFahrenheit,
         result = viewModel.result,
+        remoteWord = viewModel.remoteWord,
         convertTemp = { viewModel.convertTemp(it) },
         switchChange = { viewModel.switchChange() },
         sendMessage = { viewModel.sendMessage(it) }
@@ -72,6 +71,7 @@ fun ScreenSetup(viewModel: MainViewModel) {
 fun MainScreen(
     isFahrenheit: Boolean,
     result: String,
+    remoteWord: String,
     convertTemp: (String) -> Unit,
     switchChange: () -> Unit,
     sendMessage: (String) -> Unit
@@ -97,6 +97,10 @@ fun MainScreen(
             modifier = Modifier.padding(20.dp),
             style = MaterialTheme.typography.h3
         )
+        Column(horizontalAlignment = Alignment.Start) {
+            Text(text = "单词：")
+            Text(text = remoteWord)
+        }
         Button(onClick = { convertTemp(textState) }) {
             Text(text = "Convert Temperature")
         }
