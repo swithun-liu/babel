@@ -5,11 +5,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.launch
 import okhttp3.*
 import okio.ByteString
+import java.lang.Exception
 
 
 data class RawData(val json: String)
@@ -26,7 +28,7 @@ interface IWebSocketChannel {
 
 class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
 
-    private val socket: WebSocket
+    private var socket: WebSocket
     private val incoming = Channel<RawData>()
     private val outgoing = Channel<RawData>()
     private val incomingFlow: Flow<RawData> = incoming.consumeAsFlow()
@@ -37,6 +39,7 @@ class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
         val request = Request.Builder()
             .url("http://192.168.0.103:8088/ws")
             .build()
+
         socket = okHttpClient.newWebSocket(request, WebSocketChannelListener(incoming, outgoing))
 
         okHttpClient.dispatcher.executorService.shutdown()
