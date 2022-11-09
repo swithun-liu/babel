@@ -1,0 +1,11 @@
+/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/chat/target/debug/deps/digest-22d671fa2891af77.rmeta: /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/lib.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api/ct_variable.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api/rt_variable.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api/wrapper.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api/xof_reader.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/digest.rs
+
+/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/chat/target/debug/deps/digest-22d671fa2891af77.d: /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/lib.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api/ct_variable.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api/rt_variable.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api/wrapper.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api/xof_reader.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/digest.rs
+
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/lib.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api/ct_variable.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api/rt_variable.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api/wrapper.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/core_api/xof_reader.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/digest-0.10.5/src/digest.rs:
