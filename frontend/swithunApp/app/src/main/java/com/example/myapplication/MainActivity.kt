@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.viewmodel.VideoViewModel
+import tv.danmaku.ijk.media.player.IjkMediaPlayer
 
 /**
  * [api](https://github.com/SocialSisterYi/bilibili-API-collect/tree/master/login/login_action)
@@ -79,7 +80,15 @@ fun ScreenSetup(wordsViewModel: WordsViewModel, videoViewModel: VideoViewModel) 
 fun VideoScreen(
     videoViewModel: VideoViewModel,
 ) {
-    QRCode(videoViewModel)
+    Column {
+        QRCode(videoViewModel)
+        VideoView(videoViewModel)
+    }
+}
+
+@Composable
+fun VideoView(videoViewModel: VideoViewModel) {
+
 }
 
 @Composable

@@ -8,11 +8,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.MainActivity
-import com.example.myapplication.swithunLog
+import com.example.myapplication.SwithunLog
+import com.example.myapplication.errcode.LogInErrCode
 import com.example.myapplication.util.*
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
@@ -48,13 +48,13 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
 
     @SuppressLint("LongLogTag")
     suspend fun qrCodeLogin() {
-        Log.d(TAG, "qrCodeLogin")
+        SwithunLog.d("try qrCodeLogin")
         val qrCodeResponse = getRequest(BILIBILI_LOGIN_QR_CODE_URL) ?: return
         Log.d(TAG, "${qrCodeResponse.safeGetJSONObject("data")}")
         var qrcodeKey: String? = null
         qrCodeResponse.safeGetJSONObject("data")?.let { data ->
             data.safeGetString("url")?.let { it ->
-                swithunLog("loginEnsureQrCodeUrl $it")
+                SwithunLog.d("loginEnsureQrCodeUrl $it")
                 val bitmap = BarcodeEncoder().encodeBitmap(it, BarcodeFormat.QR_CODE, 400, 400)
                     .asImageBitmap()
                 qrCodeImage = bitmap
@@ -63,19 +63,19 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
                 qrcodeKey = it
             }
         }
-        swithunLog("-")
         if (qrcodeKey == null) {
-            swithunLog("--")
             Log.e(TAG, "qrcodeKey is null")
             return
         }
         while (true) {
-            swithunLog("---")
             delay(300)
             val param = mutableMapOf<String, String>().apply {
                 put("qrcode_key", qrcodeKey!!)
             }
-            val response = getRequestWithOriginalResponse(BILIBILI_LOGIN_IN_URL, param) ?: let {
+            val urlEncodeParams = UrlEncodeParams().apply {
+                put("qrcode_key", qrcodeKey!!)
+            }
+            val response = getRequestWithOriginalResponse(BILIBILI_LOGIN_IN_URL, urlEncodeParams = urlEncodeParams) ?: let {
                 Log.e(TAG, "(qrCodeLogin) -  response is null")
                 return
             }
@@ -124,37 +124,24 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
 
     @SuppressLint("LongLogTag")
      suspend fun getCheckMyProfile(): Boolean {
-        Log.d(TAG, "getCheckMyProfile activity: ${activity.invoke()}")
-        val sharedPref = activity.invoke()?.getPreferences(Context.MODE_PRIVATE) ?: let {
-            Log.e(TAG, "get sharedPref failed")
-            return false
+        val headerParams = HeaderParams().apply {
+            setBilibiliCookie(activity.invoke())
         }
-
-        val cookieSessionData = sharedPref.getString("SESSDATA", "")
-
-        if (cookieSessionData.isNullOrBlank()) {
-            Log.e(TAG, "(getCheckMyProfile) cookieSessionData.isNullOrBlank()")
-            return false
-        } else {
-            Log.i(TAG, "(getCheckMyProfile)  cookieSessionData: $cookieSessionData")
-        }
-
-        val param = mutableMapOf<String, String>().apply {
-            put("Cookie", "SESSDATA=$cookieSessionData")
-        }
-        val response = getRequest(BILIBILI_MY_INFO_URL, headerParam = param) ?: let {
+        val response = getRequest(BILIBILI_MY_INFO_URL, headerParams = headerParams) ?: let {
             Log.e(TAG, "(getCheckMyProfile) response is null")
             return false
         }
 
+        delay(500)
         response.safeGetString("code")?.let { code ->
             return when (code) {
                 "0" -> {
-                    Log.i(TAG, "(getCheckMyProfile) suc")
+                    SwithunLog.d("登陆成功")
                     loginStatus = "已登陆"
                     true
                 }
                 else -> {
+                    SwithunLog.d("登陆失败 - errCode: $code: ${LogInErrCode.fromValue(code.toInt())}")
                     loginStatus = "登陆失败"
                     false
                 }
