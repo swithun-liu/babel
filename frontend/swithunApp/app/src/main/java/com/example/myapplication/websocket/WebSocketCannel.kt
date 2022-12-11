@@ -37,7 +37,7 @@ class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
         Log.d("swithun-xxxx", "WebSocketChannel init")
         val okHttpClient = OkHttpClient.Builder().build()
         val request = Request.Builder()
-            .url("http://192.168.0.103:8088/ws")
+            .url("http://192.168.0.109:8088/ws")
             .build()
 
         socket = okHttpClient.newWebSocket(request, WebSocketChannelListener(incoming, outgoing))

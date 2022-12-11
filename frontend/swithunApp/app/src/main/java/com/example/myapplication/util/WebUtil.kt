@@ -73,7 +73,7 @@ suspend fun getRequestWithOriginalResponse(
 @SuppressLint("LongLogTag")
 fun Response.getRequestBodyJsonObject(): JSONObject? {
     return this.body?.string()?.let {
-        Log.d(TAG, it ?: "")
+        Log.d(TAG, it)
         JSONObject(it)
     }
 }

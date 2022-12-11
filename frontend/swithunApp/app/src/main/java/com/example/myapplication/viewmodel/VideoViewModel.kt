@@ -8,9 +8,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.MainActivity
+import com.example.myapplication.swithunLog
 import com.example.myapplication.util.*
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
@@ -52,7 +54,7 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         var qrcodeKey: String? = null
         qrCodeResponse.safeGetJSONObject("data")?.let { data ->
             data.safeGetString("url")?.let { it ->
-                Log.d(TAG, "loginEnsureQrCodeUrl $it")
+                swithunLog("loginEnsureQrCodeUrl $it")
                 val bitmap = BarcodeEncoder().encodeBitmap(it, BarcodeFormat.QR_CODE, 400, 400)
                     .asImageBitmap()
                 qrCodeImage = bitmap
@@ -61,11 +63,14 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
                 qrcodeKey = it
             }
         }
+        swithunLog("-")
         if (qrcodeKey == null) {
+            swithunLog("--")
             Log.e(TAG, "qrcodeKey is null")
             return
         }
         while (true) {
+            swithunLog("---")
             delay(300)
             val param = mutableMapOf<String, String>().apply {
                 put("qrcode_key", qrcodeKey!!)
