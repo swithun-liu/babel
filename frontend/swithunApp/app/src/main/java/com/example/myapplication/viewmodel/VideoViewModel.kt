@@ -13,17 +13,22 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.MainActivity
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.errcode.LogInErrCode
+import com.example.myapplication.nullCheck
 import com.example.myapplication.util.*
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
+import tv.danmaku.ijk.media.player.IjkMediaPlayer
 
 class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
 
     var qrCodeImage: ImageBitmap by mutableStateOf(ImageBitmap(100, 100))
     var loginStatus by mutableStateOf("未登陆")
+    val player = IjkMediaPlayer()
 
     private val BILIBILI_LOGIN_QR_CODE_URL =
         "http://passport.bilibili.com/x/passport-login/web/qrcode/generate"
@@ -31,6 +36,14 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         "http://passport.bilibili.com/x/passport-login/web/qrcode/poll"
     private val BILIBILI_MY_INFO_URL = "http://api.bilibili.com/x/space/myinfo"
     private val TAG = "swithun {VideoViewModel}"
+
+    object GetEpisode {
+        const val URL = "https://api.bilibili.com/pgc/player/web/playurl"
+
+        enum class EPISODE(val id: Int,  val comment: String) {
+            CONAN(323733, "名侦探柯南（中配）")
+        }
+    }
 
     init {
         begin()
@@ -149,5 +162,25 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         }
         return false
 
+    }
+
+    suspend fun getConan(): String? {
+        val urlEncodeParams = UrlEncodeParams().apply {
+            put("ep_id", GetEpisode.EPISODE.CONAN.id.toString())
+        }
+        val videoInfo = getRequest(
+            GetEpisode.URL,
+            urlEncodeParams = urlEncodeParams
+        ).nullCheck("get videoInfo", true) ?: return null
+        val result = videoInfo.safeGetJSONObject("result").nullCheck("get result", true) ?: return null
+        val durl: JSONArray = result.safeGetJsonArray("durl").nullCheck("get durl", true) ?: return null
+        val durl_0 = (if (durl.length() > 0) { durl.get(0) } else { null } as? JSONObject).nullCheck("get durl_0") ?: return null
+        val durl_url = durl_0.safeGetString("url").nullCheck("get durl_url", true) ?: return null
+
+        val headerParams = HeaderParams().apply {
+            setBilibiliReferer()
+        }
+
+        return durl_url
     }
 }

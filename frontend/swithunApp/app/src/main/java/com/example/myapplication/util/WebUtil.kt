@@ -77,7 +77,7 @@ suspend fun getRequestWithOriginalResponse(
 @SuppressLint("LongLogTag")
 fun Response.getRequestBodyJsonObject(): JSONObject? {
     return this.body?.string()?.let {
-        Log.d(TAG, it)
+        SwithunLog.d(it)
         JSONObject(it)
     }
 }
@@ -120,5 +120,9 @@ class HeaderParams {
             params["Cookie"] = "SESSDATA=$cookieSessionData"
         }
 
+    }
+
+    fun setBilibiliReferer() {
+        params["Referer"] = "https://www.bilibili.com"
     }
 }
