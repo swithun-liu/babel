@@ -1,11 +1,9 @@
 package com.example.myapplication
 
-import android.app.ActionBar
 import android.os.Build
 import android.os.Bundle
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -23,6 +21,8 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -32,7 +32,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.viewmodel.VideoViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
 
@@ -47,15 +46,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MyApplicationTheme {
-                // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
                     ScreenSetup(
                         wordsViewModel = WordsViewModel(),
-                        videoViewModel = VideoViewModel { this@MainActivity },
-                                lifecycleScope
+                        videoViewModel = VideoViewModel { this }
                     )
                 }
             }
@@ -68,12 +65,10 @@ class MainActivity : ComponentActivity() {
 fun ScreenSetup(
     wordsViewModel: WordsViewModel,
     videoViewModel: VideoViewModel,
-    lifecycleScope: LifecycleCoroutineScope
 ) {
     Row {
         VideoScreen(
             videoViewModel,
-            lifecycleScope
         )
         WordsScreen(
             wordsResult = wordsViewModel.wordsResult,
@@ -85,17 +80,18 @@ fun ScreenSetup(
 @Composable
 fun VideoScreen(
     videoViewModel: VideoViewModel,
-    lifecycleScope: LifecycleCoroutineScope,
 ) {
     Column {
         QRCode(videoViewModel)
-        VideoView(videoViewModel, lifecycleScope)
+        VideoView(videoViewModel)
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun VideoView(videoViewModel: VideoViewModel, lifecycleScope: LifecycleCoroutineScope) {
+fun VideoView(
+    videoViewModel: VideoViewModel
+) {
     Column {
         Button(onClick = {
             videoViewModel.viewModelScope.launch(Dispatchers.IO) {
@@ -105,16 +101,16 @@ fun VideoView(videoViewModel: VideoViewModel, lifecycleScope: LifecycleCoroutine
         ) {
             Text(text = "get conna")
         }
-        IjkPlayer(player = videoViewModel.player, lifecycleScope)
+        IjkPlayer(player = videoViewModel.player)
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun IjkPlayer(player: IjkMediaPlayer, lifecycleScope: LifecycleCoroutineScope) {
+fun IjkPlayer(player: IjkMediaPlayer) {
     // https://juejin.cn/post/7034363130121551903
     AndroidView(factory = { context ->
-        val surfaceView =SurfaceView(context)
+        val surfaceView = SurfaceView(context)
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
                 val temp = surfaceView.layoutParams
@@ -124,12 +120,10 @@ fun IjkPlayer(player: IjkMediaPlayer, lifecycleScope: LifecycleCoroutineScope) {
 
                 player.dataSource =
                     "http://vfx.mtime.cn/Video/2019/03/09/mp4/190309153658147087.mp4"
-                SwithunLog.e("surfaceview created callback0")
-                SwithunLog.e("surfaceview created callback")
                 player.setSurface(surfaceView.holder.surface)
-                SwithunLog.e("surfaceview created callback1")
                 player.prepareAsync()
                 player.start()
+                player.videoOutputFramesPerSecond
             }
 
             override fun surfaceChanged(
@@ -146,43 +140,10 @@ fun IjkPlayer(player: IjkMediaPlayer, lifecycleScope: LifecycleCoroutineScope) {
         })
 
         surfaceView
-    }, update = {  surfaceView ->
+    }, update = { surfaceView ->
         SwithunLog.d("surfaceView update")
-
-
-
-//        lifecycleScope.launch {
-//            delay(3000)
-//            player.dataSource = "https://media.w3.org/2010/05/sintel/trailer.mp4"
-//            SwithunLog.d("player dataSource ")
-//            surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
-//                override fun surfaceCreated(holder: SurfaceHolder) {
-//                    lifecycleScope.launch {
-//                        SwithunLog.d("surfaceview created callback0")
-//                        delay(1000)
-//                        SwithunLog.d("surfaceview created callback")
-//                        player.setSurface(surfaceView.holder.surface)
-//                        SwithunLog.d("surfaceview created callback1")
-//                        // player.start()
-//                    }
-//                }
-//
-//                override fun surfaceChanged(
-//                    holder: SurfaceHolder,
-//                    format: Int,
-//                    width: Int,
-//                    height: Int
-//                ) {
-//                }
-//
-//                override fun surfaceDestroyed(holder: SurfaceHolder) {
-//                }
-//
-//            })
-//        }
     })
 }
-
 
 
 @Composable

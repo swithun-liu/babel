@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.MainActivity
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.errcode.LogInErrCode
+import com.example.myapplication.model.GetEpisode
 import com.example.myapplication.nullCheck
 import com.example.myapplication.util.*
 import com.google.zxing.BarcodeFormat
@@ -36,14 +37,6 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         "http://passport.bilibili.com/x/passport-login/web/qrcode/poll"
     private val BILIBILI_MY_INFO_URL = "http://api.bilibili.com/x/space/myinfo"
     private val TAG = "swithun {VideoViewModel}"
-
-    object GetEpisode {
-        const val URL = "https://api.bilibili.com/pgc/player/web/playurl"
-
-        enum class EPISODE(val id: Int,  val comment: String) {
-            CONAN(323733, "名侦探柯南（中配）")
-        }
-    }
 
     init {
         begin()
@@ -176,10 +169,6 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         val durl: JSONArray = result.safeGetJsonArray("durl").nullCheck("get durl", true) ?: return null
         val durl_0 = (if (durl.length() > 0) { durl.get(0) } else { null } as? JSONObject).nullCheck("get durl_0") ?: return null
         val durl_url = durl_0.safeGetString("url").nullCheck("get durl_url", true) ?: return null
-
-        val headerParams = HeaderParams().apply {
-            setBilibiliReferer()
-        }
 
         return durl_url
     }
