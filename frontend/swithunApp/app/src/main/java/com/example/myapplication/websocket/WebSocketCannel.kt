@@ -1,6 +1,7 @@
 package com.example.myapplication.websocket
 
 import android.util.Log
+import android.webkit.WebSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel

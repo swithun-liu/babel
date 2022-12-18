@@ -6,6 +6,12 @@ plugins {
 android {
     compileSdk 32
 
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+
     defaultConfig {
         applicationId "com.example.myapplication"
         minSdk 21
@@ -51,6 +57,14 @@ android {
             compose_material3 = '1.0.0-beta02' //material3 release
         }
     }
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'x86', 'x86_64', 'armeabi-v7a', 'armeabi'
+            universalApk false
+        }
+    }
 }
 
 dependencies {
@@ -72,15 +86,15 @@ dependencies {
 
     // ijkplayer-begin
     // required, enough for most devices.
-    implementation 'tv.danmaku.ijk.media:ijkplayer-java:0.8.8'
-    implementation 'tv.danmaku.ijk.media:ijkplayer-armv7a:0.8.8'
-    // Other ABIs: optional
-    implementation 'tv.danmaku.ijk.media:ijkplayer-armv5:0.8.8'
-    implementation 'tv.danmaku.ijk.media:ijkplayer-arm64:0.8.8'
-    implementation 'tv.danmaku.ijk.media:ijkplayer-x86:0.8.8'
-    implementation 'tv.danmaku.ijk.media:ijkplayer-x86_64:0.8.8'
-    // ExoPlayer as IMediaPlayer: optional, experimental
-    implementation 'tv.danmaku.ijk.media:ijkplayer-exo:0.8.8'
+    api 'tv.danmaku.ijk.media:ijkplayer-java:0.8.8'
+//    implementation 'tv.danmaku.ijk.media:ijkplayer-armv7a:0.8.8'
+//    // Other ABIs: optional
+//    implementation 'tv.danmaku.ijk.media:ijkplayer-armv5:0.8.8'
+//    implementation 'tv.danmaku.ijk.media:ijkplayer-arm64:0.8.8'
+//    implementation 'tv.danmaku.ijk.media:ijkplayer-x86:0.8.8'
+//    implementation 'tv.danmaku.ijk.media:ijkplayer-x86_64:0.8.8'
+//    // ExoPlayer as IMediaPlayer: optional, experimental
+//    implementation 'tv.danmaku.ijk.media:ijkplayer-exo:0.8.8'
     // ijkpalyer-end
 
     testImplementation 'junit:junit:4.13.2'

@@ -1,12 +1,15 @@
 package com.example.myapplication
 
+import android.app.Activity
 import android.os.Build
 import android.os.Bundle
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.ViewGroup
+import android.webkit.WebSettings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.contextaware.ContextAware
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -15,21 +18,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.LifecycleCoroutineScope
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.ui.theme.MyApplicationTheme
+import com.example.myapplication.util.HeaderParams
 import com.example.myapplication.viewmodel.VideoViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -39,9 +40,13 @@ import tv.danmaku.ijk.media.player.IjkMediaPlayer
  * [api](https://github.com/SocialSisterYi/bilibili-API-collect/tree/master/login/login_action)
  */
 
+private var mySurfaceView: SurfaceView? = null
+private var activity: Activity? = null
+
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
+        activity = this
 
         super.onCreate(savedInstanceState)
         setContent {
@@ -92,10 +97,39 @@ fun VideoScreen(
 fun VideoView(
     videoViewModel: VideoViewModel
 ) {
+    val conanUrl by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+
+    val onGetConanUrl = { conanUrl: String ->
+        mySurfaceView?.let { surfaceView ->
+            videoViewModel.player.let { player ->
+                val ua = WebSettings.getDefaultUserAgent(context)
+                SwithunLog.d(ua)
+
+                val headerParams = HeaderParams().apply {
+                    // setBilibiliReferer()
+                    params["Referer"] = "https://www.bilibili.com"
+                    params["Origin"] = "https://www.bilibili.com"
+                    params["User-Agent"] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 Edg/108.0.1462.54"
+                }
+
+
+                player.reset()
+                player.setDataSource(conanUrl, headerParams.params)
+                player.setSurface(surfaceView.holder.surface)
+                player.prepareAsync()
+                player.start()
+            }
+        }
+    }
+
     Column {
         Button(onClick = {
             videoViewModel.viewModelScope.launch(Dispatchers.IO) {
-                videoViewModel.getConan()
+                videoViewModel.getConan()?.let { newConanUrl->
+                    onGetConanUrl(newConanUrl)
+                }
             }
         }
         ) {
@@ -119,11 +153,10 @@ fun IjkPlayer(player: IjkMediaPlayer) {
                 surfaceView.layoutParams = temp
 
                 player.dataSource =
-                    "http://vfx.mtime.cn/Video/2019/03/09/mp4/190309153658147087.mp4"
+                    "https://vfx.mtime.cn/Video/2019/03/09/mp4/190309153658147087.mp4"
                 player.setSurface(surfaceView.holder.surface)
                 player.prepareAsync()
                 player.start()
-                player.videoOutputFramesPerSecond
             }
 
             override fun surfaceChanged(
@@ -138,6 +171,8 @@ fun IjkPlayer(player: IjkMediaPlayer) {
             }
 
         })
+
+        mySurfaceView = surfaceView
 
         surfaceView
     }, update = { surfaceView ->
