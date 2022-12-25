@@ -3,12 +3,14 @@ package com.example.myapplication
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import org.apache.commons.text.StringEscapeUtils
 
 fun Any?.convert2Json(): String? {
     if (this == null) return null
+    if (this is String) return this
 
     val gson: Gson = GsonBuilder().setPrettyPrinting().create()
-    return gson.toJson(this)
+    return StringEscapeUtils.unescapeJson(gson.toJson(this))
 }
 
 object SwithunLog {

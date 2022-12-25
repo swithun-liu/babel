@@ -21,6 +21,7 @@ import com.journeyapps.barcodescanner.BarcodeEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.apache.commons.lang3.StringEscapeUtils
 import org.json.JSONArray
 import org.json.JSONObject
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
@@ -75,16 +76,10 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         }
         while (true) {
             delay(300)
-            val param = mutableMapOf<String, String>().apply {
-                put("qrcode_key", qrcodeKey!!)
-            }
             val urlEncodeParams = UrlEncodeParams().apply {
                 put("qrcode_key", qrcodeKey!!)
             }
-            val response = getRequestWithOriginalResponse(BILIBILI_LOGIN_IN_URL, urlEncodeParams = urlEncodeParams) ?: let {
-                Log.e(TAG, "(qrCodeLogin) -  response is null")
-                return
-            }
+            val response = getRequestWithOriginalResponse(BILIBILI_LOGIN_IN_URL, urlEncodeParams = urlEncodeParams).nullCheck("response") ?: return
             val body = response.getRequestBodyJsonObject() ?: let {
                 Log.e(TAG, "(qrCodeLogin) - body is null")
                 return
@@ -161,9 +156,13 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         val urlEncodeParams = UrlEncodeParams().apply {
             put("ep_id", GetEpisode.EPISODE.CONAN.id.toString())
         }
+        val headerParams = HeaderParams().apply {
+            setBilibiliCookie(activity())
+        }
         val videoInfo = getRequest(
             GetEpisode.URL,
-            urlEncodeParams = urlEncodeParams
+            urlEncodeParams = urlEncodeParams,
+            headerParams = headerParams
         ).nullCheck("get videoInfo", true) ?: return null
         val result = videoInfo.safeGetJSONObject("result").nullCheck("get result", true) ?: return null
         val durl: JSONArray = result.safeGetJsonArray("durl").nullCheck("get durl", true) ?: return null

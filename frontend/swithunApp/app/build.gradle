@@ -104,4 +104,7 @@ dependencies {
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
     debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_version"
 
+    // web字符反转义
+    implementation 'org.apache.commons:commons-text:1.9'
+
 }

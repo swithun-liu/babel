@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.app.Activity
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.SurfaceHolder
@@ -111,7 +112,11 @@ fun VideoView(
                     // setBilibiliReferer()
                     params["Referer"] = "https://www.bilibili.com"
                     params["Origin"] = "https://www.bilibili.com"
-                    params["User-Agent"] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 Edg/108.0.1462.54"
+                    // params["User-Agent"] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 Edg/108.0.1462.54"
+                    params["User-Agent"] = ua
+                    params["User-Agent"] = "Mozilla/5.0 BiliDroid/7.5.0 (bbcallen@gmail.com)"
+                    params["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36 Edg/92.0.902.62"
+                    setBilibiliCookie(activity)
                 }
 
 
@@ -148,8 +153,11 @@ fun IjkPlayer(player: IjkMediaPlayer) {
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
                 val temp = surfaceView.layoutParams
-                temp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-                temp.width = ViewGroup.LayoutParams.WRAP_CONTENT
+//                temp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+//                temp.width = ViewGroup.LayoutParams.WRAP_CONTENT
+//
+                temp.height = 600
+                temp.width = 900
                 surfaceView.layoutParams = temp
 
                 player.dataSource =

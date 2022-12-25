@@ -50,6 +50,9 @@ suspend fun getRequestWithOriginalResponse(
     headerParams: HeaderParams? = null,
 ): Response? {
     val httpClient = OkHttpClient.Builder().build()
+    SwithunLog.d(my_url)
+    SwithunLog.d(urlEncodeParams)
+    SwithunLog.d(headerParams)
 
     val httpBuilder: HttpUrl.Builder = my_url.toHttpUrlOrNull()?.newBuilder() ?: return null
     if (urlEncodeParams != null) {
@@ -70,6 +73,7 @@ suspend fun getRequestWithOriginalResponse(
             }
         }
         .build()
+    SwithunLog.d(request)
     return httpClient.newCall(request).await()
 
 }
