@@ -1,16 +1,13 @@
 package com.example.myapplication
 
 import android.app.Activity
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import android.view.ViewGroup
 import android.webkit.WebSettings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.contextaware.ContextAware
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -42,12 +39,10 @@ import tv.danmaku.ijk.media.player.IjkMediaPlayer
  */
 
 private var mySurfaceView: SurfaceView? = null
-private var activity: Activity? = null
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
-        activity = this
 
         super.onCreate(savedInstanceState)
         setContent {
@@ -98,8 +93,6 @@ fun VideoScreen(
 fun VideoView(
     videoViewModel: VideoViewModel
 ) {
-    val conanUrl by remember { mutableStateOf("") }
-
     val context = LocalContext.current
 
     val onGetConanUrl = { conanUrl: String ->
@@ -110,23 +103,12 @@ fun VideoView(
 
                 val headerParams = HeaderParams().apply {
                     setBilibiliReferer()
-                    // params["Referer"] = "https://www.bilibili.com"
-//                    params["Origin"] =
-//                        "https://www.bilibili.com/bangumi/play/ep323843?from_spmid=666.25.player.continue&from_outer_spmid=333.337.0.0"
-//                    params["User-Agent"] =
-//                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 Edg/108.0.1462.54"
-//                    params["User-Agent"] = ua
-//                    params["User-Agent"] = "Mozilla/5.0 BiliDroid/7.5.0 (bbcallen@gmail.com)"
-//                    params["User-Agent"] =
-//                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36 Edg/92.0.902.62"
-//                    params["User-Agent"] =
-//                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 Edg/108.0.1462.54"
-//                    setBilibiliCookie(activity)
-//                    params["User-Agent"] = "Bilibili Freedoooooom/MarkII"
                 }
 
 
                 player.reset()
+                // user-agent 需要用这个设置，header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
+                player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", "Bilibili Freedoooooom/MarkII")
                 player.setDataSource(conanUrl, headerParams.params)
                 player.setSurface(surfaceView.holder.surface)
                 player.prepareAsync()
@@ -155,6 +137,7 @@ fun VideoView(
 fun IjkPlayer(player: IjkMediaPlayer) {
     // https://juejin.cn/post/7034363130121551903
     AndroidView(factory = { context ->
+        SwithunLog.d("AndroidView # factory")
         val surfaceView = SurfaceView(context)
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
@@ -190,7 +173,7 @@ fun IjkPlayer(player: IjkMediaPlayer) {
 
         surfaceView
     }, update = { surfaceView ->
-        SwithunLog.d("surfaceView update")
+        SwithunLog.d("AndroidView # update")
     })
 }
 
