@@ -109,14 +109,20 @@ fun VideoView(
                 SwithunLog.d(ua)
 
                 val headerParams = HeaderParams().apply {
-                    // setBilibiliReferer()
-                    params["Referer"] = "https://www.bilibili.com"
-                    params["Origin"] = "https://www.bilibili.com"
-                    // params["User-Agent"] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 Edg/108.0.1462.54"
-                    params["User-Agent"] = ua
-                    params["User-Agent"] = "Mozilla/5.0 BiliDroid/7.5.0 (bbcallen@gmail.com)"
-                    params["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36 Edg/92.0.902.62"
-                    setBilibiliCookie(activity)
+                    setBilibiliReferer()
+                    // params["Referer"] = "https://www.bilibili.com"
+//                    params["Origin"] =
+//                        "https://www.bilibili.com/bangumi/play/ep323843?from_spmid=666.25.player.continue&from_outer_spmid=333.337.0.0"
+//                    params["User-Agent"] =
+//                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 Edg/108.0.1462.54"
+//                    params["User-Agent"] = ua
+//                    params["User-Agent"] = "Mozilla/5.0 BiliDroid/7.5.0 (bbcallen@gmail.com)"
+//                    params["User-Agent"] =
+//                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36 Edg/92.0.902.62"
+//                    params["User-Agent"] =
+//                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 Edg/108.0.1462.54"
+//                    setBilibiliCookie(activity)
+//                    params["User-Agent"] = "Bilibili Freedoooooom/MarkII"
                 }
 
 
@@ -160,11 +166,11 @@ fun IjkPlayer(player: IjkMediaPlayer) {
                 temp.width = 900
                 surfaceView.layoutParams = temp
 
-                player.dataSource =
-                    "https://vfx.mtime.cn/Video/2019/03/09/mp4/190309153658147087.mp4"
-                player.setSurface(surfaceView.holder.surface)
-                player.prepareAsync()
-                player.start()
+//                player.dataSource =
+//                    "https://vfx.mtime.cn/Video/2019/03/09/mp4/190309153658147087.mp4"
+//                player.setSurface(surfaceView.holder.surface)
+//                player.prepareAsync()
+//                player.start()
             }
 
             override fun surfaceChanged(
