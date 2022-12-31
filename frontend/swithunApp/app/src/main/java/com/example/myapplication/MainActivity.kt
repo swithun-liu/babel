@@ -30,8 +30,10 @@ import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.util.HeaderParams
 import com.example.myapplication.viewmodel.VideoViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
+import java.lang.Error
 
 /**
  * [api](https://github.com/SocialSisterYi/bilibili-API-collect/tree/master/login/login_action)
@@ -114,14 +116,30 @@ fun VideoView(
                     setBilibiliReferer()
                 }
 
+                try {
+                    player.reset()
+                    // user-agent 需要用这个设置，否则header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
+                    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", "Bilibili Freedoooooom/MarkII")
+                    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect", 1);//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
+                    player.setDataSource(conanUrl, headerParams.params)
+                    player.setSurface(surfaceView.holder.surface)
+                    player.prepareAsync()
+                    player.start()
 
-                player.reset()
-                // user-agent 需要用这个设置，header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
-                player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", "Bilibili Freedoooooom/MarkII")
-                player.setDataSource(conanUrl, headerParams.params)
-                player.setSurface(surfaceView.holder.surface)
-                player.prepareAsync()
-                player.start()
+                    videoViewModel.viewModelScope.launch {
+                        while (true) {
+                            delay(500)
+                            val duration = when (val duration = player.duration) {
+                                0L -> 1F
+                                else -> duration.toFloat()
+                            }
+                            videoViewModel.currentProcess = player.currentPosition.toFloat() / duration
+                        }
+                    }
+
+                } catch (e: Error) {
+                    SwithunLog.e("player err")
+                }
             }
         }
     }
@@ -137,6 +155,7 @@ fun VideoView(
         ) {
             Text(text = "get conna")
         }
+        Text(text = videoViewModel.currentProcess.toString())
         IjkPlayer(player = videoViewModel.player, activityVar)
     }
 }

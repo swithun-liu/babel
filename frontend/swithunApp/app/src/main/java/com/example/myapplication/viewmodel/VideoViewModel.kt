@@ -30,6 +30,7 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
 
     var qrCodeImage: ImageBitmap by mutableStateOf(ImageBitmap(100, 100))
     var loginStatus by mutableStateOf("未登陆")
+    var currentProcess  by mutableStateOf(0F)
     val player = IjkMediaPlayer()
 
     private val BILIBILI_LOGIN_QR_CODE_URL =
