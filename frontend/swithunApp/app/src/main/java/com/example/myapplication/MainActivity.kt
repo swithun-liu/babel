@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.util.HeaderParams
 import com.example.myapplication.viewmodel.VideoViewModel
@@ -100,6 +101,23 @@ fun VideoScreen(
     }
 }
 
+private fun play(player: IjkMediaPlayer, surfaceView: SurfaceView, conanUrl: String, headerParams: HeaderParams, onComplete: () -> Unit) {
+    player.reset()
+    // user-agent 需要用这个设置，否则header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
+    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", "Bilibili Freedoooooom/MarkII")
+    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect", 1);//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
+    player.setDataSource(conanUrl, headerParams.params)
+    player.setSurface(surfaceView.holder.surface)
+    player.prepareAsync()
+    player.start()
+
+    player.setOnCompletionListener {
+        onComplete()
+    }
+
+}
+
+
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun VideoView(
@@ -119,14 +137,10 @@ fun VideoView(
                 }
 
                 try {
-                    player.reset()
-                    // user-agent 需要用这个设置，否则header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
-                    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", "Bilibili Freedoooooom/MarkII")
-                    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect", 1);//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
-                    player.setDataSource(conanUrl, headerParams.params)
-                    player.setSurface(surfaceView.holder.surface)
-                    player.prepareAsync()
-                    player.start()
+
+                    play(player, surfaceView, conanUrl, headerParams) {
+                        playNextConan(videoViewModel, player, surfaceView, conanUrl, headerParams)
+                    }
 
                     videoViewModel.viewModelScope.launch {
                         while (true) {
@@ -161,12 +175,27 @@ fun VideoView(
             Text(text = videoViewModel.currentProcess.toString())
             IjkPlayer(player = videoViewModel.player, activityVar)
         }
+
         LazyColumn {
             items(videoViewModel.itemList) { sectionItem ->
-                Button(onClick = {})  {
+                Button(onClick = {
+                    videoViewModel.viewModelScope.launch {
+                        videoViewModel.getConanByEpId(sectionItem.id)?.let { newConanUrl ->
+                            onGetConanUrl(newConanUrl)
+                        }
+                    }
+                })  {
                     Text(text = "${sectionItem.shortTitle}: ${sectionItem.longTitle}")
                 }
             }
+        }
+    }
+}
+
+fun playNextConan(videoViewModel: VideoViewModel, player: IjkMediaPlayer, surfaceView: SurfaceView, conanUrl: String, headerParams: HeaderParams) {
+    videoViewModel.viewModelScope.launch {
+        play(player, surfaceView, conanUrl, headerParams) {
+            playNextConan(videoViewModel, player, surfaceView, conanUrl, headerParams)
         }
     }
 }

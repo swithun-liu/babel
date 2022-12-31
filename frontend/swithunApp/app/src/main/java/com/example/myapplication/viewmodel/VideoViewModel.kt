@@ -2,6 +2,7 @@ package com.example.myapplication.viewmodel
 
 import android.annotation.SuppressLint
 import android.util.Log
+import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -20,6 +21,7 @@ import com.example.myapplication.util.*
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONArray
@@ -32,7 +34,9 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
     var loginStatus by mutableStateOf("未登陆")
     var currentProcess  by mutableStateOf(0F)
     var itemList by mutableStateOf(mutableListOf<SectionItem>())
+    var itemCursor = 0
     val player = IjkMediaPlayer()
+    var beginJob: Job? = null
 
     private val BILIBILI_LOGIN_QR_CODE_URL =
         "http://passport.bilibili.com/x/passport-login/web/qrcode/generate"
@@ -42,16 +46,17 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
     private val TAG = "swithun {VideoViewModel}"
 
     init {
-        begin()
+        beginJob = begin()
     }
 
-    private fun begin() {
-        viewModelScope.launch(Dispatchers.IO) {
+    private fun begin(): Job {
+        return viewModelScope.launch(Dispatchers.IO) {
             val suc = getCheckMyProfile()
             if (!suc) {
                 qrCodeLogin()
                 getCheckMyProfile()
             }
+            getConanList()
         }
     }
 
@@ -145,16 +150,33 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
 
     }
 
-    suspend fun getConan(): String? {
+    suspend fun getConanByEpId(epId: Long): String? {
+        beginJob?.join()
 
-        getConanList()
+        for (i in 0 until itemList.size) {
+            if (itemList[i].id == epId) {
+                return getConan(i)
+            }
+        }
+        return null
+    }
 
-        val urlEncodeParams = UrlEncodeParams().apply {
-            put("ep_id", GetEpisode.EPISODE.CONAN.id.toString())
-        }
-        val headerParams = HeaderParams().apply {
-            setBilibiliCookie(activity())
-        }
+    suspend fun getConan(chosePos: Int? = null): String? {
+
+        val pos =
+            chosePos
+                ?: SPUtil.Conan.getCurrentConan(activity()).nullCheck("get current conan pos")
+                ?: 0
+
+        itemCursor = pos
+
+        val item = itemList.getOrNull(pos)
+        val epId = item?.id ?: GetEpisode.EPISODE.CONAN.id
+
+        val urlEncodeParams = UrlEncodeParams().apply { put("ep_id", epId.toString()) }
+
+        val headerParams = HeaderParams().apply { setBilibiliCookie(activity()) }
+
         val videoInfo = getRequest(
             GetEpisode.URL,
             urlEncodeParams = urlEncodeParams,
@@ -166,6 +188,15 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         val durl_url = durl_0.safeGetString("url").nullCheck("get durl_url", true) ?: return null
 
         return durl_url
+    }
+
+    suspend fun getNextConan(): String? {
+        val nextCursor = (itemCursor + 1) % 500
+        return getConan(nextCursor)
+    }
+
+    suspend fun getCurConan() {
+        getConan(itemCursor)
     }
 
     suspend fun getConanList() {
