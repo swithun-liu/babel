@@ -26,3 +26,11 @@ fun JSONObject.safeGetJsonArray(name: String): JSONArray? {
         null
     }
 }
+
+fun JSONObject.safeGetLong(name: String): Long? {
+    return if (this.has(name)) {
+        this.getLong(name)
+    } else {
+        null
+    }
+}

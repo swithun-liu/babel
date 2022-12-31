@@ -1,7 +1,6 @@
 package com.example.myapplication.viewmodel
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,6 +13,8 @@ import com.example.myapplication.MainActivity
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.errcode.LogInErrCode
 import com.example.myapplication.model.GetEpisode
+import com.example.myapplication.model.GetEpisodeList
+import com.example.myapplication.model.SectionItem
 import com.example.myapplication.nullCheck
 import com.example.myapplication.util.*
 import com.google.zxing.BarcodeFormat
@@ -21,7 +22,6 @@ import com.journeyapps.barcodescanner.BarcodeEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.apache.commons.lang3.StringEscapeUtils
 import org.json.JSONArray
 import org.json.JSONObject
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
@@ -31,6 +31,7 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
     var qrCodeImage: ImageBitmap by mutableStateOf(ImageBitmap(100, 100))
     var loginStatus by mutableStateOf("未登陆")
     var currentProcess  by mutableStateOf(0F)
+    var itemList by mutableStateOf(mutableListOf<SectionItem>())
     val player = IjkMediaPlayer()
 
     private val BILIBILI_LOGIN_QR_CODE_URL =
@@ -93,31 +94,25 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
                 "0" -> {
                     Log.i(TAG, "has confirm login")
                     val cookies = response.getRequestCookies()
-                    val sharedPref =
-                        activity?.invoke()?.getPreferences(Context.MODE_PRIVATE) ?: let {
-                            Log.e(TAG, "get sharedPref failed")
+
+                    for (cookie in cookies) {
+                        val cookieFirstPart = cookie.split(";").getOrNull(0) ?: let {
+                            Log.e(TAG, "cookie get first part failed")
                             return
                         }
-                    with(sharedPref.edit()) {
-                        for (cookie in cookies) {
-                            val cookieFirstPart = cookie.split(";").getOrNull(0) ?: let {
-                                Log.e(TAG, "cookie get first part failed")
-                                return
-                            }
-                            val cookieKeyValue = cookieFirstPart.split("=")
-                            if (cookieKeyValue.size != 2) {
-                                Log.e(TAG, "cookie first part key value parse error")
-                                return
-                            } else {
-                                val key = cookieKeyValue[0]
-                                val value = cookieKeyValue[1]
+                        val cookieKeyValue = cookieFirstPart.split("=")
+                        if (cookieKeyValue.size != 2) {
+                            Log.e(TAG, "cookie first part key value parse error")
+                            return
+                        } else {
+                            val key = cookieKeyValue[0]
+                            val value = cookieKeyValue[1]
 
-                                Log.i(TAG, "")
-                                putString(key, value)
-                            }
+                            Log.i(TAG, "")
+                            SPUtil.putString(activity.invoke(), key, value)
                         }
-                        apply()
                     }
+
                     break
                 }
             }
@@ -129,10 +124,7 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         val headerParams = HeaderParams().apply {
             setBilibiliCookie(activity.invoke())
         }
-        val response = getRequest(BILIBILI_MY_INFO_URL, headerParams = headerParams) ?: let {
-            Log.e(TAG, "(getCheckMyProfile) response is null")
-            return false
-        }
+        val response = getRequest(BILIBILI_MY_INFO_URL, headerParams = headerParams).nullCheck("get my profile", true) ?: return false
 
         delay(500)
         response.safeGetString("code")?.let { code ->
@@ -154,6 +146,9 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
     }
 
     suspend fun getConan(): String? {
+
+        getConanList()
+
         val urlEncodeParams = UrlEncodeParams().apply {
             put("ep_id", GetEpisode.EPISODE.CONAN.id.toString())
         }
@@ -171,5 +166,37 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         val durl_url = durl_0.safeGetString("url").nullCheck("get durl_url", true) ?: return null
 
         return durl_url
+    }
+
+    suspend fun getConanList() {
+        val urlEncodeParams = UrlEncodeParams().apply {
+            put("season_id", GetEpisodeList.EPISODE.CONAN.season_id.toString())
+        }
+        val headerParams = HeaderParams().apply {
+        }
+
+        val conanList = getRequest(
+            GetEpisodeList.URL,
+            urlEncodeParams = urlEncodeParams,
+            headerParams = headerParams
+        )
+        val result = conanList?.safeGetJSONObject("result").nullCheck("get result", true) ?: return
+        val main_section = result.safeGetJSONObject("main_section").nullCheck("get main_section", true) ?: return
+        val episodes = main_section.safeGetJsonArray("episodes").nullCheck("get episodes", true) ?: return
+
+        val items = mutableListOf<SectionItem>()
+        for (i in 0 until  episodes.length()) {
+            val obj = episodes.getJSONObject(i)
+            val shortTitle = obj.safeGetString("title").nullCheck("get shortTitle", true) ?: continue
+            val longTitle = obj.safeGetString("long_title").nullCheck("get longTitle", true) ?: continue
+            val id = obj.safeGetLong("id").nullCheck("get id", true) ?: continue
+
+            val item = SectionItem(shortTitle, longTitle, id)
+            items.add(item)
+        }
+
+        itemList.clear()
+        itemList.addAll(items)
+
     }
 }

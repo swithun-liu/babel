@@ -10,6 +10,8 @@ import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -144,19 +146,28 @@ fun VideoView(
         }
     }
 
-    Column {
-        Button(onClick = {
-            videoViewModel.viewModelScope.launch(Dispatchers.IO) {
-                videoViewModel.getConan()?.let { newConanUrl->
-                    onGetConanUrl(newConanUrl)
+    Row {
+        Column {
+            Button(onClick = {
+                videoViewModel.viewModelScope.launch(Dispatchers.IO) {
+                    videoViewModel.getConan()?.let { newConanUrl->
+                        onGetConanUrl(newConanUrl)
+                    }
+                }
+            }
+            ) {
+                Text(text = "get conna")
+            }
+            Text(text = videoViewModel.currentProcess.toString())
+            IjkPlayer(player = videoViewModel.player, activityVar)
+        }
+        LazyColumn {
+            items(videoViewModel.itemList) { sectionItem ->
+                Button(onClick = {})  {
+                    Text(text = "${sectionItem.shortTitle}: ${sectionItem.longTitle}")
                 }
             }
         }
-        ) {
-            Text(text = "get conna")
-        }
-        Text(text = videoViewModel.currentProcess.toString())
-        IjkPlayer(player = videoViewModel.player, activityVar)
     }
 }
 

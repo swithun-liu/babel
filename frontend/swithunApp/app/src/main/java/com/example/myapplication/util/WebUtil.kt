@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.example.myapplication.SwithunLog
+import com.example.myapplication.nullCheck
 import okhttp3.*
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.json.JSONObject
@@ -109,21 +110,10 @@ class HeaderParams {
         private set
 
     fun setBilibiliCookie(activity: Activity?) {
-
-        val sharedPref = activity?.getPreferences(Context.MODE_PRIVATE) ?: let {
-            SwithunLog.d("get sharedPref failed")
-            return
-        }
-
-        val cookieSessionData = sharedPref.getString("SESSDATA", "")
-
-        if (cookieSessionData.isNullOrBlank()) {
-            SwithunLog.d("cookieSessionData: $cookieSessionData")
-        } else {
-            SwithunLog.d("cookieSessionData.isNullOrBlank()")
-            params["Cookie"] = "SESSDATA=$cookieSessionData"
-        }
-
+        val cookieSessionData =
+            SPUtil.getString(activity, "SESSDATA").nullCheck("get cookieSessionData", true)
+                ?: return
+        params["Cookie"] = "SESSDATA=$cookieSessionData"
     }
 
     fun setBilibiliReferer() {
