@@ -1,6 +1,5 @@
 package com.example.myapplication
 
-import android.app.Activity
 import android.os.Build
 import android.os.Bundle
 import android.view.SurfaceHolder
@@ -38,9 +37,10 @@ import tv.danmaku.ijk.media.player.IjkMediaPlayer
  * [api](https://github.com/SocialSisterYi/bilibili-API-collect/tree/master/login/login_action)
  */
 
-private var mySurfaceView: SurfaceView? = null
-
 class MainActivity : ComponentActivity() {
+
+    private val activityVar = ActivityVar()
+
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -49,11 +49,12 @@ class MainActivity : ComponentActivity() {
             MyApplicationTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colors.background
+                    color = MaterialTheme.colors.background,
                 ) {
                     ScreenSetup(
                         wordsViewModel = WordsViewModel(),
-                        videoViewModel = VideoViewModel { this }
+                        videoViewModel = VideoViewModel { this },
+                        activityVar
                     )
                 }
             }
@@ -61,15 +62,21 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+class ActivityVar(
+    var mySurfaceView: SurfaceView? = null
+)
+
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun ScreenSetup(
     wordsViewModel: WordsViewModel,
     videoViewModel: VideoViewModel,
+    activityVar: ActivityVar,
 ) {
     Row {
         VideoScreen(
             videoViewModel,
+            activityVar
         )
         WordsScreen(
             wordsResult = wordsViewModel.wordsResult,
@@ -81,22 +88,24 @@ fun ScreenSetup(
 @Composable
 fun VideoScreen(
     videoViewModel: VideoViewModel,
+    activityVar: ActivityVar,
 ) {
     Column {
         QRCode(videoViewModel)
-        VideoView(videoViewModel)
+        VideoView(videoViewModel, activityVar)
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun VideoView(
-    videoViewModel: VideoViewModel
+    videoViewModel: VideoViewModel,
+    activityVar: ActivityVar
 ) {
     val context = LocalContext.current
 
     val onGetConanUrl = { conanUrl: String ->
-        mySurfaceView?.let { surfaceView ->
+        activityVar.mySurfaceView?.let { surfaceView ->
             videoViewModel.player.let { player ->
                 val ua = WebSettings.getDefaultUserAgent(context)
                 SwithunLog.d(ua)
@@ -128,13 +137,13 @@ fun VideoView(
         ) {
             Text(text = "get conna")
         }
-        IjkPlayer(player = videoViewModel.player)
+        IjkPlayer(player = videoViewModel.player, activityVar)
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun IjkPlayer(player: IjkMediaPlayer) {
+fun IjkPlayer(player: IjkMediaPlayer, activityVar: ActivityVar) {
     // https://juejin.cn/post/7034363130121551903
     AndroidView(factory = { context ->
         SwithunLog.d("AndroidView # factory")
@@ -169,7 +178,7 @@ fun IjkPlayer(player: IjkMediaPlayer) {
 
         })
 
-        mySurfaceView = surfaceView
+        activityVar.mySurfaceView = surfaceView
 
         surfaceView
     }, update = { surfaceView ->
