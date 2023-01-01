@@ -70,7 +70,6 @@ class MainActivity : ComponentActivity() {
 
 class ActivityVar(
     var mySurfaceView: SurfaceView? = null,
-    var rememberPos: Long = 0
 )
 
 @RequiresApi(Build.VERSION_CODES.M)

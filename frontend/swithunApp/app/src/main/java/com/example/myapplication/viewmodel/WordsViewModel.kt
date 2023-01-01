@@ -37,6 +37,7 @@ class WordsViewModel: ViewModel() {
 
     init {
         remoteWordFlow = repository.webSocketCreate(viewModelScope)
+
         viewModelScope.launch(Dispatchers.IO) {
             remoteWordFlow.collect {
                 SwithunLog.d("remoteWordFlow collect ${it.json}")

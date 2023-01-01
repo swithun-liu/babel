@@ -1,19 +1,16 @@
 package com.example.myapplication.websocket
 
 import android.util.Log
-import android.webkit.WebSettings
 import com.example.myapplication.SwithunLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.launch
 import okhttp3.*
 import okio.ByteString
-import java.lang.Exception
 
 
 data class RawData(val json: String)
@@ -30,7 +27,7 @@ interface IWebSocketChannel {
 
 class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
 
-    private var socket: WebSocket
+    private var socket: WebSocket? = null
     private val incoming = Channel<RawData>()
     private val outgoing = Channel<RawData>()
     private val incomingFlow: Flow<RawData> = incoming.consumeAsFlow()
@@ -49,7 +46,7 @@ class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
         scope.launch(Dispatchers.IO) {
             try {
                 outgoing.consumeEach {
-                    socket.send(it.json)
+                    socket?.send(it.json)
                 }
             } finally {
                 close()
@@ -111,8 +108,8 @@ class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             Log.d("swithun-xxxx", "[WebSocketChannelListener] - onFailure")
-            incoming.close(t)
-            outgoing.close(t)
+            incoming.close()
+            outgoing.close()
         }
     }
 }
