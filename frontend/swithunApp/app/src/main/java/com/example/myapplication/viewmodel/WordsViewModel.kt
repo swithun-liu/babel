@@ -12,6 +12,7 @@ import com.example.myapplication.util.safeGetString
 import com.example.myapplication.websocket.RawData
 import com.example.myapplication.websocket.WebSocketRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -38,12 +39,8 @@ class WordsViewModel: ViewModel() {
         remoteWordFlow = repository.webSocketCreate(viewModelScope)
         viewModelScope.launch(Dispatchers.IO) {
             remoteWordFlow.collect {
-                Log.d("swithun-xxxx", "1")
-                Log.d("swithun-xxxx", it.json)
-                Log.d("swithun-xxxx", "1")
+                SwithunLog.d("remoteWordFlow collect ${it.json}")
                 val q = it.json
-
-                Log.d("swithun-xxxx", "1")
 
                 val params = mutableMapOf<String, String>().apply {
                     put("from", "en")
@@ -62,7 +59,7 @@ class WordsViewModel: ViewModel() {
 
                 val jsonBody = postRequest(YOUDAO_URL, params) ?: return@collect
 
-                Log.d("swithun-xxxx", jsonBody.toString())
+                SwithunLog.d(jsonBody.toString())
 
                 // translation
                 var translation: String = ""

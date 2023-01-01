@@ -2,6 +2,7 @@ package com.example.myapplication.websocket
 
 import android.util.Log
 import android.webkit.WebSettings
+import com.example.myapplication.SwithunLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -35,7 +36,7 @@ class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
     private val incomingFlow: Flow<RawData> = incoming.consumeAsFlow()
 
     init {
-        Log.d("swithun-xxxx", "WebSocketChannel init")
+        SwithunLog.d("WebSocketChannel init")
         val okHttpClient = OkHttpClient.Builder().build()
         val request = Request.Builder()
             .url("http://192.168.0.109:8088/ws")

@@ -51,6 +51,7 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
 
     private fun begin(): Job {
         return viewModelScope.launch(Dispatchers.IO) {
+            delay(500)
             val suc = getCheckMyProfile()
             if (!suc) {
                 qrCodeLogin()
@@ -131,7 +132,6 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         }
         val response = getRequest(BILIBILI_MY_INFO_URL, headerParams = headerParams).nullCheck("get my profile", true) ?: return false
 
-        delay(500)
         response.safeGetString("code")?.let { code ->
             return when (code) {
                 "0" -> {

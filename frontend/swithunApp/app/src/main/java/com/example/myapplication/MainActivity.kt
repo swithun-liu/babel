@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.util.HeaderParams
 import com.example.myapplication.viewmodel.VideoViewModel
@@ -45,6 +44,8 @@ import java.lang.Error
 class MainActivity : ComponentActivity() {
 
     private val activityVar = ActivityVar()
+    private val wordsVM = WordsViewModel()
+    private val videoVM = VideoViewModel { this }
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,8 +58,8 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colors.background,
                 ) {
                     ScreenSetup(
-                        wordsViewModel = WordsViewModel(),
-                        videoViewModel = VideoViewModel { this },
+                        wordsVM,
+                        videoVM,
                         activityVar
                     )
                 }
@@ -68,7 +69,8 @@ class MainActivity : ComponentActivity() {
 }
 
 class ActivityVar(
-    var mySurfaceView: SurfaceView? = null
+    var mySurfaceView: SurfaceView? = null,
+    var rememberPos: Long = 0
 )
 
 @RequiresApi(Build.VERSION_CODES.M)
@@ -102,19 +104,27 @@ fun VideoScreen(
 }
 
 private fun play(player: IjkMediaPlayer, surfaceView: SurfaceView, conanUrl: String, headerParams: HeaderParams, onComplete: () -> Unit) {
+    SwithunLog.d("运行playe")
     player.reset()
     // user-agent 需要用这个设置，否则header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
     player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", "Bilibili Freedoooooom/MarkII")
     player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect", 1);//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
     player.setDataSource(conanUrl, headerParams.params)
     player.setSurface(surfaceView.holder.surface)
-    player.prepareAsync()
-    player.start()
+
+
+    player.setOnPreparedListener {
+        SwithunLog.d("old prepared")
+        player.seekTo(0)
+    }
 
     player.setOnCompletionListener {
         onComplete()
     }
 
+
+    player.prepareAsync()
+    player.start()
 }
 
 
@@ -139,7 +149,7 @@ fun VideoView(
                 try {
 
                     play(player, surfaceView, conanUrl, headerParams) {
-                        playNextConan(videoViewModel, player, surfaceView, conanUrl, headerParams)
+                        playNextConan(videoViewModel, player, surfaceView, headerParams)
                     }
 
                     videoViewModel.viewModelScope.launch {
@@ -172,6 +182,15 @@ fun VideoView(
             ) {
                 Text(text = "get conna")
             }
+            Button(onClick = {
+                if (videoViewModel.player.isPlaying) {
+                    videoViewModel.player.pause()
+                } else {
+                    videoViewModel.player.start()
+                }
+            }) {
+                Text(text = "stop")
+            }
             Text(text = videoViewModel.currentProcess.toString())
             IjkPlayer(player = videoViewModel.player, activityVar)
         }
@@ -192,10 +211,16 @@ fun VideoView(
     }
 }
 
-fun playNextConan(videoViewModel: VideoViewModel, player: IjkMediaPlayer, surfaceView: SurfaceView, conanUrl: String, headerParams: HeaderParams) {
+fun playNextConan(
+    videoViewModel: VideoViewModel,
+    player: IjkMediaPlayer,
+    surfaceView: SurfaceView,
+    headerParams: HeaderParams
+) {
     videoViewModel.viewModelScope.launch {
-        play(player, surfaceView, conanUrl, headerParams) {
-            playNextConan(videoViewModel, player, surfaceView, conanUrl, headerParams)
+        val nextConanUrl = videoViewModel.getNextConan().nullCheck("get nextConanUrl") ?: return@launch
+        play(player, surfaceView, nextConanUrl, headerParams) {
+            playNextConan(videoViewModel, player, surfaceView, headerParams)
         }
     }
 }
@@ -210,18 +235,13 @@ fun IjkPlayer(player: IjkMediaPlayer, activityVar: ActivityVar) {
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
                 val temp = surfaceView.layoutParams
-//                temp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-//                temp.width = ViewGroup.LayoutParams.WRAP_CONTENT
-//
                 temp.height = 600
                 temp.width = 900
                 surfaceView.layoutParams = temp
-
-//                player.dataSource =
-//                    "https://vfx.mtime.cn/Video/2019/03/09/mp4/190309153658147087.mp4"
-//                player.setSurface(surfaceView.holder.surface)
-//                player.prepareAsync()
-//                player.start()
+                // surfaceView在activity Stop时会destroy，重新切到前台会重新走create，这里要重新setDisplay
+                // 否则会黑屏但是有声音 https://github.com/Bilibili/ijkplayer/issues/2666#issuecomment-800083756
+                player.setDisplay(holder)
+                player.start()
             }
 
             override fun surfaceChanged(
@@ -233,6 +253,7 @@ fun IjkPlayer(player: IjkMediaPlayer, activityVar: ActivityVar) {
             }
 
             override fun surfaceDestroyed(holder: SurfaceHolder) {
+                player.pause()
             }
 
         })
