@@ -1,5 +1,7 @@
 package com.example.myapplication
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.SurfaceHolder
@@ -30,12 +32,13 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.util.HeaderParams
+import com.example.myapplication.viewmodel.FTPViewModel
 import com.example.myapplication.viewmodel.VideoViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
-import java.lang.Error
+
 
 /**
  * [api](https://github.com/SocialSisterYi/bilibili-API-collect/tree/master/login/login_action)
@@ -43,9 +46,7 @@ import java.lang.Error
 
 class MainActivity : ComponentActivity() {
 
-    private val activityVar = ActivityVar()
-    private val wordsVM = WordsViewModel()
-    private val videoVM = VideoViewModel { this }
+    private val activityVar = ActivityVar(this)
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,10 +60,28 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colors.background,
                 ) {
                     ScreenSetup(
-                        wordsVM,
-                        videoVM,
+                        activityVar.wordsVM,
+                        activityVar.videoVM,
                         activityVar
                     )
+                }
+            }
+        }
+        /**
+         * 动态获取权限，Android 6.0 新特性，一些保护权限，除了要在AndroidManifest中声明权限，还要使用如下代码动态获取
+         */
+        /**
+         * 动态获取权限，Android 6.0 新特性，一些保护权限，除了要在AndroidManifest中声明权限，还要使用如下代码动态获取
+         */
+        if (Build.VERSION.SDK_INT >= 23) {
+            val REQUEST_CODE_CONTACT = 101
+            val permissions = arrayOf<String>(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            //验证是否许可权限
+            for (str in permissions) {
+                if (checkSelfPermission(str!!) != PackageManager.PERMISSION_GRANTED) {
+                    //申请权限
+                    requestPermissions(permissions, REQUEST_CODE_CONTACT)
+                    return
                 }
             }
         }
@@ -70,7 +89,11 @@ class MainActivity : ComponentActivity() {
 }
 
 class ActivityVar(
+    var activity: MainActivity,
     var mySurfaceView: SurfaceView? = null,
+    val wordsVM: WordsViewModel = WordsViewModel(),
+    val videoVM: VideoViewModel = VideoViewModel { activity },
+    val ftpVM: FTPViewModel = FTPViewModel { activity }
 )
 
 @RequiresApi(Build.VERSION_CODES.M)
@@ -85,9 +108,42 @@ fun ScreenSetup(
             videoViewModel,
             activityVar
         )
-        WordsScreen(
-            wordsResult = wordsViewModel.wordsResult,
-        ) { wordsViewModel.sendMessage(it) }
+        Column {
+//            WordsScreen(
+//                wordsResult = wordsViewModel.wordsResult,
+//            ) { wordsViewModel.sendMessage(it) }
+            FTPView(activityVar)
+        }
+    }
+}
+
+@Composable
+fun FTPView(activityVar: ActivityVar) {
+    Button(onClick = {
+        activityVar.ftpVM.initFTP()
+    }) {
+        Text(text = "start FTP")
+    }
+    Button(onClick = {
+        activityVar.ftpVM.connectFTP(2221)
+    }) {
+        Text(text = "connect FTP 2221")
+    }
+    Button(onClick = {
+        activityVar.ftpVM.connectFTP(5656)
+    }) {
+        Text(text = "connect FTP 5656")
+    }
+
+    Button(onClick = {
+        activityVar.ftpVM.listFTP(2221)
+    }) {
+        Text(text = "list 2221")
+    }
+    Button(onClick = {
+        activityVar.ftpVM.listFTP(5656)
+    }) {
+        Text(text = "list 5656")
     }
 }
 
@@ -261,7 +317,7 @@ fun IjkPlayer(player: IjkMediaPlayer, activityVar: ActivityVar) {
         activityVar.mySurfaceView = surfaceView
 
         surfaceView
-    }, update = { surfaceView ->
+    }, update = {
         SwithunLog.d("AndroidView # update")
     })
 }

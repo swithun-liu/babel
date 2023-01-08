@@ -45,6 +45,15 @@ android {
         kotlinCompilerExtensionVersion compose_version
     }
     packagingOptions {
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/license.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/notice.txt'
+        exclude 'META-INF/ASL2.0'
+
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
@@ -96,7 +105,11 @@ dependencies {
     api 'tv.danmaku.ijk.media:ijkplayer-java:0.8.8'
     // web字符反转义
     implementation 'org.apache.commons:commons-text:1.9'
-    // for FTP
+    // for FTP client
     implementation 'commons-net:commons-net:3.6'
+    // for FTP server https://mina.apache.org/ftpserver-project/download_1_1.html
+    implementation 'org.apache.ftpserver:ftpserver-core:1.1.4'
+    implementation 'org.slf4j:slf4j-api:2.0.0'
+    implementation 'org.slf4j:slf4j-simple:2.0.0'
 
 }
