@@ -230,4 +230,9 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         itemList.addAll(items)
 
     }
+
+    fun getFTP(): String {
+        return ""
+    }
+
 }

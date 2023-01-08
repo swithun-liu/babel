@@ -6,8 +6,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.SwithunLog
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.apache.commons.net.ftp.FTPClient
 import org.apache.commons.net.ftp.FTPReply
 import org.apache.ftpserver.FtpServerFactory
@@ -142,8 +141,8 @@ class FTPViewModel(val activity: () -> Activity) : ViewModel() {
 
     }
 
-    fun connectFTP(port: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
+    fun connectFTP(port: Int, job: ((FTPClient) -> Any)? = null) =
+        viewModelScope.launch (Dispatchers.IO) {
             try {
                 val ftpClient = FTPClient().apply {
                     defaultTimeout = 10000
@@ -178,13 +177,14 @@ class FTPViewModel(val activity: () -> Activity) : ViewModel() {
                         it.name
                     }}"
                 )
+
+                job?.invoke(ftpClient)
+
             } catch (e: Exception) {
                 SwithunLog.e("无法连接")
             }
 
         }
-
-    }
 
     fun listFTP(port: Int) {
         when (port) {
@@ -205,6 +205,24 @@ class FTPViewModel(val activity: () -> Activity) : ViewModel() {
         }
     }
 
+
+    suspend fun downloadFile(port: Int): String {
+        var url = ""
+        connectFTP(port) { client ->
+            try {
+                SwithunLog.e("job")
+                SwithunLog.d(client.listFiles()?.map { it.name })
+                client.changeWorkingDirectory("swithun")
+                SwithunLog.d(client.listFiles()?.map { it.name })
+                url = "ftp://test:test@192.168.0.107:$port/swithun/gt_2.mp4"
+            } catch (e: Exception) {
+                SwithunLog.e("list failed")
+                return@connectFTP ""
+            }
+        }.join()
+
+        return url
+    }
 
 }
 

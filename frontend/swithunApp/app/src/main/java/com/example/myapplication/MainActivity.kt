@@ -145,6 +145,13 @@ fun FTPView(activityVar: ActivityVar) {
     }) {
         Text(text = "list 5656")
     }
+    Button(onClick = {
+        activityVar.ftpVM.viewModelScope.launch(Dispatchers.IO) {
+            val url = activityVar.ftpVM.downloadFile(5656)
+        }
+    }) {
+        Text(text = "download file")
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
@@ -165,6 +172,8 @@ private fun play(player: IjkMediaPlayer, surfaceView: SurfaceView, conanUrl: Str
     // user-agent 需要用这个设置，否则header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
     player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", "Bilibili Freedoooooom/MarkII")
     player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect", 1);//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
+    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "dns_cache_clear", 1);// 解决 Hit dns cache but connect fail hostname
+    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "protocol_whitelist", "async,cache,crypto,file,http,https,ijkhttphook,ijkinject,ijklivehook,ijklongurl,ijksegment,ijktcphook,pipe,rtp,tcp,tls,udp,ijkurlhook,data");
     player.setDataSource(conanUrl, headerParams.params)
     player.setSurface(surfaceView.holder.surface)
 
@@ -203,11 +212,11 @@ fun VideoView(
                 }
 
                 try {
-
+                    // 循环播放
                     play(player, surfaceView, conanUrl, headerParams) {
                         playNextConan(videoViewModel, player, surfaceView, headerParams)
                     }
-
+                    // 播放进度计算
                     videoViewModel.viewModelScope.launch {
                         while (true) {
                             delay(500)
@@ -218,12 +227,32 @@ fun VideoView(
                             videoViewModel.currentProcess = player.currentPosition.toFloat() / duration
                         }
                     }
-
                 } catch (e: Error) {
                     SwithunLog.e("player err")
                 }
             }
         }
+    }
+
+    val onGetFTPUrl = { ftpUrl: String ->
+        SwithunLog.d("ftpUrl: $ftpUrl")
+
+        activityVar.mySurfaceView?.let { surfaceView ->
+            val player = videoViewModel.player
+
+            player.reset()
+            // user-agent 需要用这个设置，否则header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
+//            player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", "Bilibili Freedoooooom/MarkII")
+            player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect", 1);//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
+            player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "dns_cache_clear", 1);// 解决 Hit dns cache but connect fail hostname
+            player.setDataSource(ftpUrl)
+            player.setSurface(surfaceView.holder.surface)
+
+            player.prepareAsync()
+            player.start()
+
+        }
+
     }
 
     Row {
@@ -238,6 +267,27 @@ fun VideoView(
             ) {
                 Text(text = "get conna")
             }
+            Button(onClick = {
+                videoViewModel.viewModelScope.launch(Dispatchers.IO) {
+                    activityVar.ftpVM.viewModelScope.launch(Dispatchers.IO) {
+                        val url = activityVar.ftpVM.downloadFile(2221)
+                        onGetFTPUrl(url)
+                    }
+                }
+            }) {
+                Text(text = "get FTP")
+            }
+            Button(onClick = {
+                videoViewModel.viewModelScope.launch(Dispatchers.IO) {
+                    activityVar.ftpVM.viewModelScope.launch(Dispatchers.IO) {
+                        val url = activityVar.ftpVM.downloadFile(5656)
+                        onGetFTPUrl(url)
+                    }
+                }
+            }) {
+                Text(text = "get FTP 5656")
+            }
+
             Button(onClick = {
                 if (videoViewModel.player.isPlaying) {
                     videoViewModel.player.pause()
