@@ -57,7 +57,7 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
                 qrCodeLogin()
                 getCheckMyProfile()
             }
-            getConanList()
+            // getConanList()
         }
     }
 

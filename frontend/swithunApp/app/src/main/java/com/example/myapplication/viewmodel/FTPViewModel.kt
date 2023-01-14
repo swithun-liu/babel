@@ -25,6 +25,8 @@ class FTPViewModel(val activity: () -> Activity) : ViewModel() {
     private var client2221: FTPClient? = null
     private var client5656: FTPClient? = null
 
+    private var myIp = "192.168.0.101"
+
     fun initFTP() {
 
         viewModelScope.launch(Dispatchers.IO) {
@@ -157,7 +159,7 @@ class FTPViewModel(val activity: () -> Activity) : ViewModel() {
                 }
 
                 SwithunLog.d("start connect")
-                ftpClient.connect("192.168.0.107", port)
+                ftpClient.connect(myIp, port)
                 SwithunLog.d("start login")
                 ftpClient.login("test", "test")
                 SwithunLog.d("start enterLocalActiveMode")
@@ -214,7 +216,7 @@ class FTPViewModel(val activity: () -> Activity) : ViewModel() {
                 SwithunLog.d(client.listFiles()?.map { it.name })
                 client.changeWorkingDirectory("swithun")
                 SwithunLog.d(client.listFiles()?.map { it.name })
-                url = "ftp://test:test@192.168.0.107:$port/swithun/gt_2.mp4"
+                url = "ftp://test:test@$myIp:$port/swithun/mmm.mp4"
             } catch (e: Exception) {
                 SwithunLog.e("list failed")
                 return@connectFTP ""

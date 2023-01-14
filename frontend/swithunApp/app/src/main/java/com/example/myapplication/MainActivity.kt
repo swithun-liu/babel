@@ -173,7 +173,7 @@ private fun play(player: IjkMediaPlayer, surfaceView: SurfaceView, conanUrl: Str
     player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", "Bilibili Freedoooooom/MarkII")
     player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect", 1);//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
     player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "dns_cache_clear", 1);// 解决 Hit dns cache but connect fail hostname
-    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "protocol_whitelist", "async,cache,crypto,file,http,https,ijkhttphook,ijkinject,ijklivehook,ijklongurl,ijksegment,ijktcphook,pipe,rtp,tcp,tls,udp,ijkurlhook,data");
+    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "protocol_whitelist", "async,cache,crypto,file,http,https,ijkhttphook,ijkinject,ijklivehook,ijklongurl,ijksegment,ijktcphook,pipe,rtp,tcp,tls,udp,ijkurlhook,data,ftp");
     player.setDataSource(conanUrl, headerParams.params)
     player.setSurface(surfaceView.holder.surface)
 
@@ -238,14 +238,19 @@ fun VideoView(
         SwithunLog.d("ftpUrl: $ftpUrl")
 
         activityVar.mySurfaceView?.let { surfaceView ->
-            val player = videoViewModel.player
+                val player = videoViewModel.player
 
             player.reset()
             // user-agent 需要用这个设置，否则header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
 //            player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", "Bilibili Freedoooooom/MarkII")
             player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect", 1);//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
             player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "dns_cache_clear", 1);// 解决 Hit dns cache but connect fail hostname
-            player.setDataSource(ftpUrl)
+            player.setOption(
+                IjkMediaPlayer.OPT_CATEGORY_FORMAT,
+                "protocol_whitelist",
+                "async,cache,crypto,file,http,https,ijkhttphook,ijkinject,ijklivehook,ijklongurl,ijksegment,ijktcphook,pipe,rtp,tcp,tls,udp,ijkurlhook,data,ftp"
+            );
+            player.dataSource = ftpUrl
             player.setSurface(surfaceView.holder.surface)
 
             player.prepareAsync()
