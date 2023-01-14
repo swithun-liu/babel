@@ -260,6 +260,22 @@ fun VideoView(
 
     }
 
+    val onGetHttpUr = { httpUrl: String ->
+        SwithunLog.d("httpUrl: $httpUrl")
+
+        activityVar.mySurfaceView?.let { surfaceView ->
+            val player = videoViewModel.player
+
+            player.reset()
+            player.dataSource = httpUrl
+            player.setSurface(surfaceView.holder.surface)
+
+            player.prepareAsync()
+            player.start()
+
+        }
+    }
+
     Row {
         Column {
             Button(onClick = {
@@ -291,6 +307,12 @@ fun VideoView(
                 }
             }) {
                 Text(text = "get FTP 5656")
+            }
+
+            Button(onClick = {
+                onGetHttpUr(videoViewModel.testGetHttpMp4())
+            }) {
+                Text(text = "getHttp")
             }
 
             Button(onClick = {

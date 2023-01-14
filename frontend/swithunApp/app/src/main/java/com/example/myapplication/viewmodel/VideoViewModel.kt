@@ -1,6 +1,7 @@
 package com.example.myapplication.viewmodel
 
 import android.annotation.SuppressLint
+import android.os.Environment
 import android.util.Log
 import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.runtime.getValue
@@ -20,6 +21,11 @@ import com.example.myapplication.nullCheck
 import com.example.myapplication.util.*
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
+import com.koushikdutta.async.AsyncServer
+import com.koushikdutta.async.http.server.AsyncHttpServer
+import com.koushikdutta.async.http.server.AsyncHttpServerRequest
+import com.koushikdutta.async.http.server.AsyncHttpServerResponse
+import com.koushikdutta.async.http.server.HttpServerRequestCallback
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -27,6 +33,10 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
+import java.io.File
+import java.io.FileInputStream
+import java.io.IOException
+import java.lang.Exception
 
 class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
 
@@ -38,6 +48,10 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
     val player = IjkMediaPlayer()
     var beginJob: Job? = null
 
+    // https://juejin.cn/post/6844903551408291848
+    val server = AsyncHttpServer()
+    val asyncServer = AsyncServer()
+
     private val BILIBILI_LOGIN_QR_CODE_URL =
         "http://passport.bilibili.com/x/passport-login/web/qrcode/generate"
     private val BILIBILI_LOGIN_IN_URL =
@@ -45,8 +59,51 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
     private val BILIBILI_MY_INFO_URL = "http://api.bilibili.com/x/space/myinfo"
     private val TAG = "swithun {VideoViewModel}"
 
+    val fileBasePath = Environment.getExternalStorageDirectory().absolutePath
+
     init {
         beginJob = begin()
+        initVideoServer()
+    }
+
+    private fun initVideoServer() {
+        server.get("/", object : HttpServerRequestCallback {
+            override fun onRequest(
+                request: AsyncHttpServerRequest?,
+                response: AsyncHttpServerResponse?
+            ) {
+                try {
+                    response.nullCheck("/: response", true)
+                    response?.send("收到")
+                } catch (e: IOException) {
+                    SwithunLog.d("server get / response err")
+                    response?.code(500)
+                }
+            }
+
+        })
+        server.get("/files", object : HttpServerRequestCallback {
+            override fun onRequest(
+                request: AsyncHttpServerRequest?,
+                response: AsyncHttpServerResponse?
+            ) {
+                val path = "$fileBasePath/swithun/mmm.mp4"
+                val file = File(path).takeIf { it.exists() && it.isFile }.nullCheck("check file exists", true)
+                if (file == null) {
+                    response?.code(404)?.send("Not found!")
+                    return
+                }
+                val fis = FileInputStream(file)
+                try {
+                    response?.sendStream(fis, fis.available().toLong())
+                } catch (e: Exception) {
+                    SwithunLog.e("/files : sendStream err")
+                }
+            }
+
+        })
+
+        server.listen(asyncServer, 54321)
     }
 
     private fun begin(): Job {
@@ -195,44 +252,9 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         return getConan(nextCursor)
     }
 
-    suspend fun getCurConan() {
-        getConan(itemCursor)
-    }
 
-    suspend fun getConanList() {
-        val urlEncodeParams = UrlEncodeParams().apply {
-            put("season_id", GetEpisodeList.EPISODE.CONAN.season_id.toString())
-        }
-        val headerParams = HeaderParams().apply {
-        }
-
-        val conanList = getRequest(
-            GetEpisodeList.URL,
-            urlEncodeParams = urlEncodeParams,
-            headerParams = headerParams
-        )
-        val result = conanList?.safeGetJSONObject("result").nullCheck("get result", true) ?: return
-        val main_section = result.safeGetJSONObject("main_section").nullCheck("get main_section", true) ?: return
-        val episodes = main_section.safeGetJsonArray("episodes").nullCheck("get episodes", true) ?: return
-
-        val items = mutableListOf<SectionItem>()
-        for (i in 0 until  episodes.length()) {
-            val obj = episodes.getJSONObject(i)
-            val shortTitle = obj.safeGetString("title").nullCheck("get shortTitle", true) ?: continue
-            val longTitle = obj.safeGetString("long_title").nullCheck("get longTitle", true) ?: continue
-            val id = obj.safeGetLong("id").nullCheck("get id", true) ?: continue
-
-            val item = SectionItem(shortTitle, longTitle, id)
-            items.add(item)
-        }
-
-        itemList.clear()
-        itemList.addAll(items)
-
-    }
-
-    fun getFTP(): String {
-        return ""
+    fun testGetHttpMp4(): String {
+        return "http://192.168.0.101:54321/files"
     }
 
 }
