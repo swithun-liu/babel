@@ -48,6 +48,8 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
     val player = IjkMediaPlayer()
     var beginJob: Job? = null
 
+    fun getNewPlayer() = IjkMediaPlayer()
+
 
     private val BILIBILI_LOGIN_QR_CODE_URL =
         "http://passport.bilibili.com/x/passport-login/web/qrcode/generate"

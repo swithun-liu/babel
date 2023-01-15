@@ -61,15 +61,19 @@ class NasViewModel: ViewModel() {
                 request: AsyncHttpServerRequest?,
                 response: AsyncHttpServerResponse?
             ) {
-                val path = "$fileBasePath/swithun/mmm.mp4"
+                //val path = "$fileBasePath/swithun/mmm.mp4"
+                val path = "$fileBasePath/swithun/taxi.mkv"
                 val file = File(path).takeIf { it.exists() && it.isFile }.nullCheck("check file exists", true)
                 if (file == null) {
                     response?.code(404)?.send("Not found!")
                     return
                 }
-                val fis = FileInputStream(file)
                 try {
-                    response?.sendStream(fis, fis.available().toLong())
+                    val fis = FileInputStream(file)
+
+                    // 使用 fis.available() 当文件大于2G时是0
+                    // response?.sendStream(fis, fis.available().toLong())
+                    response?.sendStream(fis, file.length())
                 } catch (e: Exception) {
                     SwithunLog.e("/files : sendStream err")
                 }

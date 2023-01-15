@@ -273,9 +273,10 @@ fun VideoView(
         SwithunLog.d("httpUrl: $httpUrl")
 
         activityVar.mySurfaceView?.let { surfaceView ->
-            val player = videoViewModel.player
+            val player = videoViewModel.getNewPlayer()
 
             player.reset()
+            player.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 1);
             player.dataSource = httpUrl
             player.setSurface(surfaceView.holder.surface)
 
