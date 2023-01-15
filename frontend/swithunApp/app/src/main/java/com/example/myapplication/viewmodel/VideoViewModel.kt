@@ -279,8 +279,7 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
             items.add(item)
         }
 
-        itemList.clear()
-        itemList.addAll(items)
+        itemList = items
         SwithunLog.d("haha - 2")
     }
 
