@@ -48,9 +48,6 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
     val player = IjkMediaPlayer()
     var beginJob: Job? = null
 
-    // https://juejin.cn/post/6844903551408291848
-    val server = AsyncHttpServer()
-    val asyncServer = AsyncServer()
 
     private val BILIBILI_LOGIN_QR_CODE_URL =
         "http://passport.bilibili.com/x/passport-login/web/qrcode/generate"
@@ -59,52 +56,10 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
     private val BILIBILI_MY_INFO_URL = "http://api.bilibili.com/x/space/myinfo"
     private val TAG = "swithun {VideoViewModel}"
 
-    val fileBasePath = Environment.getExternalStorageDirectory().absolutePath
-
     init {
         beginJob = begin()
-        initVideoServer()
     }
 
-    private fun initVideoServer() {
-        server.get("/", object : HttpServerRequestCallback {
-            override fun onRequest(
-                request: AsyncHttpServerRequest?,
-                response: AsyncHttpServerResponse?
-            ) {
-                try {
-                    response.nullCheck("/: response", true)
-                    response?.send("收到")
-                } catch (e: IOException) {
-                    SwithunLog.d("server get / response err")
-                    response?.code(500)
-                }
-            }
-
-        })
-        server.get("/files", object : HttpServerRequestCallback {
-            override fun onRequest(
-                request: AsyncHttpServerRequest?,
-                response: AsyncHttpServerResponse?
-            ) {
-                val path = "$fileBasePath/swithun/mmm.mp4"
-                val file = File(path).takeIf { it.exists() && it.isFile }.nullCheck("check file exists", true)
-                if (file == null) {
-                    response?.code(404)?.send("Not found!")
-                    return
-                }
-                val fis = FileInputStream(file)
-                try {
-                    response?.sendStream(fis, fis.available().toLong())
-                } catch (e: Exception) {
-                    SwithunLog.e("/files : sendStream err")
-                }
-            }
-
-        })
-
-        server.listen(asyncServer, 54321)
-    }
 
     private fun begin(): Job {
         return viewModelScope.launch(Dispatchers.IO) {
@@ -271,9 +226,9 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
         val items = mutableListOf<SectionItem>()
         for (i in 0 until  episodes.length()) {
             val obj = episodes.getJSONObject(i)
-            val shortTitle = obj.safeGetString("title").nullCheck("get shortTitle", true) ?: continue
-            val longTitle = obj.safeGetString("long_title").nullCheck("get longTitle", true) ?: continue
-            val id = obj.safeGetLong("id").nullCheck("get id", true) ?: continue
+            val shortTitle = obj.safeGetString("title").nullCheck("get shortTitle") ?: continue
+            val longTitle = obj.safeGetString("long_title").nullCheck("get longTitle") ?: continue
+            val id = obj.safeGetLong("id").nullCheck("get id") ?: continue
 
             val item = SectionItem(shortTitle, longTitle, id)
             items.add(item)

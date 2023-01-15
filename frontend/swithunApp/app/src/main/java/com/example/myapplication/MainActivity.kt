@@ -39,6 +39,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.util.HeaderParams
 import com.example.myapplication.viewmodel.FTPViewModel
+import com.example.myapplication.viewmodel.NasViewModel
 import com.example.myapplication.viewmodel.VideoViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -99,7 +100,8 @@ class ActivityVar(
     var mySurfaceView: SurfaceView? = null,
     val wordsVM: WordsViewModel = WordsViewModel(),
     val videoVM: VideoViewModel = VideoViewModel { activity },
-    val ftpVM: FTPViewModel = FTPViewModel { activity }
+    val ftpVM: FTPViewModel = FTPViewModel { activity },
+    val nasVM: NasViewModel = NasViewModel()
 )
 
 @RequiresApi(Build.VERSION_CODES.M)
