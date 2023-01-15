@@ -114,7 +114,7 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
                 qrCodeLogin()
                 getCheckMyProfile()
             }
-            // getConanList()
+            getConanList()
         }
     }
 
@@ -250,6 +250,38 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
     suspend fun getNextConan(): String? {
         val nextCursor = (itemCursor + 1) % 500
         return getConan(nextCursor)
+    }
+
+    suspend fun getConanList() {
+        val urlEncodeParams = UrlEncodeParams().apply {
+            put("season_id", GetEpisodeList.EPISODE.CONAN.season_id.toString())
+        }
+        val headerParams = HeaderParams().apply {
+        }
+
+        val conanList = getRequest(
+            GetEpisodeList.URL,
+            urlEncodeParams = urlEncodeParams,
+            headerParams = headerParams
+        )
+        val result = conanList?.safeGetJSONObject("result").nullCheck("get result", true) ?: return
+        val main_section = result.safeGetJSONObject("main_section").nullCheck("get main_section", true) ?: return
+        val episodes = main_section.safeGetJsonArray("episodes").nullCheck("get episodes", true) ?: return
+
+        val items = mutableListOf<SectionItem>()
+        for (i in 0 until  episodes.length()) {
+            val obj = episodes.getJSONObject(i)
+            val shortTitle = obj.safeGetString("title").nullCheck("get shortTitle", true) ?: continue
+            val longTitle = obj.safeGetString("long_title").nullCheck("get longTitle", true) ?: continue
+            val id = obj.safeGetLong("id").nullCheck("get id", true) ?: continue
+
+            val item = SectionItem(shortTitle, longTitle, id)
+            items.add(item)
+        }
+
+        itemList.clear()
+        itemList.addAll(items)
+        SwithunLog.d("haha - 2")
     }
 
 

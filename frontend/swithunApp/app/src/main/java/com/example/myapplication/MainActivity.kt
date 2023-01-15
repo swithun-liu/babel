@@ -6,11 +6,15 @@ import android.os.Build
 import android.os.Bundle
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.view.ViewGroup
 import android.webkit.WebSettings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,6 +22,7 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.ParagraphStyle
@@ -26,6 +31,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -103,54 +109,55 @@ fun ScreenSetup(
     videoViewModel: VideoViewModel,
     activityVar: ActivityVar,
 ) {
-    Row {
+    Row(modifier = Modifier.horizontalScroll(ScrollState(0), true)) {
+        IjkPlayer(player = videoViewModel.player, activityVar)
         VideoScreen(
             videoViewModel,
             activityVar
         )
-        Column {
-//            WordsScreen(
-//                wordsResult = wordsViewModel.wordsResult,
-//            ) { wordsViewModel.sendMessage(it) }
-            FTPView(activityVar)
-        }
+        WordsScreen(
+            wordsResult = wordsViewModel.wordsResult,
+        ) { wordsViewModel.sendMessage(it) }
+        FTPView(activityVar)
     }
 }
 
 @Composable
 fun FTPView(activityVar: ActivityVar) {
-    Button(onClick = {
-        activityVar.ftpVM.initFTP()
-    }) {
-        Text(text = "start FTP")
-    }
-    Button(onClick = {
-        activityVar.ftpVM.connectFTP(2221)
-    }) {
-        Text(text = "connect FTP 2221")
-    }
-    Button(onClick = {
-        activityVar.ftpVM.connectFTP(5656)
-    }) {
-        Text(text = "connect FTP 5656")
-    }
-
-    Button(onClick = {
-        activityVar.ftpVM.listFTP(2221)
-    }) {
-        Text(text = "list 2221")
-    }
-    Button(onClick = {
-        activityVar.ftpVM.listFTP(5656)
-    }) {
-        Text(text = "list 5656")
-    }
-    Button(onClick = {
-        activityVar.ftpVM.viewModelScope.launch(Dispatchers.IO) {
-            val url = activityVar.ftpVM.downloadFile(5656)
+    Column {
+        Button(onClick = {
+            activityVar.ftpVM.initFTP()
+        }) {
+            Text(text = "start FTP")
         }
-    }) {
-        Text(text = "download file")
+        Button(onClick = {
+            activityVar.ftpVM.connectFTP(2221)
+        }) {
+            Text(text = "connect FTP 2221")
+        }
+        Button(onClick = {
+            activityVar.ftpVM.connectFTP(5656)
+        }) {
+            Text(text = "connect FTP 5656")
+        }
+
+        Button(onClick = {
+            activityVar.ftpVM.listFTP(2221)
+        }) {
+            Text(text = "list 2221")
+        }
+        Button(onClick = {
+            activityVar.ftpVM.listFTP(5656)
+        }) {
+            Text(text = "list 5656")
+        }
+        Button(onClick = {
+            activityVar.ftpVM.viewModelScope.launch(Dispatchers.IO) {
+                val url = activityVar.ftpVM.downloadFile(5656)
+            }
+        }) {
+            Text(text = "download file")
+        }
     }
 }
 
@@ -160,9 +167,9 @@ fun VideoScreen(
     videoViewModel: VideoViewModel,
     activityVar: ActivityVar,
 ) {
-    Column {
-        QRCode(videoViewModel)
+    Row {
         VideoView(videoViewModel, activityVar)
+        QRCode(videoViewModel)
     }
 }
 
@@ -325,11 +332,13 @@ fun VideoView(
                 Text(text = "stop")
             }
             Text(text = videoViewModel.currentProcess.toString())
-            IjkPlayer(player = videoViewModel.player, activityVar)
         }
 
-        LazyColumn {
+        LazyColumn(modifier = Modifier
+            .background(Color(R.color.purple_200))
+            .width(Dp(100f))) {
             items(videoViewModel.itemList) { sectionItem ->
+                SwithunLog.d("haha - 1")
                 Button(onClick = {
                     videoViewModel.viewModelScope.launch {
                         videoViewModel.getConanByEpId(sectionItem.id)?.let { newConanUrl ->
@@ -362,14 +371,15 @@ fun playNextConan(
 @Composable
 fun IjkPlayer(player: IjkMediaPlayer, activityVar: ActivityVar) {
     // https://juejin.cn/post/7034363130121551903
-    AndroidView(factory = { context ->
+    AndroidView(
+        factory = { context ->
         SwithunLog.d("AndroidView # factory")
         val surfaceView = SurfaceView(context)
         surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
             override fun surfaceCreated(holder: SurfaceHolder) {
                 val temp = surfaceView.layoutParams
-                temp.height = 600
-                temp.width = 900
+                temp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                temp.width = ViewGroup.LayoutParams.WRAP_CONTENT
                 surfaceView.layoutParams = temp
                 // surfaceView在activity Stop时会destroy，重新切到前台会重新走create，这里要重新setDisplay
                 // 否则会黑屏但是有声音 https://github.com/Bilibili/ijkplayer/issues/2666#issuecomment-800083756
@@ -394,9 +404,11 @@ fun IjkPlayer(player: IjkMediaPlayer, activityVar: ActivityVar) {
         activityVar.mySurfaceView = surfaceView
 
         surfaceView
-    }, update = {
-        SwithunLog.d("AndroidView # update")
-    })
+    },
+        modifier = Modifier.width(Dp(1000f)),
+        update = {
+            SwithunLog.d("AndroidView # update")
+        })
 }
 
 
