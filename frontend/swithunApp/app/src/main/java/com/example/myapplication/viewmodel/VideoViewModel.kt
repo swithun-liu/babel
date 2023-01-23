@@ -3,6 +3,7 @@ package com.example.myapplication.viewmodel
 import android.annotation.SuppressLint
 import android.os.Environment
 import android.util.Log
+import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -10,7 +11,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.ActivityVar
 import com.example.myapplication.MainActivity
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.errcode.LogInErrCode
@@ -38,7 +41,7 @@ import java.io.FileInputStream
 import java.io.IOException
 import java.lang.Exception
 
-class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
+class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel() {
 
     var qrCodeImage: ImageBitmap by mutableStateOf(ImageBitmap(100, 100))
     var loginStatus by mutableStateOf("未登陆")
@@ -47,6 +50,12 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
     var itemCursor = 0
     val player = IjkMediaPlayer()
     var beginJob: Job? = null
+
+    val ftpVM = ViewModelProvider(activity.invoke(), object : ViewModelProvider.Factory {
+        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+            return FTPViewModel { activity.invoke() } as T
+        }
+    }).get(FTPViewModel::class.java)
 
     fun getNewPlayer() = IjkMediaPlayer()
 
@@ -242,7 +251,7 @@ class VideoViewModel(private val activity: () -> MainActivity?) : ViewModel() {
 
 
     fun testGetHttpMp4(): String {
-        return "http://192.168.0.101:54321/files"
+        return "http://${ftpVM.myIPStr}:54321/files"
     }
 
 }

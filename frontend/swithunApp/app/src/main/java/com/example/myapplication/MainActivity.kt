@@ -1,7 +1,5 @@
 package com.example.myapplication
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.view.SurfaceHolder
@@ -35,10 +33,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.ui.theme.MyApplicationTheme
+import com.example.myapplication.util.AuthChecker
 import com.example.myapplication.util.HeaderParams
 import com.example.myapplication.viewmodel.FTPViewModel
+import com.example.myapplication.viewmodel.FileManagerViewModel
 import com.example.myapplication.viewmodel.NasViewModel
 import com.example.myapplication.viewmodel.VideoViewModel
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +55,9 @@ import tv.danmaku.ijk.media.player.IjkMediaPlayer
 
 class MainActivity : ComponentActivity() {
 
-    private val activityVar = ActivityVar(this)
+    private val activityVar by lazy {
+        ActivityVar(this)
+    }
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,34 +78,37 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        /**
-         * 动态获取权限，Android 6.0 新特性，一些保护权限，除了要在AndroidManifest中声明权限，还要使用如下代码动态获取
-         */
-        /**
-         * 动态获取权限，Android 6.0 新特性，一些保护权限，除了要在AndroidManifest中声明权限，还要使用如下代码动态获取
-         */
-        if (Build.VERSION.SDK_INT >= 23) {
-            val REQUEST_CODE_CONTACT = 101
-            val permissions = arrayOf<String>(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            //验证是否许可权限
-            for (str in permissions) {
-                if (checkSelfPermission(str!!) != PackageManager.PERMISSION_GRANTED) {
-                    //申请权限
-                    requestPermissions(permissions, REQUEST_CODE_CONTACT)
-                    return
-                }
-            }
-        }
+        AuthChecker.checkWriteExternalStorage(this)
     }
 }
 
 class ActivityVar(
     var activity: MainActivity,
     var mySurfaceView: SurfaceView? = null,
-    val wordsVM: WordsViewModel = WordsViewModel(),
-    val videoVM: VideoViewModel = VideoViewModel { activity },
-    val ftpVM: FTPViewModel = FTPViewModel { activity },
-    val nasVM: NasViewModel = NasViewModel()
+    val wordsVM: WordsViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
+        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+            return WordsViewModel() as T
+        }
+
+    }).get(WordsViewModel::class.java),
+    val videoVM: VideoViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
+        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+            return VideoViewModel{ activity } as T
+        }
+    }).get(VideoViewModel::class.java),
+    val ftpVM: FTPViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
+        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+            return FTPViewModel { activity } as T
+        }
+    }).get(FTPViewModel::class.java),
+    val nasVM: NasViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
+        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+            return NasViewModel { activity } as T
+        }
+    }).get(NasViewModel::class.java),
+    val fileManagerViewModel: FileManagerViewModel = ViewModelProvider(activity).get(
+        FileManagerViewModel::class.java
+    )
 )
 
 @RequiresApi(Build.VERSION_CODES.M)
@@ -132,6 +139,7 @@ fun FTPView(activityVar: ActivityVar) {
         }) {
             Text(text = "start FTP")
         }
+        Text(text = activityVar.ftpVM.myIPStr)
         Button(onClick = {
             activityVar.ftpVM.connectFTP(2221)
         }) {

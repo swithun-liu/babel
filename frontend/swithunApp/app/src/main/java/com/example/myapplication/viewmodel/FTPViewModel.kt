@@ -3,9 +3,16 @@ package com.example.myapplication.viewmodel
 import android.app.Activity
 import android.os.Environment
 import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.SwithunLog
+import com.example.myapplication.util.WebUtil
 import kotlinx.coroutines.*
 import org.apache.commons.net.ftp.FTPClient
 import org.apache.commons.net.ftp.FTPReply
@@ -20,14 +27,21 @@ import java.io.*
 import java.lang.Exception
 
 
-class FTPViewModel(val activity: () -> Activity) : ViewModel() {
+class FTPViewModel(val activity: () -> ComponentActivity) : ViewModel() {
 
     private var client2221: FTPClient? = null
     private var client5656: FTPClient? = null
 
-    private var myIp = "192.168.0.101"
+    var myIPStr: String by mutableStateOf("未获取")
+    private var hasInit = false
+
+    init {
+        myIPStr = WebUtil.getLocalIPAddress(activity())
+    }
 
     fun initFTP() {
+        if (hasInit) return
+        hasInit = true
 
         viewModelScope.launch(Dispatchers.IO) {
 
@@ -159,7 +173,7 @@ class FTPViewModel(val activity: () -> Activity) : ViewModel() {
                 }
 
                 SwithunLog.d("start connect")
-                ftpClient.connect(myIp, port)
+                ftpClient.connect(myIPStr, port)
                 SwithunLog.d("start login")
                 ftpClient.login("test", "test")
                 SwithunLog.d("start enterLocalActiveMode")
@@ -216,7 +230,7 @@ class FTPViewModel(val activity: () -> Activity) : ViewModel() {
                 SwithunLog.d(client.listFiles()?.map { it.name })
                 client.changeWorkingDirectory("swithun")
                 SwithunLog.d(client.listFiles()?.map { it.name })
-                url = "ftp://test:test@$myIp:$port/swithun/mmm.mp4"
+                url = "ftp://test:test@$myIPStr:$port/swithun/mmm.mp4"
             } catch (e: Exception) {
                 SwithunLog.e("list failed")
                 return@connectFTP ""

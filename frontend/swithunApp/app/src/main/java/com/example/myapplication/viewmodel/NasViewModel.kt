@@ -1,7 +1,8 @@
 package com.example.myapplication.viewmodel
 
-import android.os.Environment
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.example.myapplication.MainActivity
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.nullCheck
 import com.koushikdutta.async.AsyncServer
@@ -19,12 +20,13 @@ import java.io.FileOutputStream
 import java.io.IOException
 
 
-class NasViewModel: ViewModel() {
+class NasViewModel(activity: () -> MainActivity) : ViewModel() {
 
     // https://juejin.cn/post/6844903551408291848
+    // https://github.com/koush/AndroidAsync
     private val server = AsyncHttpServer()
     private val asyncServer = AsyncServer()
-    private val fileBasePath = Environment.getExternalStorageDirectory().absolutePath
+    private val fileManagerViewModel: FileManagerViewModel = ViewModelProvider(activity.invoke()).get(FileManagerViewModel::class.java)
 
     init {
         initVideoServer()
@@ -35,6 +37,7 @@ class NasViewModel: ViewModel() {
         getFilesPath(server)
         postFilePath(server)
         server.listen(asyncServer, 54321)
+        SwithunLog.d("start http server")
     }
 
     private fun getBasePath(server: AsyncHttpServer) {
@@ -62,7 +65,7 @@ class NasViewModel: ViewModel() {
                 response: AsyncHttpServerResponse?
             ) {
                 //val path = "$fileBasePath/swithun/mmm.mp4"
-                val path = "$fileBasePath/swithun/taxi.mkv"
+                val path = "${fileManagerViewModel.fileBasePath}/swithun/taxi.mkv"
                 val file = File(path).takeIf { it.exists() && it.isFile }.nullCheck("check file exists", true)
                 if (file == null) {
                     response?.code(404)?.send("Not found!")
@@ -95,7 +98,7 @@ class NasViewModel: ViewModel() {
                     it.isFile
                     try {
                         val filePart: FilePart = (it as FilePart)
-                        val fos = FileOutputStream("$fileBasePath/swithun/${it.filename}))").nullCheck("fos", true)
+                        val fos = FileOutputStream("${fileManagerViewModel.fileBasePath}/swithun/${it.filename}))").nullCheck("fos", true)
                         last = fos
                         val osdcb = OutputStreamDataCallback(fos).nullCheck("osdcd", true)
                         params.dataCallback = osdcb
