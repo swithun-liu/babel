@@ -68,7 +68,7 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
     private val TAG = "swithun {VideoViewModel}"
 
     init {
-        beginJob = begin()
+        //beginJob = begin()
     }
 
 
@@ -251,7 +251,8 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
 
 
     fun testGetHttpMp4(): String {
-        return "http://${ftpVM.myIPStr}:54321/files"
+        //return "http://${ftpVM.myIPStr}:54321/files"
+        return "http://192.168.31.15:54321/files"
     }
 
 }

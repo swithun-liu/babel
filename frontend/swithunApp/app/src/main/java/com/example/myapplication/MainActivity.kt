@@ -284,7 +284,7 @@ fun VideoView(
             val player = videoViewModel.getNewPlayer()
 
             player.reset()
-            player.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", 1);
+            player.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-hevc", 1)
             player.dataSource = httpUrl
             player.setSurface(surfaceView.holder.surface)
 
