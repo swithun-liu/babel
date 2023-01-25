@@ -9,10 +9,7 @@ import android.webkit.WebSettings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -36,13 +33,11 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.model.SectionItem
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.util.AuthChecker
 import com.example.myapplication.util.HeaderParams
-import com.example.myapplication.viewmodel.FTPViewModel
-import com.example.myapplication.viewmodel.FileManagerViewModel
-import com.example.myapplication.viewmodel.NasViewModel
-import com.example.myapplication.viewmodel.VideoViewModel
+import com.example.myapplication.viewmodel.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -93,7 +88,7 @@ class ActivityVar(
     }).get(WordsViewModel::class.java),
     val videoVM: VideoViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return VideoViewModel{ activity } as T
+            return VideoViewModel { activity } as T
         }
     }).get(VideoViewModel::class.java),
     val ftpVM: FTPViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
@@ -128,6 +123,59 @@ fun ScreenSetup(
             wordsResult = wordsViewModel.wordsResult,
         ) { wordsViewModel.sendMessage(it) }
         FTPView(activityVar)
+        PathListView(pathList = activityVar.fileManagerViewModel.pathList)
+    }
+}
+
+@Composable
+fun PathListView(pathList: List<PathItem>) {
+    LazyColumn(modifier = Modifier
+        .background(Color(R.color.purple_200))
+        .width(Dp(600f))
+    ) {
+        items(pathList) { path: PathItem ->
+            when (path) {
+                is PathItem.FileItem -> {
+                    FileItemView(path)
+                }
+                is PathItem.FolderItem -> {
+                    FolderItemView(path)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FolderItemView(folder: PathItem.FolderItem) {
+    Column {
+        Row {
+            Text(text = "Folder: ")
+            Text(text = folder.name)
+        }
+        SimplePathListView(folder.children)
+    }
+}
+
+@Composable
+fun SimplePathListView(pathList: List<PathItem>) {
+    pathList.forEach { path ->
+        when (path) {
+            is PathItem.FileItem -> {
+                FileItemView(path)
+            }
+            is PathItem.FolderItem -> {
+                FolderItemView(path)
+            }
+        }
+    }
+}
+
+@Composable
+fun FileItemView(file: PathItem.FileItem) {
+    Row {
+        Text(text = "File: ")
+        Text(text = file.name)
     }
 }
 
@@ -183,14 +231,36 @@ fun VideoScreen(
     }
 }
 
-private fun play(player: IjkMediaPlayer, surfaceView: SurfaceView, conanUrl: String, headerParams: HeaderParams, onComplete: () -> Unit) {
+private fun play(
+    player: IjkMediaPlayer,
+    surfaceView: SurfaceView,
+    conanUrl: String,
+    headerParams: HeaderParams,
+    onComplete: () -> Unit
+) {
     SwithunLog.d("运行playe")
     player.reset()
     // user-agent 需要用这个设置，否则header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
-    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", "Bilibili Freedoooooom/MarkII")
-    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect", 1);//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
-    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "dns_cache_clear", 1);// 解决 Hit dns cache but connect fail hostname
-    player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "protocol_whitelist", "async,cache,crypto,file,http,https,ijkhttphook,ijkinject,ijklivehook,ijklongurl,ijksegment,ijktcphook,pipe,rtp,tcp,tls,udp,ijkurlhook,data,ftp");
+    player.setOption(
+        IjkMediaPlayer.OPT_CATEGORY_FORMAT,
+        "user-agent",
+        "Bilibili Freedoooooom/MarkII"
+    )
+    player.setOption(
+        IjkMediaPlayer.OPT_CATEGORY_FORMAT,
+        "reconnect",
+        1
+    );//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
+    player.setOption(
+        IjkMediaPlayer.OPT_CATEGORY_FORMAT,
+        "dns_cache_clear",
+        1
+    );// 解决 Hit dns cache but connect fail hostname
+    player.setOption(
+        IjkMediaPlayer.OPT_CATEGORY_FORMAT,
+        "protocol_whitelist",
+        "async,cache,crypto,file,http,https,ijkhttphook,ijkinject,ijklivehook,ijklongurl,ijksegment,ijktcphook,pipe,rtp,tcp,tls,udp,ijkurlhook,data,ftp"
+    );
     player.setDataSource(conanUrl, headerParams.params)
     player.setSurface(surfaceView.holder.surface)
 
@@ -241,7 +311,8 @@ fun VideoView(
                                 0L -> 1F
                                 else -> duration.toFloat()
                             }
-                            videoViewModel.currentProcess = player.currentPosition.toFloat() / duration
+                            videoViewModel.currentProcess =
+                                player.currentPosition.toFloat() / duration
                         }
                     }
                 } catch (e: Error) {
@@ -255,13 +326,21 @@ fun VideoView(
         SwithunLog.d("ftpUrl: $ftpUrl")
 
         activityVar.mySurfaceView?.let { surfaceView ->
-                val player = videoViewModel.player
+            val player = videoViewModel.player
 
             player.reset()
             // user-agent 需要用这个设置，否则header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
 //            player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", "Bilibili Freedoooooom/MarkII")
-            player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "reconnect", 1);//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
-            player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "dns_cache_clear", 1);// 解决 Hit dns cache but connect fail hostname
+            player.setOption(
+                IjkMediaPlayer.OPT_CATEGORY_FORMAT,
+                "reconnect",
+                1
+            );//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
+            player.setOption(
+                IjkMediaPlayer.OPT_CATEGORY_FORMAT,
+                "dns_cache_clear",
+                1
+            );// 解决 Hit dns cache but connect fail hostname
             player.setOption(
                 IjkMediaPlayer.OPT_CATEGORY_FORMAT,
                 "protocol_whitelist",
@@ -298,7 +377,7 @@ fun VideoView(
         Column {
             Button(onClick = {
                 videoViewModel.viewModelScope.launch(Dispatchers.IO) {
-                    videoViewModel.getConan()?.let { newConanUrl->
+                    videoViewModel.getConan()?.let { newConanUrl ->
                         onGetConanUrl(newConanUrl)
                     }
                 }
@@ -345,10 +424,12 @@ fun VideoView(
             Text(text = videoViewModel.currentProcess.toString())
         }
 
-        LazyColumn(modifier = Modifier
-            .background(Color(R.color.purple_200))
-            .width(Dp(100f))) {
-            items(videoViewModel.itemList) { sectionItem ->
+        LazyColumn(
+            modifier = Modifier
+                .background(Color(R.color.purple_200))
+                .width(Dp(100f))
+        ) {
+            items(videoViewModel.itemList) { sectionItem: SectionItem ->
                 SwithunLog.d("haha - 1")
                 Button(onClick = {
                     videoViewModel.viewModelScope.launch {
@@ -356,7 +437,7 @@ fun VideoView(
                             onGetConanUrl(newConanUrl)
                         }
                     }
-                })  {
+                }) {
                     Text(text = "${sectionItem.shortTitle}: ${sectionItem.longTitle}")
                 }
             }
@@ -371,7 +452,8 @@ fun playNextConan(
     headerParams: HeaderParams
 ) {
     videoViewModel.viewModelScope.launch {
-        val nextConanUrl = videoViewModel.getNextConan().nullCheck("get nextConanUrl") ?: return@launch
+        val nextConanUrl =
+            videoViewModel.getNextConan().nullCheck("get nextConanUrl") ?: return@launch
         play(player, surfaceView, nextConanUrl, headerParams) {
             playNextConan(videoViewModel, player, surfaceView, headerParams)
         }
@@ -384,38 +466,38 @@ fun IjkPlayer(player: IjkMediaPlayer, activityVar: ActivityVar) {
     // https://juejin.cn/post/7034363130121551903
     AndroidView(
         factory = { context ->
-        SwithunLog.d("AndroidView # factory")
-        val surfaceView = SurfaceView(context)
-        surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
-            override fun surfaceCreated(holder: SurfaceHolder) {
-                val temp = surfaceView.layoutParams
-                temp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-                temp.width = ViewGroup.LayoutParams.WRAP_CONTENT
-                surfaceView.layoutParams = temp
-                // surfaceView在activity Stop时会destroy，重新切到前台会重新走create，这里要重新setDisplay
-                // 否则会黑屏但是有声音 https://github.com/Bilibili/ijkplayer/issues/2666#issuecomment-800083756
-                player.setDisplay(holder)
-                player.start()
-            }
+            SwithunLog.d("AndroidView # factory")
+            val surfaceView = SurfaceView(context)
+            surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
+                override fun surfaceCreated(holder: SurfaceHolder) {
+                    val temp = surfaceView.layoutParams
+                    temp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    temp.width = ViewGroup.LayoutParams.WRAP_CONTENT
+                    surfaceView.layoutParams = temp
+                    // surfaceView在activity Stop时会destroy，重新切到前台会重新走create，这里要重新setDisplay
+                    // 否则会黑屏但是有声音 https://github.com/Bilibili/ijkplayer/issues/2666#issuecomment-800083756
+                    player.setDisplay(holder)
+                    player.start()
+                }
 
-            override fun surfaceChanged(
-                holder: SurfaceHolder,
-                format: Int,
-                width: Int,
-                height: Int
-            ) {
-            }
+                override fun surfaceChanged(
+                    holder: SurfaceHolder,
+                    format: Int,
+                    width: Int,
+                    height: Int
+                ) {
+                }
 
-            override fun surfaceDestroyed(holder: SurfaceHolder) {
-                player.pause()
-            }
+                override fun surfaceDestroyed(holder: SurfaceHolder) {
+                    player.pause()
+                }
 
-        })
+            })
 
-        activityVar.mySurfaceView = surfaceView
+            activityVar.mySurfaceView = surfaceView
 
-        surfaceView
-    },
+            surfaceView
+        },
         modifier = Modifier.width(Dp(1000f)),
         update = {
             SwithunLog.d("AndroidView # update")
