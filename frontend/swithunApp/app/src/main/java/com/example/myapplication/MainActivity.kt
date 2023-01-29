@@ -65,11 +65,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background,
                 ) {
-                    ScreenSetup(
-                        activityVar.wordsVM,
-                        activityVar.videoVM,
-                        activityVar
-                    )
+                    ScreenSetup(activityVar)
                 }
             }
         }
@@ -109,16 +105,11 @@ class ActivityVar(
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun ScreenSetup(
-    wordsViewModel: WordsViewModel,
-    videoViewModel: VideoViewModel,
     activityVar: ActivityVar,
 ) {
     Row(modifier = Modifier.horizontalScroll(ScrollState(0), true)) {
-        IjkPlayer(player = videoViewModel.player, activityVar)
-        VideoScreen(
-            videoViewModel,
-            activityVar
-        )
+        IjkPlayer(player = activityVar.videoVM.player, activityVar)
+        VideoScreen(activityVar)
         WordsScreen(activityVar)
         FTPView(activityVar)
         FileManagerView(pathList = activityVar.fileManagerViewModel.pathList, activityVar)
@@ -239,16 +230,12 @@ fun FTPView(activityVar: ActivityVar) {
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun VideoScreen(
-    videoViewModel: VideoViewModel,
-    activityVar: ActivityVar,
-) {
+fun VideoScreen(activityVar: ActivityVar) {
     Row {
-        VideoView(videoViewModel, activityVar)
-        QRCode(videoViewModel)
+        VideoView(activityVar)
+        QRCode(activityVar.videoVM)
     }
 }
-
 private fun play(
     player: IjkMediaPlayer,
     surfaceView: SurfaceView,
@@ -300,11 +287,9 @@ private fun play(
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun VideoView(
-    videoViewModel: VideoViewModel,
-    activityVar: ActivityVar
-) {
+fun VideoView(activityVar: ActivityVar) {
     val context = LocalContext.current
+    val videoViewModel = activityVar.videoVM
 
     val onGetConanUrl = { conanUrl: String ->
         activityVar.mySurfaceView?.let { surfaceView ->
@@ -552,12 +537,12 @@ fun WordsScreen(activityVar: ActivityVar) {
             textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 30.sp),
         )
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = "单词：")
             Text(text = activityVar.wordsVM.wordsResult.word)
         }
         val bullet = "\u2022"
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = "解释：")
             Text(text = buildAnnotatedString {
                 activityVar.wordsVM.wordsResult.explains.forEach {
@@ -570,7 +555,7 @@ fun WordsScreen(activityVar: ActivityVar) {
             })
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = "翻译：")
             Text(text = activityVar.wordsVM.wordsResult.translation)
         }
