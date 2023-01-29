@@ -68,7 +68,7 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
     private val TAG = "swithun {VideoViewModel}"
 
     init {
-        //beginJob = begin()
+        beginJob = begin()
     }
 
 

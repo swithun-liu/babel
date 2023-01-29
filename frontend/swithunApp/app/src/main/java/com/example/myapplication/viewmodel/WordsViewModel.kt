@@ -86,6 +86,8 @@ class WordsViewModel: ViewModel() {
                     Log.d("swithun-xxxx", "no basic")
                 }
 
+                delay(500)
+
                 wordsResult = WordsResult(q, explains, translation)
             }
         }

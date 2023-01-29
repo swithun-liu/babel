@@ -123,12 +123,13 @@ fun ScreenSetup(
             wordsResult = wordsViewModel.wordsResult,
         ) { wordsViewModel.sendMessage(it) }
         FTPView(activityVar)
-        PathListView(pathList = activityVar.fileManagerViewModel.pathList)
+        FileManagerView(pathList = activityVar.fileManagerViewModel.pathList, activityVar)
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun PathListView(pathList: List<PathItem>) {
+fun FileManagerView(pathList: List<PathItem>, activityVar: ActivityVar) {
     LazyColumn(modifier = Modifier
         .background(Color(R.color.purple_200))
         .width(Dp(600f))
@@ -139,33 +140,45 @@ fun PathListView(pathList: List<PathItem>) {
                     FileItemView(path)
                 }
                 is PathItem.FolderItem -> {
-                    FolderItemView(path)
+                    FolderItemView(path, activityVar)
                 }
             }
         }
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun FolderItemView(folder: PathItem.FolderItem) {
-    Column {
-        Row {
-            Text(text = "Folder: ")
-            Text(text = folder.name)
+fun FolderItemView(folder: PathItem.FolderItem, activityVar: ActivityVar) {
+    Card(modifier = Modifier
+        .fillMaxSize()
+        .clickable {
+            SwithunLog.d("click folder: ${folder.name}")
+            activityVar.fileManagerViewModel.clickFolder(folder)
+        },
+        backgroundColor = Color(activityVar.activity.getColor(R.color.teal_200))
+    ) {
+        Column(Modifier.padding(10.dp)
+        ) {
+            Row {
+                Text(text = "Folder: ")
+                Text(text = folder.name)
+            }
+            SimplePathListView(folder.children, activityVar)
         }
-        SimplePathListView(folder.children)
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun SimplePathListView(pathList: List<PathItem>) {
+fun SimplePathListView(pathList: List<PathItem>, activityVar: ActivityVar) {
     pathList.forEach { path ->
         when (path) {
             is PathItem.FileItem -> {
                 FileItemView(path)
             }
             is PathItem.FolderItem -> {
-                FolderItemView(path)
+                FolderItemView(path, activityVar)
             }
         }
     }
@@ -173,9 +186,16 @@ fun SimplePathListView(pathList: List<PathItem>) {
 
 @Composable
 fun FileItemView(file: PathItem.FileItem) {
-    Row {
-        Text(text = "File: ")
-        Text(text = file.name)
+    Card(modifier = Modifier
+        .fillMaxSize()
+        .clickable {
+            SwithunLog.d("click file: ${file.name}")
+        }
+    ) {
+        Row(Modifier.padding(10.dp)) {
+            Text(text = "File: ")
+            Text(text = file.name)
+        }
     }
 }
 
@@ -430,7 +450,6 @@ fun VideoView(
                 .width(Dp(100f))
         ) {
             items(videoViewModel.itemList) { sectionItem: SectionItem ->
-                SwithunLog.d("haha - 1")
                 Button(onClick = {
                     videoViewModel.viewModelScope.launch {
                         videoViewModel.getConanByEpId(sectionItem.id)?.let { newConanUrl ->
