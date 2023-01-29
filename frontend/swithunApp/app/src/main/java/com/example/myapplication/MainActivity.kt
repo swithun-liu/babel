@@ -119,9 +119,7 @@ fun ScreenSetup(
             videoViewModel,
             activityVar
         )
-        WordsScreen(
-            wordsResult = wordsViewModel.wordsResult,
-        ) { wordsViewModel.sendMessage(it) }
+        WordsScreen(activityVar)
         FTPView(activityVar)
         FileManagerView(pathList = activityVar.fileManagerViewModel.pathList, activityVar)
     }
@@ -535,13 +533,10 @@ fun QRCode(
 }
 
 @Composable
-fun WordsScreen(
-    wordsResult: WordsResult,
-    sendMessage: (String) -> Unit
-) {
+fun WordsScreen(activityVar: ActivityVar) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.width(400.dp)
     ) {
         var textState by remember { mutableStateOf("") }
         val onTextChange = { text: String ->
@@ -559,13 +554,13 @@ fun WordsScreen(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = "单词：")
-            Text(text = wordsResult.word)
+            Text(text = activityVar.wordsVM.wordsResult.word)
         }
         val bullet = "\u2022"
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = "解释：")
             Text(text = buildAnnotatedString {
-                wordsResult.explains.forEach {
+                activityVar.wordsVM.wordsResult.explains.forEach {
                     withStyle(ParagraphStyle(textIndent = TextIndent(restLine = 12.sp))) {
                         append(bullet)
                         append("\t\t")
@@ -577,10 +572,10 @@ fun WordsScreen(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = "翻译：")
-            Text(text = wordsResult.translation)
+            Text(text = activityVar.wordsVM.wordsResult.translation)
         }
 
-        Button(onClick = { sendMessage(textState) }) {
+        Button(onClick = { activityVar.wordsVM.sendMessage(textState) }) {
             Text(text = "Send Message")
         }
     }
