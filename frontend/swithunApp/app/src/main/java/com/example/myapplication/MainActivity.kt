@@ -38,6 +38,7 @@ import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.util.AuthChecker
 import com.example.myapplication.util.HeaderParams
 import com.example.myapplication.viewmodel.*
+import com.swithun.liu.ServerSDK
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -58,6 +59,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
+
+        SwithunLog.d("这个 - ${ServerSDK.getTestStr()}")
+        SwithunLog.d("这个 - ${ServerSDK.getTestStrWithInput("我是input")}")
 
         setContent {
             MyApplicationTheme {
