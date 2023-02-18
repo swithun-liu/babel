@@ -7,3 +7,6 @@
 [submodule "buildMyIjkPlayer"]
 	path = buildMyIjkPlayer
 	url = https://github.com/swithun-liu/swithun-ijkplayer
+[submodule "myIjkplayer"]
+	path = myIjkplayer
+	url = https://github.com/swithun-liu/swithun-ijkplayer
