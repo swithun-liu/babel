@@ -1,0 +1,3 @@
+[submodule "buildIjkplayer/ijkplayer"]
+	path = buildIjkplayer/ijkplayer
+	url = git@github.com:bilibili/ijkplayer.git
