@@ -1,3 +1,6 @@
 [submodule "buildIjkplayer/ijkplayer"]
 	path = buildIjkplayer/ijkplayer
 	url = https://github.com/bilibili/ijkplayer
+[submodule "buildMyIjkplayer"]
+	path = buildMyIjkplayer
+	url = https://github.com/bilibili/ijkplayer
