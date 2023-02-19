@@ -130,18 +130,18 @@ fun ScreenSetup(
         VideoScreen(activityVar)
         WordsScreen(activityVar)
         FTPView(activityVar)
-        FileManagerView(pathList = activityVar.fileManagerViewModel.pathList, activityVar)
+        FileManagerView(activityVar)
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun FileManagerView(pathList: List<PathItem>, activityVar: ActivityVar) {
+fun FileManagerView(activityVar: ActivityVar) {
     LazyColumn(modifier = Modifier
         .background(Color(R.color.purple_200))
         .width(Dp(600f))
     ) {
-        items(pathList) { path: PathItem ->
+        items(activityVar.fileManagerViewModel.pathList) { path: PathItem ->
             when (path) {
                 is PathItem.FileItem -> {
                     FileItemView(path)
@@ -171,7 +171,9 @@ fun FolderItemView(folder: PathItem.FolderItem, activityVar: ActivityVar) {
                 Text(text = "Folder: ")
                 Text(text = folder.name)
             }
-            SimplePathListView(folder.children, activityVar)
+            if (folder.isOpening) {
+                SimplePathListView(folder.children, activityVar)
+            }
         }
     }
 }

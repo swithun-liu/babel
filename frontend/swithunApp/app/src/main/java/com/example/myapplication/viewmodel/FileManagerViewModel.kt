@@ -5,13 +5,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.example.myapplication.SwithunLog
 import com.example.myapplication.nullCheck
 import java.io.File
+import java.util.concurrent.atomic.AtomicLong
 
 class FileManagerViewModel: ViewModel() {
 
     val fileBasePath: String = Environment.getExternalStorageDirectory().absolutePath
-    var pathList: List<PathItem> by mutableStateOf(mutableListOf())
+    var pathList: List<PathItem> by mutableStateOf(listOf())
 
     init {
         val basePath = File(fileBasePath)
@@ -31,7 +33,10 @@ class FileManagerViewModel: ViewModel() {
                 folder.children = parent.listFiles()?.map2Items().nullCheck("children: ") ?: emptyList()
             }
         }
-        pathList = pathList.toList()
+        // todo 看看怎么做不用这样赋值
+        val oldList = pathList
+        pathList = mutableListOf()
+        pathList = oldList
     }
 
 
