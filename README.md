@@ -1,4 +1,23 @@
-# 2023/01/15
+# 简介
+
+```
+- backend
+  - phone-monitor-backend: rust写的服务端，作为服务器(废弃)
+  - rust-server-android-lib: rust写的服务器，然后打包成so给Android用
+- frontend
+  - swithunApp：主角
+- myDependencyBuild: 需要自己编译的一些第三方依赖
+  - myIjkplayer：app使用的视频播放器
+  - myPracticeDemo：测试一些方案
+```
+
+# 进展
+
+## 2023/02/19
+- done
+  1. 将rust服务端成功打包成so，Android app可作为服务端
+
+## 2023/01/15
 - done
   1. Android端开启服务，可以分享文件，ijkplayer可以在线播放分享的文件, 参考文章[搭建Android上的服务器 实现"隔空取物"](https://juejin.cn/post/6844903551408291848)
 - bug
@@ -8,14 +27,14 @@
 - todo
   - [ ] 文件列表展示
 
-# 2023/01/01
+## 2023/01/01
 - done
   1. 切到后台，自动暂停
   2. 循环播放前500集
 - bug
   - [x] 前后台切换，黑屏只有声音
 
-# 2022/12/25
+## 2022/12/25
 - done
   1. 能接收电脑复制的文本，app端显示翻译
   2. 可以播放番剧
