@@ -1,15 +1,13 @@
 # 简介
 
-```
-- backend
+- **backend**
   - phone-monitor-backend: rust写的服务端，作为服务器(废弃)
-  - rust-server-android-lib: rust写的服务器，然后打包成so给Android用
-- frontend
-  - swithunApp：主角
-- myDependencyBuild: 需要自己编译的一些第三方依赖
+  - rust-server-android-lib: **rust写的服务端**，然后打包成so给Android用
+- **frontend**
+  - swithunApp：**主角**
+- **myDependencyBuild**: 需要自己编译的一些第三方依赖
   - myIjkplayer：app使用的视频播放器
-  - myPracticeDemo：测试一些方案
-```
+- myPracticeDemo：测试一些方案
 
 # 进展
 
