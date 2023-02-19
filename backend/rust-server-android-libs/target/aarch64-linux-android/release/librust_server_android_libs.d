@@ -1,1 +1,0 @@
-/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/rust-server-android-libs/target/aarch64-linux-android/release/librust_server_android_libs.so: /Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/rust-server-android-libs/src/lib.rs

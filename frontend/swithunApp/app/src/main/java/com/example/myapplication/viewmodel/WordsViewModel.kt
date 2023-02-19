@@ -25,7 +25,7 @@ import java.security.NoSuchAlgorithmException
 @SuppressLint("LongLogTag")
 class WordsViewModel: ViewModel() {
 
-    private var remoteWordFlow: Flow<RawData>
+    private var remoteWordFlow: Flow<RawData>? = null
     var wordsResult by mutableStateOf(WordsResult("", emptyList(), ""))
     private val repository = WebSocketRepository()
 
@@ -35,11 +35,11 @@ class WordsViewModel: ViewModel() {
 
     private val TAG = "swithun {WordsViewModel}"
 
-    init {
+    fun handleCreate() {
         remoteWordFlow = repository.webSocketCreate(viewModelScope)
 
         viewModelScope.launch(Dispatchers.IO) {
-            remoteWordFlow.collect {
+            remoteWordFlow?.collect {
                 SwithunLog.d("remoteWordFlow collect ${it.json}")
                 val q = it.json
 
@@ -91,6 +91,9 @@ class WordsViewModel: ViewModel() {
                 wordsResult = WordsResult(q, explains, translation)
             }
         }
+    }
+
+    init {
     }
 
     /**

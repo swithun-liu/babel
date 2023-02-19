@@ -27,18 +27,26 @@ async fn main() -> std::io::Result<()> {
         .spawn_with_priority(ThreadPriority::Min, |_result| test(server_b))
         .unwrap();
 
-    HttpServer::new(move || {
+    let temp = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(server.clone()))
             .service(web::resource("/").to(index))
             .service(web::resource("/ws").to(chat_route))
     })
     .workers(2)
-    .bind(("0.0.0.0", 8088))?
-    .run()
-    .await
+    .bind(("0.0.0.0", 8088));
+    match temp {
+        Ok(ok_temp) => {
+            ok_temp.run().await;
+            return "2;"
+        }
+        Err(_) => {
+            return ""
+        }
+    }
+    // .run()
+    // .await
 }
-
 
 async fn chat_route(
     req: HttpRequest,
@@ -80,8 +88,10 @@ fn test(server: Addr<server::ChatServer>) {
 
         if check_is_new_key_combination(&pre_keys, &new_keys) {
             pre_keys = new_keys.clone();
-            if !is_cmd { // last time press cmd + c or else
-                if new_keys.len() == 1 && new_keys[0] == Keycode::Meta { // this time should be cmd
+            if !is_cmd {
+                // last time press cmd + c or else
+                if new_keys.len() == 1 && new_keys[0] == Keycode::Meta {
+                    // this time should be cmd
                     println!("cmd - time{}", time);
                     time += 1;
                     is_cmd = true;
@@ -89,9 +99,12 @@ fn test(server: Addr<server::ChatServer>) {
                     time = 0;
                     is_cmd = false;
                 }
-            } else { // last time press cmd
-                if new_keys.len() == 2 { // this time should be cmd + c
-                    if new_keys[0] == Keycode::C && new_keys[1] == Keycode::Meta { // cmd + c
+            } else {
+                // last time press cmd
+                if new_keys.len() == 2 {
+                    // this time should be cmd + c
+                    if new_keys[0] == Keycode::C && new_keys[1] == Keycode::Meta {
+                        // cmd + c
                         println!("cmd + c - time{}", time);
                         time += 1;
                         is_cmd = false;
@@ -99,14 +112,14 @@ fn test(server: Addr<server::ChatServer>) {
                             println!("success");
                             time = 0;
                             is_cmd = false;
-                            if  let Ok(contents) = cli_clipboard::get_contents() {
+                            if let Ok(contents) = cli_clipboard::get_contents() {
                                 server.do_send(server::ClientMessage {
                                     id: 0,
                                     msg: contents,
                                 })
                             }
                         }
-                    } else  {
+                    } else {
                         time = 0;
                         is_cmd = false;
                     }

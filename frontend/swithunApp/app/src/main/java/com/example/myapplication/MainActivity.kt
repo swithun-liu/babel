@@ -63,6 +63,20 @@ class MainActivity : ComponentActivity() {
         SwithunLog.d("这个 - ${ServerSDK.getTestStr()}")
         SwithunLog.d("这个 - ${ServerSDK.getTestStrWithInput("我是input")}")
 
+        activityVar.nasVM.viewModelScope.launch(Dispatchers.IO) {
+            delay(3000)
+            launch {
+                SwithunLog.d("websocket - handle 1")
+                delay( 5000 )
+                SwithunLog.d("websocket - handle 2")
+                activityVar.wordsVM.handleCreate()
+            }
+            SwithunLog.d("websocket - handle 0")
+            ServerSDK.startSever()
+            SwithunLog.d("websocket - handle 00")
+            delay(30000)
+        }
+
         setContent {
             MyApplicationTheme {
                 Surface(

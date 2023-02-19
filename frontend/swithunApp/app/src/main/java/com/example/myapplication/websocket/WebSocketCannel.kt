@@ -36,7 +36,7 @@ class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
         SwithunLog.d("WebSocketChannel init")
         val okHttpClient = OkHttpClient.Builder().build()
         val request = Request.Builder()
-            .url("http://192.168.0.105:8088/ws")
+            .url("http://192.168.0.109:8088/ws")
             .build()
 
         socket = okHttpClient.newWebSocket(request, WebSocketChannelListener(incoming, outgoing))
@@ -108,6 +108,7 @@ class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             Log.d("swithun-xxxx", "[WebSocketChannelListener] - onFailure")
+            SwithunLog.d(response)
             incoming.close()
             outgoing.close()
         }
