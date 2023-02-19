@@ -8,7 +8,7 @@
    1. `A(作为主服务器)`打开此应用, `B`&`C`可以使用 1. 此应用 或者 2. 其他支持http链接/ftp链接播放视频的应用 播放`A`本地存储的视频(50%)
    2. `A(作为主服务器)`打开此应用, B&C可以使用本应用下载`A`中文件/上传文件到`A`(30%)
 
-
+## 文件目录
 - **backend**
   - phone-monitor-backend: rust写的服务端，作为服务器(废弃)
   - rust-server-android-lib: **rust写的服务端**，然后打包成so给Android用
