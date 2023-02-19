@@ -10,3 +10,6 @@
 [submodule "myIjkplayer"]
 	path = myIjkplayer
 	url = https://github.com/swithun-liu/swithun-ijkplayer
+[submodule "myDependencyBuild/myIjkplayer"]
+	path = myDependencyBuild/myIjkplayer
+	url = https://github.com/swithun-liu/swithun-ijkplayer
