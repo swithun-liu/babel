@@ -2,8 +2,7 @@
 #![allow(non_snake_case)]
 
 use jni::objects::{JClass, JString};
-use jni::sys::jstring;
-use jni::JNIEnv;
+use jni::{JavaVM, JNIEnv};
 
 use std::{
     io::stdout,
@@ -17,13 +16,15 @@ use actix_files::NamedFile;
 use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::rt::Runtime;
 use actix_web_actors::ws;
+use jni::sys::{JavaVMInitArgs, jstring};
 use thread_priority::{ThreadBuilderExt, ThreadPriority};
 
 mod server;
 mod session;
 
+
 #[no_mangle]
-pub extern "C" fn Java_com_swithun_liu_ServerSDK_getTestStr(env: JNIEnv, _: JClass) -> jstring {
+pub extern "C" fn Java_com_swithun_liu_ServerSDK_getTestStr(env: JNIEnv, _: JClass) -> jstring{
     env.new_string("Hello World!")
         .expect("Couldn't create java string!")
         .into_inner()
@@ -45,6 +46,29 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getTestStrWithInput(
     output.into_inner()
 }
 
+async fn index() -> impl Responder {
+    NamedFile::open_async("./static/index.html").await.unwrap()
+}
+
+#[no_mangle]
+pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
+    Runtime::new().unwrap().block_on(async {
+        let app_state = Arc::new(AtomicUsize::new(0));
+
+        let chat_server = server::ChatServer::new(app_state.clone()).start();
+
+        HttpServer::new(move || {
+            App::new()
+                .app_data(web::Data::new(chat_server.clone()))
+                .service(web::resource("/").to(index))
+                .service(web::resource("/ws").to(chat_route))
+                .service(web::resource("/test").to(test))
+        })
+            .workers(2)
+            .bind(("0.0.0.0", 8088)).unwrap().run().await;
+    })
+}
+
 async fn chat_route(
     req: HttpRequest,
     stream: web::Payload,
@@ -62,27 +86,4 @@ async fn chat_route(
 
 async fn test() -> String {
     "haha".to_string()
-}
-
-async fn index() -> impl Responder {
-    NamedFile::open_async("./static/index.html").await.unwrap()
-}
-
-#[no_mangle]
-pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
-    Runtime::new().unwrap().block_on(async {
-        let app_state = Arc::new(AtomicUsize::new(0));
-
-        let server = server::ChatServer::new(app_state.clone()).start();
-
-        HttpServer::new(move || {
-            App::new()
-                .app_data(web::Data::new(server.clone()))
-                .service(web::resource("/").to(index))
-                .service(web::resource("/ws").to(chat_route))
-                .service(web::resource("/test").to(test))
-        })
-            .workers(2)
-            .bind(("0.0.0.0", 8088)).unwrap().run().await;
-    })
 }
