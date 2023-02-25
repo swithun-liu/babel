@@ -70,6 +70,7 @@ class MainActivity : ComponentActivity() {
                 delay( 5000 )
                 SwithunLog.d("websocket - handle 2")
                 activityVar.wordsVM.handleCreate()
+                activityVar.connectVM.create()
             }
             SwithunLog.d("websocket - handle 0")
             ServerSDK.startSever()
@@ -94,6 +95,11 @@ class MainActivity : ComponentActivity() {
 class ActivityVar(
     var activity: MainActivity,
     var mySurfaceView: SurfaceView? = null,
+    val connectVM: ConnectViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
+        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+            return ConnectViewModel() as T
+        }
+    }).get(ConnectViewModel::class.java),
     val wordsVM: WordsViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
             return WordsViewModel() as T

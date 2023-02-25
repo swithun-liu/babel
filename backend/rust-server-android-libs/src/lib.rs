@@ -2,13 +2,11 @@
 #![allow(non_snake_case)]
 
 use jni::objects::{JClass, JString};
-use jni::{JavaVM, JNIEnv};
+use jni::{JNIEnv};
 
 use std::{
-    io::stdout,
     sync::{atomic::AtomicUsize, Arc},
-    thread::{self, sleep},
-    time::{Duration, Instant},
+    time::{Instant},
 };
 
 use actix::{Actor, Addr};
@@ -16,11 +14,11 @@ use actix_files::NamedFile;
 use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::rt::Runtime;
 use actix_web_actors::ws;
-use jni::sys::{JavaVMInitArgs, jstring};
-use thread_priority::{ThreadBuilderExt, ThreadPriority};
+use jni::sys::{jstring};
 
 mod server;
 mod session;
+mod connect;
 
 
 #[no_mangle]
@@ -56,6 +54,7 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
         let app_state = Arc::new(AtomicUsize::new(0));
 
         let chat_server = server::ChatServer::new(app_state.clone()).start();
+        let connect_server = connect::connect_server::ConnectServer::new().start();
 
         HttpServer::new(move || {
             App::new()
@@ -63,6 +62,8 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
                 .service(web::resource("/").to(index))
                 .service(web::resource("/ws").to(chat_route))
                 .service(web::resource("/test").to(test))
+                .app_data(web::Data::new(connect_server.clone()))
+                .service(web::resource("/connect").to(connect))
         })
             .workers(2)
             .bind(("0.0.0.0", 8088)).unwrap().run().await;
@@ -86,4 +87,17 @@ async fn chat_route(
 
 async fn test() -> String {
     "haha".to_string()
+}
+
+async fn connect(
+    req: HttpRequest,
+    stream: web::Payload,
+    srv: web::Data<Addr<connect::connect_server::ConnectServer>>,
+) -> Result<HttpResponse, Error> {
+    let session = connect::connect_session::ConnectSession {
+        hb: Instant::now(),
+        connect_server: srv.get_ref().clone(),
+    };
+
+    ws::start(session, &req, stream)
 }

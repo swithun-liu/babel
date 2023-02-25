@@ -36,7 +36,7 @@ class WordsViewModel: ViewModel() {
     private val TAG = "swithun {WordsViewModel}"
 
     fun handleCreate() {
-        remoteWordFlow = repository.webSocketCreate(viewModelScope)
+        remoteWordFlow = repository.webSocketCreate("http://192.168.0.109:8088/ws", viewModelScope)
 
         viewModelScope.launch(Dispatchers.IO) {
             remoteWordFlow?.collect {

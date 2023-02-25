@@ -25,7 +25,7 @@ interface IWebSocketChannel {
     fun send(data: RawData)
 }
 
-class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
+class WebSocketChannel(url: String, private val scope: CoroutineScope): IWebSocketChannel {
 
     private var socket: WebSocket? = null
     private val incoming = Channel<RawData>()
@@ -36,7 +36,7 @@ class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
         SwithunLog.d("WebSocketChannel init")
         val okHttpClient = OkHttpClient.Builder().build()
         val request = Request.Builder()
-            .url("http://192.168.0.109:8088/ws")
+            .url(url)
             .build()
 
         socket = okHttpClient.newWebSocket(request, WebSocketChannelListener(incoming, outgoing))
@@ -81,7 +81,7 @@ class WebSocketChannel(private val scope: CoroutineScope): IWebSocketChannel {
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
-            Log.d("swithun-xxxx", "[WebSocketChannelListener] - onMessage text")
+            Log.d("swithun-xxxx", "[WebSocketChannelListener] - onMessage text $text")
             scope.launch(Dispatchers.IO) {
                 Log.d("swithun-xxxx", "incoming send data")
                 incoming.send(RawData(text))

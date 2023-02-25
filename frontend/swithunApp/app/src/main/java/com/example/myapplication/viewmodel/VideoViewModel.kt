@@ -153,7 +153,7 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
         val headerParams = HeaderParams().apply {
             setBilibiliCookie(activity.invoke())
         }
-        val response = getRequest(BILIBILI_MY_INFO_URL, headerParams = headerParams).nullCheck("get my profile", true) ?: return false
+        val response = getRequest(BILIBILI_MY_INFO_URL, headerParams = headerParams).nullCheck("get my profile") ?: return false
 
         response.safeGetString("code")?.let { code ->
             return when (code) {

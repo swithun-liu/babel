@@ -7,8 +7,8 @@ class WebSocketRepository {
 
     private lateinit var channel: IWebSocketChannel
 
-    fun webSocketCreate(scope: CoroutineScope): Flow<RawData> {
-        channel = WebSocketChannel(scope)
+    fun webSocketCreate(url:String, scope: CoroutineScope): Flow<RawData> {
+        channel = WebSocketChannel(url, scope)
         return channel.getIncoming()
     }
 
