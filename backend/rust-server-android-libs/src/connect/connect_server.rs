@@ -1,4 +1,4 @@
-use actix::{Actor, Context, Handler, Message, Recipient};
+use actix::{Actor, Addr, Context, Handler, Message, Recipient};
 use log::debug;
 use rand::rngs::ThreadRng;
 
@@ -19,14 +19,16 @@ pub struct FronterConnectMessage {
 
 pub struct ConnectServer {
     fronter: Option<Recipient<ConnectSessionMessage>>,
+    server_collection: &crate::ServerCollection,
     rng: ThreadRng
 }
 
 impl ConnectServer {
 
-    pub fn new() -> ConnectServer {
+    pub fn new(collection:  & crate::ServerCollection) -> ConnectServer {
         ConnectServer {
             fronter: None,
+            server_collection: Some(collection),
             rng: rand::thread_rng(),
         }
     }

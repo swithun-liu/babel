@@ -8,6 +8,7 @@ use std::{
     sync::{atomic::AtomicUsize, Arc},
     time::{Instant},
 };
+use std::ops::Add;
 
 use actix::{Actor, Addr};
 use actix_files::NamedFile;
@@ -19,6 +20,7 @@ use jni::sys::{jstring};
 mod server;
 mod session;
 mod connect;
+mod model;
 
 
 #[no_mangle]
@@ -48,26 +50,39 @@ async fn index() -> impl Responder {
     NamedFile::open_async("./static/index.html").await.unwrap()
 }
 
+pub struct ServerCollection {
+    chat_server: Option<Addr<server::ChatServer>>,
+    connect_server: Option<Addr<connect::connect_server::ConnectServer>>
+}
+
 #[no_mangle]
 pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
-    Runtime::new().unwrap().block_on(async {
-        let app_state = Arc::new(AtomicUsize::new(0));
+    Runtime::new().unwrap().block_on(start_server())
+}
 
-        let chat_server = server::ChatServer::new(app_state.clone()).start();
-        let connect_server = connect::connect_server::ConnectServer::new().start();
+async fn start_server() {
+    async {
+        let app_state = Arc::new(AtomicUsize::new(0));
+        let server_collection = ServerCollection {
+            chat_server: None,
+            connect_server: None,
+        };
+
+        let chat_server_addr: Addr<server::ChatServer> = server::ChatServer::new(app_state.clone(), &server_collection).start();
+        let connect_server_addr = connect::connect_server::ConnectServer::new(&server_collection).start();
 
         HttpServer::new(move || {
             App::new()
-                .app_data(web::Data::new(chat_server.clone()))
+                .app_data(web::Data::new(chat_server_addr.clone()))
                 .service(web::resource("/").to(index))
                 .service(web::resource("/ws").to(chat_route))
                 .service(web::resource("/test").to(test))
-                .app_data(web::Data::new(connect_server.clone()))
+                .app_data(web::Data::new(connect_server_addr.clone()))
                 .service(web::resource("/connect").to(connect))
         })
             .workers(2)
             .bind(("0.0.0.0", 8088)).unwrap().run().await;
-    })
+    }
 }
 
 async fn chat_route(

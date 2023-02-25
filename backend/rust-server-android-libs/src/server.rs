@@ -3,7 +3,7 @@ use std::{
     sync::{atomic::{AtomicUsize, Ordering}, Arc},
 };
 
-use actix::{Recipient, Actor, Context, Handler, Message};
+use actix::{Recipient, Actor, Context, Handler, Message, Addr};
 use rand::{rngs::ThreadRng, Rng};
 
 #[derive(Message)]
@@ -15,17 +15,23 @@ pub struct ChatServer {
     sessions: HashMap<usize, Recipient<SessionMessage>>,
     // 访客人数
     visitor_count: Arc<AtomicUsize>,
+    server_collection: &crate::ServerCollection,
     rng: ThreadRng,
 }
 
 impl ChatServer {
 
-    pub fn new(visitor_count: Arc<AtomicUsize>) -> ChatServer {
+    pub fn new(visitor_count: Arc<AtomicUsize>, collection: & crate::ServerCollection) -> ChatServer {
         ChatServer {
             sessions: HashMap::new(),
             visitor_count: visitor_count,
+            server_collection: Some(collection),
             rng: rand::thread_rng(),
         }
+    }
+
+    pub fn add_connect_server_addr(mut self, connect_server_addr: Addr<crate::connect::connect_server::ConnectServer>) {
+        self.connect_server_addr = Some(connect_server_addr)
     }
 
     pub fn send_message(&self, message: &str) {
