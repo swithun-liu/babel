@@ -25,7 +25,7 @@ interface IWebSocketChannel {
     fun send(data: RawData)
 }
 
-class WebSocketChannel(url: String, private val scope: CoroutineScope): IWebSocketChannel {
+class WebSocketChannel(url: String, private val scope: CoroutineScope, private val tag: String): IWebSocketChannel {
 
     private var socket: WebSocket? = null
     private val incoming = Channel<RawData>()
@@ -33,7 +33,7 @@ class WebSocketChannel(url: String, private val scope: CoroutineScope): IWebSock
     private val incomingFlow: Flow<RawData> = incoming.consumeAsFlow()
 
     init {
-        SwithunLog.d("WebSocketChannel init")
+        SwithunLog.d("WebSocketChannel[$tag] init")
         val okHttpClient = OkHttpClient.Builder().build()
         val request = Request.Builder()
             .url(url)
@@ -67,7 +67,7 @@ class WebSocketChannel(url: String, private val scope: CoroutineScope): IWebSock
 
     override fun send(data: RawData) {
         scope.launch(Dispatchers.IO) {
-            Log.d("swithun-xxxx", "outgoing send data")
+            SwithunLog.d("[$tag] outgoing send data")
             outgoing.send(data)
         }
     }
@@ -77,19 +77,19 @@ class WebSocketChannel(url: String, private val scope: CoroutineScope): IWebSock
         private val outgoing: Channel<RawData>
     ): WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
-            Log.d("swithun-xxxx", "[WebSocketChannelListener] - onOpen")
+            SwithunLog.d("[WebSocketChannelListener[$tag]] - onOpen")
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
-            Log.d("swithun-xxxx", "[WebSocketChannelListener] - onMessage text $text")
+            SwithunLog.d("[WebSocketChannelListener[$tag]] - onMessage text $text")
             scope.launch(Dispatchers.IO) {
-                Log.d("swithun-xxxx", "incoming send data")
+                SwithunLog.d("[WebSocketChannelListener[$tag]] - incoming send data")
                 incoming.send(RawData(text))
             }
         }
 
         override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-            Log.d("swithun-xxxx", "[WebSocketChannelListener] - onMessage")
+            SwithunLog.d("[WebSocketChannelListener[$tag]] - onMessage")
             scope.launch(Dispatchers.IO) {
                 Log.d("swithun-xxxx", "incoming send data")
                 incoming.send(RawData(bytes.toString()))

@@ -16,12 +16,25 @@ use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responde
 use actix_web::rt::Runtime;
 use actix_web_actors::ws;
 use jni::sys::{jstring};
+use lazy_static::lazy_static;
+use std::collections::HashMap;
+#[macro_use] extern crate log;
+extern crate android_logger;
 
 mod server;
 mod session;
 mod connect;
 mod model;
 
+lazy_static! {
+    static ref CONNECT_SERVER: Addr<connect::connect_server::ConnectServer> = {
+        connect::connect_server::ConnectServer::new().start()
+    };
+    static ref CLIENT_SERVER: Addr<server::ChatServer> = {
+        let app_state = Arc::new(AtomicUsize::new(0));
+        server::ChatServer::new(app_state.clone(),  CONNECT_SERVER.clone()).start()
+    };
+}
 
 #[no_mangle]
 pub extern "C" fn Java_com_swithun_liu_ServerSDK_getTestStr(env: JNIEnv, _: JClass) -> jstring{
@@ -49,40 +62,32 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getTestStrWithInput(
 async fn index() -> impl Responder {
     NamedFile::open_async("./static/index.html").await.unwrap()
 }
-
-pub struct ServerCollection {
-    chat_server: Option<Addr<server::ChatServer>>,
-    connect_server: Option<Addr<connect::connect_server::ConnectServer>>
-}
-
 #[no_mangle]
 pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
-    Runtime::new().unwrap().block_on(start_server())
-}
 
-async fn start_server() {
-    async {
-        let app_state = Arc::new(AtomicUsize::new(0));
-        let server_collection = ServerCollection {
-            chat_server: None,
-            connect_server: None,
-        };
+    // Initialize android_logger
+    // env_logger::builder().filter_level(log::LevelFilter::Trace).init();
+    android_logger::init_once(
+        android_logger::Config::default().with_max_level(log::LevelFilter::Trace).with_tag("myrust")
+    );
 
-        let chat_server_addr: Addr<server::ChatServer> = server::ChatServer::new(app_state.clone(), &server_collection).start();
-        let connect_server_addr = connect::connect_server::ConnectServer::new(&server_collection).start();
+    info!("rust test");
 
-        HttpServer::new(move || {
-            App::new()
-                .app_data(web::Data::new(chat_server_addr.clone()))
-                .service(web::resource("/").to(index))
-                .service(web::resource("/ws").to(chat_route))
-                .service(web::resource("/test").to(test))
-                .app_data(web::Data::new(connect_server_addr.clone()))
-                .service(web::resource("/connect").to(connect))
-        })
-            .workers(2)
-            .bind(("0.0.0.0", 8088)).unwrap().run().await;
-    }
+    Runtime::new().unwrap().block_on(
+        async {
+            HttpServer::new(move || {
+                App::new()
+                    .app_data(web::Data::new(CLIENT_SERVER.clone()))
+                    .service(web::resource("/").to(index))
+                    .service(web::resource("/ws").to(chat_route))
+                    .service(web::resource("/test").to(test))
+                    .app_data(web::Data::new( CONNECT_SERVER.clone()))
+                    .service(web::resource("/connect").to(connect))
+            })
+                .workers(2)
+                .bind(("0.0.0.0", 8088)).unwrap().run().await;
+        }
+)
 }
 
 async fn chat_route(
@@ -115,4 +120,10 @@ async fn connect(
     };
 
     ws::start(session, &req, stream)
+}
+
+pub fn client_send_msg_to_connect(msg: &str) {
+    CONNECT_SERVER.do_send(connect::connect_server::FronterMessage {
+        msg: msg.to_string(),
+    })
 }

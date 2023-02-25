@@ -12,6 +12,10 @@ class ConnectViewModel: ViewModel() {
     private val repository = WebSocketRepository()
 
     fun create() {
-        remoteWordFlow = repository.webSocketCreate("http://192.168.0.109:8088/connect", viewModelScope)
+        remoteWordFlow = repository.webSocketCreate(
+            "http://192.168.0.109:8088/connect",
+            viewModelScope,
+            "Connect"
+        )
     }
 }

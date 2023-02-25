@@ -16,7 +16,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -36,7 +35,7 @@ class WordsViewModel: ViewModel() {
     private val TAG = "swithun {WordsViewModel}"
 
     fun handleCreate() {
-        remoteWordFlow = repository.webSocketCreate("http://192.168.0.109:8088/ws", viewModelScope)
+        remoteWordFlow = repository.webSocketCreate("http://192.168.0.109:8088/ws", viewModelScope, "Client")
 
         viewModelScope.launch(Dispatchers.IO) {
             remoteWordFlow?.collect {

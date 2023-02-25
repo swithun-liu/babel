@@ -19,16 +19,14 @@ pub struct FronterConnectMessage {
 
 pub struct ConnectServer {
     fronter: Option<Recipient<ConnectSessionMessage>>,
-    server_collection: &crate::ServerCollection,
     rng: ThreadRng
 }
 
 impl ConnectServer {
 
-    pub fn new(collection:  & crate::ServerCollection) -> ConnectServer {
+    pub fn new() -> ConnectServer {
         ConnectServer {
             fronter: None,
-            server_collection: Some(collection),
             rng: rand::thread_rng(),
         }
     }

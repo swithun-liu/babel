@@ -4,6 +4,7 @@ use std::{
 };
 
 use actix::{Recipient, Actor, Context, Handler, Message, Addr};
+use log::{debug, info};
 use rand::{rngs::ThreadRng, Rng};
 
 #[derive(Message)]
@@ -15,23 +16,18 @@ pub struct ChatServer {
     sessions: HashMap<usize, Recipient<SessionMessage>>,
     // 访客人数
     visitor_count: Arc<AtomicUsize>,
-    server_collection: &crate::ServerCollection,
+    connect_server: Addr<crate::connect::connect_server::ConnectServer>,
     rng: ThreadRng,
 }
 
 impl ChatServer {
-
-    pub fn new(visitor_count: Arc<AtomicUsize>, collection: & crate::ServerCollection) -> ChatServer {
+    pub fn new(visitor_count: Arc<AtomicUsize>, connect_server: Addr<crate::connect::connect_server::ConnectServer>) -> ChatServer {
         ChatServer {
             sessions: HashMap::new(),
             visitor_count: visitor_count,
-            server_collection: Some(collection),
+            connect_server,
             rng: rand::thread_rng(),
         }
-    }
-
-    pub fn add_connect_server_addr(mut self, connect_server_addr: Addr<crate::connect::connect_server::ConnectServer>) {
-        self.connect_server_addr = Some(connect_server_addr)
     }
 
     pub fn send_message(&self, message: &str) {
@@ -40,9 +36,7 @@ impl ChatServer {
         for (id, rcp) in &self.sessions {
             rcp.do_send(SessionMessage(message.to_owned()))
         }
-
     }
- 
 }
 
 impl Actor for ChatServer {
@@ -50,7 +44,7 @@ impl Actor for ChatServer {
     type Context = Context<Self>;
 }
 
-impl Handler<Connect> for ChatServer  {
+impl Handler<Connect> for ChatServer {
     type Result = usize;
 
     fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
@@ -72,10 +66,29 @@ impl Handler<ClientMessage> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: ClientMessage, ctx: &mut Self::Context) -> Self::Result {
-        println!("ChatServer # handle #ClientMessage");
-        self.send_message(msg.msg.as_str())
-    }
+        info!("ChatServer # handle #ClientMessage");
+        let msg = msg.msg.as_str();
+        let orignal_msg = msg.clone();
 
+        if msg.starts_with("/code ") {
+            let left = &msg[6..];
+            let pos = left.find("/message");
+            match pos {
+                None => {
+                    self.send_message(orignal_msg)
+                }
+                Some(pos) => {
+                    let code_str = &left[0..pos];
+                    let trimed_code_str = code_str.trim();
+                    let code: i32 = trimed_code_str .parse().unwrap();
+                    let msg = &left[pos+9..];
+                    crate::client_send_msg_to_connect(orignal_msg)
+                }
+            }
+        } else {
+            self.send_message(orignal_msg)
+        }
+    }
 }
 
 impl Handler<Disconnect> for ChatServer {

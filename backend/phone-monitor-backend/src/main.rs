@@ -5,22 +5,33 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[macro_use]
+extern crate lazy_static;
+
 use actix::{Actor, Addr};
 use actix_files::NamedFile;
 use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_actors::ws;
 use device_query::{DeviceQuery, DeviceState, Keycode};
+use device_query::Keycode::O;
 use thread_priority::{ThreadBuilderExt, ThreadPriority};
+use crate::server::ChatServer;
 
 mod server;
 mod session;
 
+lazy_static! {
+    static ref MY_SERVER: Addr<ChatServer> = {
+        let app_state = Arc::new(AtomicUsize::new(0));
+        server::ChatServer::new(app_state.clone()).start()
+    };
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let app_state = Arc::new(AtomicUsize::new(0));
 
-    let server = server::ChatServer::new(app_state.clone()).start();
-    let server_b = server.clone();
+    // let server = server::ChatServer::new(app_state.clone()).start();
+    let server_b = MY_SERVER.clone();
 
     std::thread::Builder::new()
         .name("keyboard".to_owned())
@@ -29,23 +40,12 @@ async fn main() -> std::io::Result<()> {
 
     let temp = HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(server.clone()))
+            .app_data(web::Data::new(MY_SERVER.clone()))
             .service(web::resource("/").to(index))
             .service(web::resource("/ws").to(chat_route))
     })
-    .workers(2)
-    .bind(("0.0.0.0", 8088));
-    match temp {
-        Ok(ok_temp) => {
-            ok_temp.run().await;
-            return "2;"
-        }
-        Err(_) => {
-            return ""
-        }
-    }
-    // .run()
-    // .await
+        .workers(2)
+        .bind(("0.0.0.0", 8088)).unwrap().run().await;
 }
 
 async fn chat_route(
