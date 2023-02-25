@@ -135,6 +135,10 @@ class WordsViewModel: ViewModel() {
         repository.webSocketSend(RawData(text))
     }
 
+    fun sendCommand(data: RawData) {
+        repository.webSocketSend(data)
+    }
+
 }
 
 data class WordsResult(

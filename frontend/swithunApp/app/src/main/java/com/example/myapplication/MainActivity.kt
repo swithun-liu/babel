@@ -124,7 +124,11 @@ class ActivityVar(
     val fileManagerViewModel: FileManagerViewModel = ViewModelProvider(activity).get(
         FileManagerViewModel::class.java
     )
-)
+) {
+    init {
+        fileManagerViewModel.init(this)
+    }
+}
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
@@ -250,6 +254,13 @@ fun FTPView(activityVar: ActivityVar) {
             }
         }) {
             Text(text = "download file")
+        }
+        Button(onClick = {
+            activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
+                activityVar.fileManagerViewModel.getBasePathList()
+            }
+        }) {
+            Text(text = "get file list")
         }
     }
 }

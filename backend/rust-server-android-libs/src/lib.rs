@@ -26,6 +26,8 @@ mod session;
 mod connect;
 mod model;
 
+use crate::model::communicate_models;
+
 lazy_static! {
     static ref CONNECT_SERVER: Addr<connect::connect_server::ConnectServer> = {
         connect::connect_server::ConnectServer::new().start()
@@ -122,8 +124,10 @@ async fn connect(
     ws::start(session, &req, stream)
 }
 
-pub fn client_send_msg_to_connect(msg: &str) {
+pub fn client_send_msg_to_connect(json_struct: communicate_models::CommunicateJson) {
+    let json_struct_str = serde_json::to_string(&json_struct).unwrap();
+
     CONNECT_SERVER.do_send(connect::connect_server::FronterMessage {
-        msg: msg.to_string(),
+        msg: json_struct_str,
     })
 }

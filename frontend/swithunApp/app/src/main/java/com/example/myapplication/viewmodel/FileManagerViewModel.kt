@@ -5,19 +5,29 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.example.myapplication.ActivityVar
 import com.example.myapplication.SwithunLog
+import com.example.myapplication.model.KernelConnectJson
 import com.example.myapplication.nullCheck
+import com.example.myapplication.websocket.RawData
+import com.google.gson.Gson
 import java.io.File
+import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 
 class FileManagerViewModel: ViewModel() {
 
     val fileBasePath: String = Environment.getExternalStorageDirectory().absolutePath
     var pathList: List<PathItem> by mutableStateOf(listOf())
+    var activityVar: ActivityVar? = null
 
     init {
         val basePath = File(fileBasePath)
         pathList = basePath.listFiles()?.map2Items() ?: emptyList()
+    }
+
+    fun init(activityVar: ActivityVar) {
+        this.activityVar = activityVar
     }
 
     fun clickFolder(folder: PathItem.FolderItem) {
@@ -51,6 +61,21 @@ class FileManagerViewModel: ViewModel() {
                     emptyList()
                 )
             }
+        }
+    }
+
+    fun getBasePathList(){
+        activityVar?.wordsVM?.let {
+            val uuid = UUID.randomUUID().toString()
+            val j = KernelConnectJson(
+                uuid,
+                1,
+                "base path list"
+            )
+            val gson = Gson()
+            val json = gson.toJson(j)
+            val data = RawData(json)
+            it.sendCommand(data)
         }
     }
 }

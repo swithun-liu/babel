@@ -67,7 +67,7 @@ class WebSocketChannel(url: String, private val scope: CoroutineScope, private v
 
     override fun send(data: RawData) {
         scope.launch(Dispatchers.IO) {
-            SwithunLog.d("[$tag] outgoing send data")
+            SwithunLog.d("[$tag] outgoing send data $data")
             outgoing.send(data)
         }
     }

@@ -7,6 +7,8 @@ use actix::{Recipient, Actor, Context, Handler, Message, Addr};
 use log::{debug, info};
 use rand::{rngs::ThreadRng, Rng};
 
+use crate::model::communicate_models;
+
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct SessionMessage(pub String);
@@ -68,25 +70,25 @@ impl Handler<ClientMessage> for ChatServer {
     fn handle(&mut self, msg: ClientMessage, ctx: &mut Self::Context) -> Self::Result {
         info!("ChatServer # handle #ClientMessage");
         let msg = msg.msg.as_str();
-        let orignal_msg = msg.clone();
+        let msg_clone = msg.clone();
 
-        if msg.starts_with("/code ") {
-            let left = &msg[6..];
-            let pos = left.find("/message");
-            match pos {
-                None => {
-                    self.send_message(orignal_msg)
-                }
-                Some(pos) => {
-                    let code_str = &left[0..pos];
-                    let trimed_code_str = code_str.trim();
-                    let code: i32 = trimed_code_str .parse().unwrap();
-                    let msg = &left[pos+9..];
-                    crate::client_send_msg_to_connect(orignal_msg)
+
+        let json_struct_result = serde_json::from_str::<communicate_models::CommunicateJson>(msg);
+
+        match json_struct_result {
+            Ok(communicate_json) => {
+                match communicate_json.code {
+                    1 => {
+                        crate::client_send_msg_to_connect(communicate_json)
+                    }
+                    _ => {
+                        self.send_message((msg_clone.to_owned() + "1!!!").as_str())
+                    }
                 }
             }
-        } else {
-            self.send_message(orignal_msg)
+            Err(_) => {
+                self.send_message((msg_clone.to_owned() + "2!!!").as_str())
+            }
         }
     }
 }
