@@ -81,11 +81,11 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
                     .service(web::resource("/").to(index))
                     .service(web::resource("/ws").to(chat_route))
                     .service(web::resource("/test").to(test))
-                    .app_data(web::Data::new( CONNECT_SERVER.clone()))
+                    .app_data(web::Data::new(CONNECT_SERVER.clone()))
                     .service(web::resource("/connect").to(connect))
             })
                 .workers(2)
-                .bind(("0.0.0.0", 8088)).unwrap().run().await;
+                .bind(("0.0.0.0", 8088)).unwrap().run().await.expect("panic");
         }
 )
 }
