@@ -20,6 +20,10 @@
 
 # 进展
 
+# 2023/02/26
+- done
+  1. client `-http request->` server `-websocket->` android `-websocket->` server `-http response->` client
+
 ## 2023/02/19
 - done
   1. 将rust服务端成功打包成so，Android app可作为服务端
