@@ -13,7 +13,7 @@ use crate::model::communicate_models;
 #[rtype(result = "()")]
 pub struct SessionMessage(pub String);
 
-pub struct ChatServer {
+pub struct ClientServer {
     // <人的id，对应的recipient>
     sessions: HashMap<usize, Recipient<SessionMessage>>,
     // 访客人数
@@ -22,9 +22,9 @@ pub struct ChatServer {
     rng: ThreadRng,
 }
 
-impl ChatServer {
-    pub fn new(visitor_count: Arc<AtomicUsize>, connect_server: Addr<crate::connect::connect_server::ConnectServer>) -> ChatServer {
-        ChatServer {
+impl ClientServer {
+    pub fn new(visitor_count: Arc<AtomicUsize>, connect_server: Addr<crate::connect::connect_server::ConnectServer>) -> ClientServer {
+        ClientServer {
             sessions: HashMap::new(),
             visitor_count: visitor_count,
             connect_server,
@@ -39,14 +39,22 @@ impl ChatServer {
             rcp.do_send(SessionMessage(message.to_owned()))
         }
     }
+
+    pub fn send_message_to_specific_recipient(&self, recipient_id: usize, message: &str) {
+        for (id, rcp) in &self.sessions {
+            if *id == recipient_id {
+                rcp.do_send(SessionMessage(message.to_owned()))
+            }
+        }
+    }
 }
 
-impl Actor for ChatServer {
+impl Actor for ClientServer {
     // simple Context for communicate with other actors
     type Context = Context<Self>;
 }
 
-impl Handler<Connect> for ChatServer {
+impl Handler<Connect> for ClientServer {
     type Result = usize;
 
     fn handle(&mut self, msg: Connect, ctx: &mut Self::Context) -> Self::Result {
@@ -64,7 +72,7 @@ impl Handler<Connect> for ChatServer {
     }
 }
 
-impl Handler<ClientMessage> for ChatServer {
+impl Handler<ClientMessage> for ClientServer {
     type Result = ();
 
     fn handle(&mut self, msg: ClientMessage, ctx: &mut Self::Context) -> Self::Result {
@@ -73,13 +81,13 @@ impl Handler<ClientMessage> for ChatServer {
         let msg_clone = msg.clone();
 
 
-        let json_struct_result = serde_json::from_str::<communicate_models::CommunicateJson>(msg);
+        let json_struct_result = serde_json::from_str::<communicate_models::CommonCommunicateJsonStruct>(msg);
 
         match json_struct_result {
             Ok(communicate_json) => {
                 match communicate_json.code {
                     1 => {
-                        crate::client_send_msg_to_connect(communicate_json)
+                        crate::kernel_send_message_to_front_end(communicate_json)
                     }
                     _ => {
                         self.send_message((msg_clone.to_owned() + "1!!!").as_str())
@@ -93,7 +101,7 @@ impl Handler<ClientMessage> for ChatServer {
     }
 }
 
-impl Handler<Disconnect> for ChatServer {
+impl Handler<Disconnect> for ClientServer {
     type Result = ();
 
     fn handle(&mut self, msg: Disconnect, ctx: &mut Self::Context) -> Self::Result {

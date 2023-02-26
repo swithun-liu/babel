@@ -127,6 +127,7 @@ class ActivityVar(
 ) {
     init {
         fileManagerViewModel.init(this)
+        connectVM.init(this)
     }
 }
 
@@ -248,19 +249,26 @@ fun FTPView(activityVar: ActivityVar) {
         }) {
             Text(text = "list 5656")
         }
-        Button(onClick = {
-            activityVar.ftpVM.viewModelScope.launch(Dispatchers.IO) {
-                val url = activityVar.ftpVM.downloadFile(5656)
-            }
-        }) {
-            Text(text = "download file")
-        }
+//        Button(onClick = {
+//            activityVar.ftpVM.viewModelScope.launch(Dispatchers.IO) {
+//                val url = activityVar.ftpVM.downloadFile(5656)
+//            }
+//        }) {
+//            Text(text = "download file")
+//        }
         Button(onClick = {
             activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
                 activityVar.fileManagerViewModel.getBasePathList()
             }
         }) {
             Text(text = "get file list")
+        }
+        Button(onClick = {
+            activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
+                activityVar.fileManagerViewModel.getBasePathListByHttp()
+            }
+        }) {
+            Text(text = "HTTP get file list")
         }
     }
 }

@@ -16,7 +16,7 @@ pub struct WsChatSession {
 
     pub name: Option<String>,
 
-    pub chat_server: Addr<server::ChatServer>
+    pub chat_server: Addr<server::ClientServer>
 }
 
 impl WsChatSession {

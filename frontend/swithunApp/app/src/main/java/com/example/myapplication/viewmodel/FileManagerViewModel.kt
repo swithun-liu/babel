@@ -6,14 +6,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.myapplication.ActivityVar
-import com.example.myapplication.SwithunLog
-import com.example.myapplication.model.KernelConnectJson
+import com.example.myapplication.model.KernelAndFrontEndJson
 import com.example.myapplication.nullCheck
+import com.example.myapplication.util.UrlEncodeParams
+import com.example.myapplication.util.getRequest
+import com.example.myapplication.util.getRequestWithOriginalResponse
 import com.example.myapplication.websocket.RawData
 import com.google.gson.Gson
+import com.koushikdutta.async.http.HttpUtil
 import java.io.File
 import java.util.*
-import java.util.concurrent.atomic.AtomicLong
 
 class FileManagerViewModel: ViewModel() {
 
@@ -64,10 +66,24 @@ class FileManagerViewModel: ViewModel() {
         }
     }
 
+    private fun Array<File>.map2LocalItems(): List<LocalPathItem> {
+        return this.map {
+            LocalPathItem(
+                it.path,
+                if (it.isFile) LocalPathItem.PathType.FILE.type else LocalPathItem.PathType.Folder.type
+            )
+        }
+    }
+
+    fun getBasePathListFromLocal(): List<LocalPathItem> {
+        val basePath = File(fileBasePath)
+        return basePath.listFiles()?.map2LocalItems() ?: emptyList()
+    }
+
     fun getBasePathList(){
         activityVar?.wordsVM?.let {
             val uuid = UUID.randomUUID().toString()
-            val j = KernelConnectJson(
+            val j = KernelAndFrontEndJson(
                 uuid,
                 1,
                 "base path list"
@@ -78,6 +94,13 @@ class FileManagerViewModel: ViewModel() {
             it.sendCommand(data)
         }
     }
+
+    suspend fun getBasePathListByHttp() {
+        val urlEncodeParams = UrlEncodeParams().apply {
+            put("path", "base")
+        }
+        getRequestWithOriginalResponse("http://192.168.0.109:8088/get_path_list", urlEncodeParams)?.body?.string().nullCheck("response: ", true)
+    }
 }
 
 sealed class PathItem(val path: String) {
@@ -86,4 +109,11 @@ sealed class PathItem(val path: String) {
         var isOpening = false
     }
     class FileItem(path: String) : PathItem(path)
+}
+
+data class LocalPathItem(val path: String, val fileType: Int) {
+    enum class PathType(val type: Int) {
+        FILE(0),
+        Folder(1)
+    }
 }

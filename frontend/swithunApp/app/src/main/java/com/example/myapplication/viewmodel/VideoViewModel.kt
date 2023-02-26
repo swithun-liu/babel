@@ -230,7 +230,7 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
             urlEncodeParams = urlEncodeParams,
             headerParams = headerParams
         )
-        val result = conanList?.safeGetJSONObject("result").nullCheck("get result", true) ?: return
+        val result = conanList?.safeGetJSONObject("result").nullCheck("get result", false) ?: return
         val main_section = result.safeGetJSONObject("main_section").nullCheck("get main_section", true) ?: return
         val episodes = main_section.safeGetJsonArray("episodes").nullCheck("get episodes", true) ?: return
 
