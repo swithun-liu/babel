@@ -157,7 +157,7 @@ fun FileManagerView(activityVar: ActivityVar) {
         items(activityVar.fileManagerViewModel.pathList) { path: PathItem ->
             when (path) {
                 is PathItem.FileItem -> {
-                    FileItemView(path)
+                    FileItemView(path, activityVar)
                 }
                 is PathItem.FolderItem -> {
                     FolderItemView(path, activityVar)
@@ -199,7 +199,7 @@ fun SimplePathListView(pathList: List<PathItem>, activityVar: ActivityVar) {
     pathList.forEach { path ->
         when (path) {
             is PathItem.FileItem -> {
-                FileItemView(path)
+                FileItemView(path, activityVar)
             }
             is PathItem.FolderItem -> {
                 FolderItemView(path, activityVar)
@@ -209,11 +209,12 @@ fun SimplePathListView(pathList: List<PathItem>, activityVar: ActivityVar) {
 }
 
 @Composable
-fun FileItemView(file: PathItem.FileItem) {
+fun FileItemView(file: PathItem.FileItem, activityVar: ActivityVar) {
     Card(modifier = Modifier
         .fillMaxSize()
         .clickable {
             SwithunLog.d("click file: ${file.name}")
+            activityVar.fileManagerViewModel.clickFile(file)
         }
     ) {
         Row(Modifier.padding(10.dp)) {

@@ -7,4 +7,10 @@ class KernelConfig(activity: () -> Activity) {
     val kernelIP = WebUtil.getLocalIPAddress(activity())
     val kernelPort = 8088
     val kernelHost = "$kernelIP:$kernelPort"
+
+    object KernelPath {
+        object ConnectPath {
+            const val connect = "connect"
+        }
+    }
 }

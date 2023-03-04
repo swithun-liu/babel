@@ -8,7 +8,6 @@ use std::{
     sync::{atomic::AtomicUsize, Arc},
     time::{Instant},
 };
-use std::ops::Add;
 
 use actix::{Actor, Addr};
 use actix_files::NamedFile;
@@ -18,14 +17,17 @@ use actix_web_actors::ws;
 use jni::sys::{jstring};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
-use std::fmt::format;
+use std::fs::File;
+use std::io::Read;
 use std::sync::Mutex;
 use futures::channel::oneshot;
 use uuid::Uuid;
 use std::string::String;
+use std::task::Poll;
 use android_logger::Config;
-use log::{debug, Level, LevelFilter};
+use log::{debug, error, info, Level, LevelFilter};
 use crate::model::option_code;
+use futures::{TryFutureExt, TryStreamExt};
 
 mod server;
 mod session;
@@ -90,16 +92,57 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
                     .service(web::resource("/test").to(test))
                     .app_data(web::Data::new(KERNEL_SERVER.clone()))
                     .service(web::resource("/connect").to(connect))
-                    .service(web::resource("/get_path_list")
-                        .route(web::get().to(get_path_list))
-
-                    )
+                    .service(web::resource("/get_path_list").route(web::get().to(get_path_list)))
+                    .service(web::resource("/get-video").to(get_video))
             })
                 .workers(2)
                 .bind(("0.0.0.0", 8088)).unwrap().run().await.expect("panic");
         }
 )
 }
+
+async fn get_video(
+    query: web::Query<HashMap<String, String>>
+) -> Result<HttpResponse, Error> {
+    let temp = "failed path".to_string();
+    let path = query.get("path").unwrap_or(&temp);
+    debug!("get_video / {}", path);
+
+    let file = File::open(&path)?;
+    let metadata = file.metadata()?;
+    let file_size = metadata.len();
+
+    let response = HttpResponse::Ok()
+        .header("Content-Type", "video/x-matroska")
+        .header("Content-Length", file_size.to_string())
+        .streaming(futures::stream::poll_fn(move |ctx| {
+            let mut buffer = [0; 64 * 1024];
+            let mut reader = std::io::BufReader::new(file.try_clone()?);
+
+            match reader.read(&mut buffer) {
+                Ok(0) => Poll::Ready(None),
+                Ok(n) => {
+                    let chunk = actix_web::web::Bytes::from(buffer[..n].to_owned().into_boxed_slice());
+                    Poll::Ready(Some(Ok(chunk)))
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => Poll::Pending,
+                Err(e) => Poll::Ready(Some(Err(e))),
+            }
+        }));
+
+    Ok(response)
+
+}
+
+// fn content_type_by_extension<P: AsRef<>>(path: P) -> Option<&'static str> {
+//     match path.as_ref().extension().and_then(|e| e.to_str()) {
+//         Some("mp4") => Some("video/mp4"),
+//         Some("mkv") => Some("video/x-matroska"),
+//         Some("avi") => Some("video/x-msvideo"),
+//         Some("webm") => Some("video/webm"),
+//         _ => None,
+//     }
+// }
 
 async fn get_path_list(
     query: web::Query<HashMap<String, String>>

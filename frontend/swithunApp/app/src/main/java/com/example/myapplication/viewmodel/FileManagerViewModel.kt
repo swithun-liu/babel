@@ -6,6 +6,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.myapplication.ActivityVar
+import com.example.myapplication.SwithunLog
+import com.example.myapplication.model.ServerConfig
+import com.example.myapplication.model.VideoExtension
+import com.example.myapplication.nullCheck
+import tv.danmaku.ijk.media.player.IjkMediaPlayer
 import java.io.File
 
 class FileManagerViewModel : ViewModel() {
@@ -14,8 +19,8 @@ class FileManagerViewModel : ViewModel() {
     var pathList: List<PathItem> by mutableStateOf(listOf())
     var activityVar: ActivityVar? = null
 
-    val remoteRepository = FileManagerHTTPRepository()
-    val localRepository = FileManagerLocalRepository(fileBasePath)
+    private val remoteRepository = FileManagerHTTPRepository()
+    private val localRepository = FileManagerLocalRepository(fileBasePath)
 
     fun init(activityVar: ActivityVar) {
         this.activityVar = activityVar
@@ -39,6 +44,35 @@ class FileManagerViewModel : ViewModel() {
         pathList = oldList
     }
 
+    fun clickFile(file: PathItem.FileItem) {
+        activityVar?.let {
+            val fileObj = File(file.path)
+            if (VideoExtension.isOneOf(fileObj.extension)) {
+                SwithunLog.d("是视频")
+                val surface = it.mySurfaceView?.holder?.surface ?: return
+                it.videoVM.playVideo(file.path)
+                val player = it.videoVM.getNewPlayer()
+                player.reset()
+                player.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-hevc", 1)
+                player.dataSource =
+                    "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.GetVideoPath.path}?${ServerConfig.ServerPath.GetVideoPath.paramPath}=${file.path}".nullCheck("视频链接: ", true)
+                player.setSurface(surface)
+                player.prepareAsync()
+                player.start()
+//                val player = videoViewModel.getNewPlayer()
+//
+//                player.reset()
+//                player.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-hevc", 1)
+//                player.dataSource = httpUrl
+//                player.setSurface(surfaceView.holder.surface)
+//
+//                player.prepareAsync()
+//                player.start()
+            } else {
+                SwithunLog.e("不是视频")
+            }
+        }
+    }
 
     private fun Array<File>.map2Items(): List<PathItem> {
         return this.map {

@@ -20,6 +20,7 @@ import com.example.myapplication.errcode.LogInErrCode
 import com.example.myapplication.model.GetEpisode
 import com.example.myapplication.model.GetEpisodeList
 import com.example.myapplication.model.SectionItem
+import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.nullCheck
 import com.example.myapplication.util.*
 import com.google.zxing.BarcodeFormat
@@ -253,6 +254,10 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
     fun testGetHttpMp4(): String {
         //return "http://${ftpVM.myIPStr}:54321/files"
         return "http://192.168.31.15:54321/files"
+    }
+
+    fun playVideo(path: String): String {
+        return "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.GetVideoPath.path}?${ServerConfig.ServerPath.GetVideoPath.paramPath}=$path"
     }
 
 }

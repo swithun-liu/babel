@@ -6,6 +6,7 @@ import com.example.myapplication.ActivityVar
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.code.OptionCode
 import com.example.myapplication.model.KernelAndFrontEndJson
+import com.example.myapplication.model.KernelConfig
 import com.example.myapplication.websocket.RawData
 import com.example.myapplication.websocket.WebSocketRepository
 import com.google.gson.Gson
@@ -26,10 +27,10 @@ class ConnectViewModel: ViewModel() {
     }
 
     fun create() {
-        val kernelHost = activityVar?.kernelConfig?.kernelHost ?: return
+        val kernelConfig = activityVar?.kernelConfig ?: return
 
         remoteWordFlow = repository.webSocketCreate(
-            "http://${kernelHost}/connect",
+            "http://${kernelConfig.kernelHost}/${KernelConfig.KernelPath.ConnectPath.connect}",
             viewModelScope,
             "Connect"
         )

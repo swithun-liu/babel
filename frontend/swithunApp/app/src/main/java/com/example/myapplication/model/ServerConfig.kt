@@ -11,6 +11,10 @@ object ServerConfig {
             const val path = "get_path_list"
             const val paramPath = "path"
         }
+        object GetVideoPath {
+            const val path = "get-video"
+            const val paramPath = "path"
+        }
     }
 
 }
