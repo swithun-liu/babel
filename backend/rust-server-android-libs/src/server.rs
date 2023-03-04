@@ -6,6 +6,7 @@ use std::{
 use actix::{Recipient, Actor, Context, Handler, Message, Addr};
 use log::{debug, info};
 use rand::{rngs::ThreadRng, Rng};
+use crate::model::option_code;
 
 use crate::model::communicate_models;
 
@@ -85,8 +86,8 @@ impl Handler<ClientMessage> for ClientServer {
 
         match json_struct_result {
             Ok(communicate_json) => {
-                match communicate_json.code {
-                    1 => {
+                match option_code::OptionCode::CommonOptionCode::try_from(communicate_json.code).unwrap() {
+                    option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST => {
                         crate::kernel_send_message_to_front_end(communicate_json)
                     }
                     _ => {

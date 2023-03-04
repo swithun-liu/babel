@@ -26,8 +26,10 @@ class ConnectViewModel: ViewModel() {
     }
 
     fun create() {
+        val kernelHost = activityVar?.kernelConfig?.kernelHost ?: return
+
         remoteWordFlow = repository.webSocketCreate(
-            "http://192.168.0.109:8088/connect",
+            "http://${kernelHost}/connect",
             viewModelScope,
             "Connect"
         )
@@ -52,25 +54,38 @@ class ConnectViewModel: ViewModel() {
         repository.webSocketSend(data)
     }
 
+    private fun responsePathList(uuid: String, code: Int, pathList: List<LocalPathItem>) {
+        val gson = Gson()
+
+        val jsonStr = gson.toJson(pathList)
+
+        val jsonObject = KernelAndFrontEndJson(
+            uuid = uuid,
+            code = code,
+            content = jsonStr
+        )
+
+        val jsonObjectStr = gson.toJson(jsonObject)
+
+        sendCommand(RawData(jsonObjectStr))
+    }
+
+
     private fun handleCommand(data: KernelAndFrontEndJson) {
         when (OptionCode.fromValue(data.code)) {
             OptionCode.GET_BASE_PATH_LIST_REQUEST -> {
                 activityVar?.let {
                     it.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
                         val basePathList = it.fileManagerViewModel.getBasePathListFromLocal()
-                        val gson = Gson()
-
-                        val jsonStr = gson.toJson(basePathList)
-
-                        val jsonObject = KernelAndFrontEndJson(
-                            uuid = data.uuid,
-                            code = OptionCode.GET_BASE_PATH_LIST_RESPONSE.code,
-                            content = jsonStr
-                        )
-
-                        val jsonObjectStr = gson.toJson(jsonObject)
-
-                        sendCommand(RawData(jsonObjectStr))
+                        responsePathList(data.uuid, OptionCode.GET_BASE_PATH_LIST_RESPONSE.code, basePathList)
+                    }
+                }
+            }
+            OptionCode.GET_CHILDREN_PATH_LIST_REQUEST -> {
+                activityVar?.let {
+                    it.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
+                        val childrenPathList = it.fileManagerViewModel.getChildrenPathListFromLocal(data.content)
+                        responsePathList(data.uuid, OptionCode.GET_CHILDREN_PATH_LIST_RESPONSE.code, childrenPathList)
                     }
                 }
             }

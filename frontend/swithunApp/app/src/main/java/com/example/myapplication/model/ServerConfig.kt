@@ -1,0 +1,16 @@
+package com.example.myapplication.model
+
+object ServerConfig {
+
+    var serverIP = "192.168.0.109"
+    var serverPort = "8088"
+    val serverHost get() = "$serverIP:$serverPort"
+
+    object ServerPath {
+        object GetPathList {
+            const val path = "get_path_list"
+            const val paramPath = "path"
+        }
+    }
+
+}

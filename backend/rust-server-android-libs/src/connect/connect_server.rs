@@ -1,5 +1,5 @@
 use actix::{Actor, Addr, Context, Handler, Message, Recipient};
-use log::debug;
+use log::{debug, info};
 use rand::rngs::ThreadRng;
 
 use crate::model::option_code;
@@ -9,7 +9,8 @@ use crate::model::option_code;
 pub struct ConnectSessionMessage(pub String);
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct FronterMessage {
+#[derive(Debug)]
+pub struct FrontEndMessage {
     pub msg: String,
 }
 #[derive(Message)]
@@ -74,38 +75,20 @@ impl Handler<KernelToFrontEndMessage> for ConnectServer {
 }
 
 
-impl Handler<FronterMessage> for ConnectServer {
+impl Handler<FrontEndMessage> for ConnectServer {
     type Result = ();
 
-    fn handle(&mut self, msg: FronterMessage, ctx: &mut Self::Context) -> Self::Result {
-        debug!("swithun-xxxx # rust # Handler<FronterMessage>");
-        let data_str = msg.msg.as_str();
-        let data_str_clone = data_str.clone();
+    fn handle(&mut self, msg: FrontEndMessage, ctx: &mut Self::Context) -> Self::Result {
+        debug!("kernel receive: {:?}", msg);
+        let front_end_msg_json_str = msg.msg.as_str();
+        let front_end_msg_json_struct = serde_json::from_str::<crate::communicate_models::CommonCommunicateJsonStruct>(front_end_msg_json_str);
 
-        let json_struct_result = serde_json::from_str::<crate::communicate_models::CommonCommunicateJsonStruct>(data_str);
-
-        match json_struct_result {
+        match front_end_msg_json_struct {
             Ok(kernel_and_front_end_json) => {
-                let kernel_and_front_end_json_code_enum: Option<option_code::OptionCode::CommonOptionCode> = option_code::OptionCode::CommonOptionCode::from_value(kernel_and_front_end_json.code);
-                match kernel_and_front_end_json_code_enum {
-                    Some(coc) => {
-                        match coc {
-                            option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_RESPONSE => {
-                                debug!("GET_BASE_PATH_LIST_RESPONSE ");
-                                crate::handle_android_front_end_response(kernel_and_front_end_json)
-                            }
-                            _ => {
-                                debug!("other code")
-                            }
-                        }
-                    }
-                    None => {
-
-                    }
-                }
+                crate::handle_android_front_end_response(kernel_and_front_end_json)
             }
             Err(_) => {
-
+                debug!("kernel receive front_end_mgs_json parse failed")
             }
         }
     }

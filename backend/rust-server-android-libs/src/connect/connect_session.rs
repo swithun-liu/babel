@@ -80,13 +80,12 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ConnectSession {
                 ctx.pong(&msg);
             }
             ws::Message::Pong(msg) => {
-                debug!("swithun-xxxx # rust # ConnnectSession - handle - Pong");
                 self.hb = Instant::now();
             }
             ws::Message::Text(text) => {
                 let msg = text.trim();
                 debug!("swithun-xxxx # rust # ConnnectSession - handle - Text {}", msg);
-                self.connect_server.do_send(connect_server::FronterMessage{
+                self.connect_server.do_send(connect_server::FrontEndMessage {
                     msg: msg.to_owned(),
                 });
 

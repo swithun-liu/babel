@@ -33,6 +33,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.model.KernelConfig
 import com.example.myapplication.model.SectionItem
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.util.AuthChecker
@@ -94,6 +95,7 @@ class MainActivity : ComponentActivity() {
 
 class ActivityVar(
     var activity: MainActivity,
+    val kernelConfig: KernelConfig = KernelConfig { activity },
     var mySurfaceView: SurfaceView? = null,
     val connectVM: ConnectViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
@@ -172,7 +174,9 @@ fun FolderItemView(folder: PathItem.FolderItem, activityVar: ActivityVar) {
         .fillMaxSize()
         .clickable {
             SwithunLog.d("click folder: ${folder.name}")
-            activityVar.fileManagerViewModel.clickFolder(folder)
+            activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
+                activityVar.fileManagerViewModel.clickFolder(folder)
+            }
         },
         backgroundColor = Color(activityVar.activity.getColor(R.color.teal_200))
     ) {
@@ -258,14 +262,7 @@ fun FTPView(activityVar: ActivityVar) {
 //        }
         Button(onClick = {
             activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
-                activityVar.fileManagerViewModel.getBasePathList()
-            }
-        }) {
-            Text(text = "get file list")
-        }
-        Button(onClick = {
-            activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
-                activityVar.fileManagerViewModel.getBasePathListByHttp()
+                activityVar.fileManagerViewModel.refreshBasePathListFromRemote()
             }
         }) {
             Text(text = "HTTP get file list")

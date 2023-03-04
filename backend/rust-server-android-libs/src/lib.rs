@@ -23,9 +23,9 @@ use std::sync::Mutex;
 use futures::channel::oneshot;
 use uuid::Uuid;
 use std::string::String;
-
-#[macro_use] extern crate log;
-extern crate android_logger;
+use android_logger::Config;
+use log::{debug, Level, LevelFilter};
+use crate::model::option_code;
 
 mod server;
 mod session;
@@ -33,6 +33,8 @@ mod connect;
 mod model;
 
 use crate::model::communicate_models;
+#[macro_use] extern crate log;
+extern crate android_logger;
 
 lazy_static! {
     static ref KERNEL_SERVER: Addr<connect::connect_server::ConnectServer> = {
@@ -73,14 +75,10 @@ async fn index() -> impl Responder {
 }
 #[no_mangle]
 pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
+    let config = Config::default().with_min_level(Level::Debug);
+    android_logger::init_once(config);
 
-    // Initialize android_logger
-    // env_logger::builder().filter_level(log::LevelFilter::Trace).init();
-    android_logger::init_once(
-        android_logger::Config::default().with_max_level(log::LevelFilter::Trace).with_tag("myrust")
-    );
-
-    info!("rust test");
+    debug!("rust debug");
 
     Runtime::new().unwrap().block_on(
         async {
@@ -106,34 +104,42 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
 async fn get_path_list(
     query: web::Query<HashMap<String, String>>
 ) -> impl Responder {
-    let key_option = query.get("path");
+    let path_option = query.get("path");
 
-    kernel_send_message_to_front_end(communicate_models::CommonCommunicateJsonStruct {
-        uuid: "".to_string(),
-        code: 0,
-        content: "get_path_list".to_string(),
-    });
+    debug!("rust get_path_list/{}", path_option.clone().unwrap());
 
-    match key_option {
-        Some(key) => {
-            let base_string = String::from("base");
-
-            kernel_send_message_to_front_end(communicate_models::CommonCommunicateJsonStruct {
-                uuid: "".to_string(),
-                code: 0,
-                content: "suc".to_string(),
-            });
-
-            match key {
-                base_string => {
+    match path_option {
+        Some(path) => {
+            match path.as_str() {
+                "base" => {
+                    debug!("get_path_list: base_string, {}", option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST as i32);
                     let new_uuid: std::string::String = format!("{}", Uuid::new_v4());
                     let (tx, rx) = oneshot::channel();
 
                     SERVER_CLIENT_REQUEST_MAP.lock().unwrap().insert(new_uuid.clone(), tx);
                     let json_struct = communicate_models::CommonCommunicateJsonStruct {
                         uuid: new_uuid,
-                        code: 1,
+                        code: option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST as i32,
                         content: "".to_string(),
+                    };
+                    kernel_send_message_to_front_end(json_struct);
+
+                    match rx.await {
+                        Ok(result) => HttpResponse::Ok().body(result),
+                        Err(_) => HttpResponse::InternalServerError().finish(),
+                    }
+                }
+                _ => {
+                    debug!("get_path_list: {} code {}", path, option_code::OptionCode::CommonOptionCode::GET_CHILDREN_PATH_LIST_REQUEST as i32);
+
+                    let new_uuid: std::string::String = format!("{}", Uuid::new_v4());
+                    let (tx, rx) = oneshot::channel();
+
+                    SERVER_CLIENT_REQUEST_MAP.lock().unwrap().insert(new_uuid.clone(), tx);
+                    let json_struct = communicate_models::CommonCommunicateJsonStruct {
+                        uuid: new_uuid,
+                        code: option_code::OptionCode::CommonOptionCode::GET_CHILDREN_PATH_LIST_REQUEST as i32,
+                        content: path.to_string(),
                     };
                     kernel_send_message_to_front_end(json_struct);
 
@@ -145,11 +151,6 @@ async fn get_path_list(
             }
         }
         None => {
-            kernel_send_message_to_front_end(communicate_models::CommonCommunicateJsonStruct {
-                uuid: "".to_string(),
-                code: 0,
-                content: "err 1".to_string(),
-            });
             HttpResponse::Ok().body("err 1".to_string())
         }
     }
