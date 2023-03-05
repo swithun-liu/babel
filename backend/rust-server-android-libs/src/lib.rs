@@ -18,7 +18,7 @@ use jni::sys::{jstring};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::pin::Pin;
 use std::sync::{Mutex};
 use futures::channel::oneshot;
@@ -27,7 +27,10 @@ use std::string::String;
 use std::task::{Context, Poll};
 use actix::fut::ok;
 use actix_web::body::BodyStream;
+use actix_web::cookie::time::format_description::parse;
 use actix_web::dev::JsonBody::Body;
+use actix_web::error::ParseError;
+use actix_web::http::header::Range;
 use actix_web::web::Bytes;
 use android_logger::Config;
 use log::{debug, error, info, Level, LevelFilter};
@@ -109,29 +112,65 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
 )
 }
 
-async fn get_video(query: web::Query<HashMap<String, String>>) -> Result<HttpResponse, Error> {
+async fn get_video(
+    query: web::Query<HashMap<String, String>>,
+    req: HttpRequest
+) -> Result<HttpResponse, Error> {
     let temp = "failed path".to_string();
     let path = query.get("path").unwrap_or(&temp);
-    println!("get_video / {}", path);
+    info!("get_video / {}", path);
 
     let file = File::open(&path)?;
     let metadata = file.metadata()?;
     let content_length = metadata.len();
     let content_type = get_content_type(&path.as_str()).unwrap_or("err");
-    println!(
+    info!(
         "get_video # content_length: {} content-type: {}",
         content_length,
         content_type.clone()
     );
 
+    // 打印所有请求头
+    for (header_name, header_value) in req.headers().iter() {
+        debug!("Header: {} => {:?}", header_name, header_value);
+    }
 
+    let range = req.headers().get("range").and_then(|header_value| {
+        info!("get range: {}", header_value.clone().to_str().ok()?);
+        let header_value = header_value.to_str().ok()?;
+        let byte_ranges = header_value.trim_start_matches("bytes=").trim();
+        info!("1");
+        let mut parts = byte_ranges.split('-');
+        info!("2");
+        let start = parts.next()?.parse().ok()?;
+        info!("3");
+        let end = parts.next().map(|s| s.parse().ok()).unwrap_or(Some(content_length as usize - 1)).unwrap_or(content_length as usize - 1);
+        info!("4");
+        info!("start {} end {}", start, end);
+        Some((start, end))
+    });
+
+    let (start, end) = match range {
+        Some((start, end)) => {
+            info!("get_video $ start:{} end: {}", start, end);
+            if start > content_length as usize || start > end || end >= content_length as usize {
+                info!("Invalid range");
+                return Err(actix_web::error::ErrorBadRequest("Invalid range"))
+            }
+            (start, end)
+        }
+        None => (0, content_length as usize - 1)
+    };
+
+    let size = (end - start + 1) as u64;
     Ok(
-        HttpResponse::Ok()
+        HttpResponse::PartialContent()
             .append_header(("Content-Type", content_type))
             .append_header(("Content-Length", content_length))
+            .append_header(("Content-Range", format!("bytes {}-{}/{}", start, end, content_length)))
             .streaming(
                 Box::pin(
-                    FileReaderStream::new(file)
+                    FileReaderStream::new(file, start as u64)
                 )
             )
     )
@@ -143,10 +182,10 @@ struct FileReaderStream {
 }
 
 impl FileReaderStream {
-    fn new(file: std::fs::File) -> FileReaderStream {
+    fn new(file: std::fs::File, pos: u64) -> FileReaderStream {
         FileReaderStream {
             file,
-            pos: 0,
+            pos,
         }
     }
 }
@@ -157,6 +196,8 @@ impl futures::Stream for FileReaderStream {
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut file = &self.file;
         let mut buf = vec![0u8; 1024 * 1024];
+
+        file.seek(SeekFrom::Start(self.pos as u64))?;
 
         let n = match file.read(&mut buf) {
             Ok(n) => n,
@@ -191,6 +232,7 @@ fn get_content_type(file_path: &str) -> Option<&'static str> {
         Some("mov") => Some("video/quicktime"),
         Some("webm") => Some("video/webm"),
         Some("wmv") => Some("video/x-ms-wmv"),
+        Some("mkv") => Some("video/x-matroska"),
         _ => None
     }
 }
