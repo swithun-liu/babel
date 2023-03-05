@@ -20,6 +20,11 @@
 
 # 进展
 
+# 2023/03/05
+- done
+  1. 支持播放server的视频，随意跳转
+     实现跳转: Content-Range
+
 # 2023/02/26
 - done
   1. client `-http request->` server `-websocket->` android `-websocket->` server `-http response->` client
