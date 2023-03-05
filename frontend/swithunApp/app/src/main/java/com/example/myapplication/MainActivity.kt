@@ -477,7 +477,7 @@ fun VideoView(activityVar: ActivityVar) {
         ) {
             items(videoViewModel.itemList) { sectionItem: SectionItem ->
                 Button(onClick = {
-                    videoViewModel.viewModelScope.launch {
+                    videoViewModel.viewModelScope.launch(Dispatchers.IO) {
                         videoViewModel.getConanByEpId(sectionItem.id)?.let { newConanUrl ->
                             onGetConanUrl(newConanUrl)
                         }

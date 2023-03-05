@@ -49,7 +49,7 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
     var currentProcess  by mutableStateOf(0F)
     var itemList by mutableStateOf(mutableListOf<SectionItem>())
     var itemCursor = 0
-    val player = IjkMediaPlayer()
+    var player = IjkMediaPlayer()
     var beginJob: Job? = null
 
     val ftpVM = ViewModelProvider(activity.invoke(), object : ViewModelProvider.Factory {
@@ -58,7 +58,9 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
         }
     }).get(FTPViewModel::class.java)
 
-    fun getNewPlayer() = IjkMediaPlayer()
+    fun getNewPlayer() = IjkMediaPlayer().also {
+        this.player = it
+    }
 
 
     private val BILIBILI_LOGIN_QR_CODE_URL =
