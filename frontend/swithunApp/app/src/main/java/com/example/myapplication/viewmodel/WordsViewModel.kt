@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.util.postRequest
 import com.example.myapplication.util.safeGetString
 import com.example.myapplication.websocket.RawData
@@ -35,7 +36,7 @@ class WordsViewModel: ViewModel() {
     private val TAG = "swithun {WordsViewModel}"
 
     fun handleCreate() {
-        remoteWordFlow = repository.webSocketCreate("http://192.168.0.109:8088/ws", viewModelScope, "Client")
+        remoteWordFlow = repository.webSocketCreate("http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.WSPath.path}", viewModelScope, "Client")
 
         viewModelScope.launch(Dispatchers.IO) {
             remoteWordFlow?.collect {

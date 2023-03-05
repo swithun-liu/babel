@@ -9,7 +9,7 @@ use std::{
     time::{Instant},
 };
 
-use actix::{Actor, Addr};
+use actix::{Actor, Addr, ContextFutureSpawner};
 use actix_files::NamedFile;
 use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::rt::Runtime;
@@ -18,16 +18,23 @@ use jni::sys::{jstring};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Read;
-use std::sync::Mutex;
+use std::io::{BufReader, Read};
+use std::pin::Pin;
+use std::sync::{Mutex};
 use futures::channel::oneshot;
 use uuid::Uuid;
 use std::string::String;
-use std::task::Poll;
+use std::task::{Context, Poll};
+use actix::fut::ok;
+use actix_web::body::BodyStream;
+use actix_web::dev::JsonBody::Body;
+use actix_web::web::Bytes;
 use android_logger::Config;
 use log::{debug, error, info, Level, LevelFilter};
 use crate::model::option_code;
-use futures::{TryFutureExt, TryStreamExt};
+use futures::{SinkExt, Stream, TryFutureExt, TryStreamExt};
+use futures::stream::once;
+use tokio::sync::mpsc;
 
 mod server;
 mod session;
@@ -37,6 +44,7 @@ mod model;
 use crate::model::communicate_models;
 #[macro_use] extern crate log;
 extern crate android_logger;
+extern crate core;
 
 lazy_static! {
     static ref KERNEL_SERVER: Addr<connect::connect_server::ConnectServer> = {
@@ -101,48 +109,91 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
 )
 }
 
-async fn get_video(
-    query: web::Query<HashMap<String, String>>
-) -> Result<HttpResponse, Error> {
+async fn get_video(query: web::Query<HashMap<String, String>>) -> Result<HttpResponse, Error> {
     let temp = "failed path".to_string();
     let path = query.get("path").unwrap_or(&temp);
-    debug!("get_video / {}", path);
+    println!("get_video / {}", path);
 
     let file = File::open(&path)?;
     let metadata = file.metadata()?;
-    let file_size = metadata.len();
+    let content_length = metadata.len();
+    let content_type = get_content_type(&path.as_str()).unwrap_or("err");
+    println!(
+        "get_video # content_length: {} content-type: {}",
+        content_length,
+        content_type.clone()
+    );
 
-    let response = HttpResponse::Ok()
-        .header("Content-Type", "video/x-matroska")
-        .header("Content-Length", file_size.to_string())
-        .streaming(futures::stream::poll_fn(move |ctx| {
-            let mut buffer = [0; 64 * 1024];
-            let mut reader = std::io::BufReader::new(file.try_clone()?);
 
-            match reader.read(&mut buffer) {
-                Ok(0) => Poll::Ready(None),
-                Ok(n) => {
-                    let chunk = actix_web::web::Bytes::from(buffer[..n].to_owned().into_boxed_slice());
-                    Poll::Ready(Some(Ok(chunk)))
-                }
-                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => Poll::Pending,
-                Err(e) => Poll::Ready(Some(Err(e))),
-            }
-        }));
-
-    Ok(response)
-
+    Ok(
+        HttpResponse::Ok()
+            .append_header(("Content-Type", content_type))
+            .append_header(("Content-Length", content_length))
+            .streaming(
+                Box::pin(
+                    FileReaderStream::new(file)
+                )
+            )
+    )
 }
 
-// fn content_type_by_extension<P: AsRef<>>(path: P) -> Option<&'static str> {
-//     match path.as_ref().extension().and_then(|e| e.to_str()) {
-//         Some("mp4") => Some("video/mp4"),
-//         Some("mkv") => Some("video/x-matroska"),
-//         Some("avi") => Some("video/x-msvideo"),
-//         Some("webm") => Some("video/webm"),
-//         _ => None,
-//     }
-// }
+struct FileReaderStream {
+    file: std::fs::File,
+    pos: u64,
+}
+
+impl FileReaderStream {
+    fn new(file: std::fs::File) -> FileReaderStream {
+        FileReaderStream {
+            file,
+            pos: 0,
+        }
+    }
+}
+
+impl futures::Stream for FileReaderStream {
+    type Item = Result<actix_web::web::Bytes, actix_web::Error>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let mut file = &self.file;
+        let mut buf = vec![0u8; 1024 * 1024];
+
+        let n = match file.read(&mut buf) {
+            Ok(n) => n,
+            Err(ref e) if e.kind() == std::io::ErrorKind::Interrupted => return Poll::Pending,
+            Err(e) => return Poll::Ready(Some(Err(actix_web::Error::from(e))))
+        };
+
+        if n == 0 {
+            return Poll::Ready(None)
+        }
+
+        let bytes = actix_web::web::Bytes::copy_from_slice(&buf[..n]);
+        self.pos += n as u64;
+
+        Poll::Ready(Some(Ok(bytes)))
+    }
+}
+
+fn get_content_type(file_path: &str) -> Option<&'static str> {
+    match file_path.split('.').last() {
+        Some("html") => Some("text/html"),
+        Some("css") => Some("text/css"),
+        Some("js") => Some("application/javascript"),
+        Some("json") => Some("application/json"),
+        Some("jpg") | Some("jpeg") => Some("image/jpeg"),
+        Some("png") => Some("image/png"),
+        Some("gif") => Some("image/gif"),
+        Some("bmp") => Some("image/bmp"),
+        Some("ico") => Some("image/x-icon"),
+        Some("pdf") => Some("application/pdf"),
+        Some("mp4") => Some("video/mp4"),
+        Some("mov") => Some("video/quicktime"),
+        Some("webm") => Some("video/webm"),
+        Some("wmv") => Some("video/x-ms-wmv"),
+        _ => None
+    }
+}
 
 async fn get_path_list(
     query: web::Query<HashMap<String, String>>
