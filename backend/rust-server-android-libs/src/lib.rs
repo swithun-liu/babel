@@ -1,7 +1,7 @@
 #![cfg(target_os = "android")]
 #![allow(non_snake_case)]
 
-use jni::objects::{JClass, JString};
+use jni::objects::{JClass, JObject, JString};
 use jni::{JNIEnv};
 
 use std::{
@@ -14,11 +14,12 @@ use actix_files::NamedFile;
 use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::rt::Runtime;
 use actix_web_actors::ws;
-use jni::sys::{jstring};
+use jni::sys::{jobject, jstring};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::net::{Ipv4Addr, SocketAddr};
 use std::pin::Pin;
 use std::sync::{Mutex};
 use futures::channel::oneshot;
@@ -37,6 +38,8 @@ use log::{debug, error, info, Level, LevelFilter};
 use crate::model::option_code;
 use futures::{SinkExt, Stream, TryFutureExt, TryStreamExt};
 use futures::stream::once;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
 mod server;
@@ -45,7 +48,9 @@ mod connect;
 mod model;
 
 use crate::model::communicate_models;
-#[macro_use] extern crate log;
+
+#[macro_use]
+extern crate log;
 extern crate android_logger;
 extern crate core;
 
@@ -61,7 +66,7 @@ lazy_static! {
 }
 
 #[no_mangle]
-pub extern "C" fn Java_com_swithun_liu_ServerSDK_getTestStr(env: JNIEnv, _: JClass) -> jstring{
+pub extern "C" fn Java_com_swithun_liu_ServerSDK_getTestStr(env: JNIEnv, _: JClass) -> jstring {
     env.new_string("Hello World!")
         .expect("Couldn't create java string!")
         .into_inner()
@@ -83,9 +88,64 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getTestStrWithInput(
     output.into_inner()
 }
 
+#[no_mangle]
+pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
+    env: JNIEnv,
+    _: JClass,
+) -> jobject {
+    debug!("response # {}", 1);
+    let mut ips = Vec::new();
+
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    debug!("response # {}", 2);
+
+    rt.block_on(async {
+        debug!("response # {}", 3);
+        for i in 1..=255 {
+            debug!("response # {}", 4);
+            let ip = format!("192.168.0.{}", i);
+
+            // 访问http://ip:8088/test
+            match TcpStream::connect(format!("{}:8088", ip)).await {
+                Ok(mut stream) => {
+                    if let Ok(_) = stream.write_all(b"GET /test HTTP/1.0\r\n\r\n").await {
+                        let mut buf = [0; 1024];
+                        if let Ok(n) = stream.read(&mut buf).await {
+                            let response = String::from_utf8_lossy(&buf[..n]);
+                            debug!("response # {}", response);
+                            if response.contains("I am server") {
+                                ips.push(ip)
+                            }
+                        }
+                    }
+                }
+                Err(_) => continue,
+            }
+        }
+    });
+
+
+    let array = env.new_object_array(
+        0,
+        env.find_class("java/lang/String").unwrap(),
+        JObject::null(),
+    ).unwrap();
+
+    for (i, s) in ips.iter().enumerate() {
+        let java_string = env.new_string(s).unwrap();
+        env.set_object_array_element(array, i as i32, java_string.into_inner()).unwrap();
+    }
+
+    array.into()
+}
+
 async fn index() -> impl Responder {
     NamedFile::open_async("./static/index.html").await.unwrap()
 }
+
 #[no_mangle]
 pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
     let config = Config::default().with_min_level(Level::Debug);
@@ -109,12 +169,12 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
                 .workers(2)
                 .bind(("0.0.0.0", 8088)).unwrap().run().await.expect("panic");
         }
-)
+    )
 }
 
 async fn get_video(
     query: web::Query<HashMap<String, String>>,
-    req: HttpRequest
+    req: HttpRequest,
 ) -> Result<HttpResponse, Error> {
     let temp = "failed path".to_string();
     let path = query.get("path").unwrap_or(&temp);
@@ -155,7 +215,7 @@ async fn get_video(
             info!("get_video $ start:{} end: {}", start, end);
             if start > content_length as usize || start > end || end >= content_length as usize {
                 info!("Invalid range");
-                return Err(actix_web::error::ErrorBadRequest("Invalid range"))
+                return Err(actix_web::error::ErrorBadRequest("Invalid range"));
             }
             (start, end)
         }
@@ -206,7 +266,7 @@ impl futures::Stream for FileReaderStream {
         };
 
         if n == 0 {
-            return Poll::Ready(None)
+            return Poll::Ready(None);
         }
 
         let bytes = actix_web::web::Bytes::copy_from_slice(&buf[..n]);
@@ -308,7 +368,7 @@ async fn chat_route(
 }
 
 async fn test() -> String {
-    "haha".to_string()
+    "i am server".to_string()
 }
 
 async fn connect(
@@ -339,7 +399,7 @@ pub fn handle_android_front_end_response(kernel_and_front_end_json: communicate_
     match request_map.remove(&uuid) {
         Some(tx) => {
             let _ = tx.send(result);
-        },
+        }
         None => {
             eprintln!("Failed to find request with uuid: {}", uuid);
         }
