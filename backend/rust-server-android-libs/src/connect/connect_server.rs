@@ -1,8 +1,6 @@
-use actix::{Actor, Addr, Context, Handler, Message, Recipient};
+use actix::{Actor, Context, Handler, Message, Recipient};
 use log::{debug, info};
 use rand::rngs::ThreadRng;
-
-use crate::model::option_code;
 
 #[derive(Message)]
 #[rtype(result = "()")]

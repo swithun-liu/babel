@@ -9,38 +9,31 @@ use std::{
     time::{Instant},
 };
 
-use actix::{Actor, Addr, ContextFutureSpawner};
+use actix::{Actor, Addr};
 use actix_files::NamedFile;
 use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::rt::Runtime;
 use actix_web_actors::ws;
 use jni::sys::{jobject, jstring};
 use lazy_static::lazy_static;
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufReader, Read, Seek, SeekFrom};
-use std::net::{Ipv4Addr, SocketAddr};
+use std::collections::{HashMap, VecDeque};
+use std::ffi::OsStr;
+use std::fmt::format;
+use std::fs::{File, read};
+use std::io::{Read, Seek, SeekFrom};
 use std::pin::Pin;
+use std::process::{Command, Output};
 use std::sync::{Mutex};
 use futures::channel::oneshot;
 use uuid::Uuid;
 use std::string::String;
 use std::task::{Context, Poll};
-use actix::fut::ok;
-use actix_web::body::BodyStream;
-use actix_web::cookie::time::format_description::parse;
-use actix_web::dev::JsonBody::Body;
-use actix_web::error::ParseError;
-use actix_web::http::header::Range;
-use actix_web::web::Bytes;
 use android_logger::Config;
-use log::{debug, error, info, Level, LevelFilter};
+use log::{debug, info, Level};
 use crate::model::option_code;
-use futures::{SinkExt, Stream, TryFutureExt, TryStreamExt};
-use futures::stream::once;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use futures::{SinkExt, TryFutureExt, TryStreamExt};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use tokio::sync::mpsc;
 
 mod server;
 mod session;
@@ -94,39 +87,20 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
     _: JClass,
 ) -> jobject {
     debug!("response # {}", 1);
-    let mut ips = Vec::new();
-
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap();
     debug!("response # {}", 2);
 
-    rt.block_on(async {
+    let ips: Vec<String> = rt.block_on(async {
         debug!("response # {}", 3);
-        for i in 1..=255 {
-            debug!("response # {}", 4);
-            let ip = format!("192.168.0.{}", i);
-
-            // 访问http://ip:8088/test
-            match TcpStream::connect(format!("{}:8088", ip)).await {
-                Ok(mut stream) => {
-                    if let Ok(_) = stream.write_all(b"GET /test HTTP/1.0\r\n\r\n").await {
-                        let mut buf = [0; 1024];
-                        if let Ok(n) = stream.read(&mut buf).await {
-                            let response = String::from_utf8_lossy(&buf[..n]);
-                            debug!("response # {}", response);
-                            if response.contains("I am server") {
-                                ips.push(ip)
-                            }
-                        }
-                    }
-                }
-                Err(_) => continue,
-            }
-        }
+        scan_network().await
     });
 
+    // let boxed_ips = Box::new(ips);
+    // Box::into_raw(boxed_ips)
+    //
 
     let array = env.new_object_array(
         0,
@@ -140,6 +114,69 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
     }
 
     array.into()
+}
+
+async fn scan_network() -> Vec<String> {
+    let mut ips = Arc::new(Mutex::new(VecDeque::new()));
+    debug!("scan_network # {}", 11);
+    let output: Output = Command::new("ping")
+        .args(["-c", "1", "-w", "1", "192.168.0.108"])
+        .output()
+        .expect("Failed to execute command");
+    debug!("scan_network # {}, {:?}", 12, output);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    debug!("scan_network # {} : {}", 13, stdout);
+    for line in stdout.lines() {
+        debug!("scan_nectwork: scan line: {}", line);
+        if let Some(ip) = line.split(" ").nth(3) {
+            if let Ok(ip_address) = ip.parse::<std::net::Ipv4Addr>() {
+                debug!("scan_nectwork: add ip: {}", ip_address.to_string());
+                ips.lock().unwrap().push_back(ip_address.to_string());
+            }
+        }
+    }
+
+    let mut tasks= vec![];
+    let ips_clone = Arc::clone(&ips);
+    while let Some(ip) = ips_clone.lock().unwrap().pop_front() {
+        let ip_clone = ip.clone();
+        tasks.push(tokio::spawn(async move {
+            if is_server_available(&ip_clone).await {
+                Some(ip_clone)
+            } else {
+                None
+            }
+        }));
+    }
+
+    let results = futures::future::join_all(tasks).await;
+    let mut available_ips = Vec::new();
+    for res in results {
+        if let Some(ip) = res.unwrap() {
+            available_ips.push(ip)
+        }
+    }
+
+    available_ips
+}
+
+async fn is_server_available(ip: &str) -> bool {
+    match TcpStream::connect(format!("{}:8088", ip)).await {
+        Ok(mut stream) => {
+            if let Ok(_) = stream.write_all(b"GET /test HTTP/1.0\r\n\r\n").await {
+                let mut reader = tokio::io::BufReader::new(stream);
+                let mut line = String::new();
+                if let Ok(_) = reader.read_line(&mut line).await {
+                    debug!("is_server_available true: {}", line);
+                    if line.starts_with("i am server") {
+                        return true;
+                    }
+                }
+            }
+            false
+        }
+        Err(_) => false,
+    }
 }
 
 async fn index() -> impl Responder {
