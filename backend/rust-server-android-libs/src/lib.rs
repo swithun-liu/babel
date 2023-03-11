@@ -21,6 +21,7 @@ use std::ffi::OsStr;
 use std::fmt::format;
 use std::fs::{File, read};
 use std::io::{Read, Seek, SeekFrom};
+use std::net::Ipv4Addr;
 use std::pin::Pin;
 use std::process::{Command, Output};
 use std::sync::{Mutex};
@@ -117,35 +118,24 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
 }
 
 async fn scan_network() -> Vec<String> {
-    let mut ips = Arc::new(Mutex::new(VecDeque::new()));
-    debug!("scan_network # {}", 11);
-    let output: Output = Command::new("ping")
-        .args(["-c", "1", "-w", "1", "192.168.0.108"])
-        .output()
-        .expect("Failed to execute command");
-    debug!("scan_network # {}, {:?}", 12, output);
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    debug!("scan_network # {} : {}", 13, stdout);
-    for line in stdout.lines() {
-        debug!("scan_nectwork: scan line: {}", line);
-        if let Some(ip) = line.split(" ").nth(3) {
-            if let Ok(ip_address) = ip.parse::<std::net::Ipv4Addr>() {
-                debug!("scan_nectwork: add ip: {}", ip_address.to_string());
-                ips.lock().unwrap().push_back(ip_address.to_string());
-            }
-        }
-    }
-
     let mut tasks= vec![];
-    let ips_clone = Arc::clone(&ips);
-    while let Some(ip) = ips_clone.lock().unwrap().pop_front() {
-        let ip_clone = ip.clone();
+
+    for i in 0..=255 {
+        let ip = format!("192.168.0.{}", i);
+        let clone_ip = ip.clone();
         tasks.push(tokio::spawn(async move {
-            if is_server_available(&ip_clone).await {
-                Some(ip_clone)
-            } else {
-                None
+            let output = Command::new("ping")
+                .args(["-c", "1", "-W", "1", &ip])
+                .output()
+                .expect("Failed to execute command");
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if stdout.contains("1 received") {
+                if is_server_available(&clone_ip.as_str()).await {
+                    debug!("scan_network # add {}", clone_ip);
+                    return Some(clone_ip);
+                }
             }
+            None
         }));
     }
 
