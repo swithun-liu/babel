@@ -1,5 +1,8 @@
 package com.example.myapplication.viewmodel
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.myapplication.MainActivity
@@ -14,6 +17,7 @@ import com.koushikdutta.async.http.server.AsyncHttpServerRequest
 import com.koushikdutta.async.http.server.AsyncHttpServerResponse
 import com.koushikdutta.async.http.server.HttpServerRequestCallback
 import com.koushikdutta.async.stream.OutputStreamDataCallback
+import com.swithun.liu.ServerSDK
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -28,6 +32,9 @@ class NasViewModel(activity: () -> MainActivity) : ViewModel() {
     private val asyncServer = AsyncServer()
     private val fileManagerViewModel: FileManagerViewModel = ViewModelProvider(activity.invoke()).get(FileManagerViewModel::class.java)
 
+    var getAllServerBtnText: String by mutableStateOf("搜寻可用server")
+    var allServersInLan: List<String> by mutableStateOf(mutableListOf())
+
     init {
         initVideoServer()
     }
@@ -38,6 +45,15 @@ class NasViewModel(activity: () -> MainActivity) : ViewModel() {
         postFilePath(server)
         server.listen(asyncServer, 54321)
         SwithunLog.d("start http server")
+    }
+
+    suspend fun searchAllServer() {
+        getAllServerBtnText = "搜寻中..."
+
+        val ips = ServerSDK.getAllServerInLAN()
+        allServersInLan = ips.toList()
+
+        getAllServerBtnText = "搜寻可用server"
     }
 
     private fun getBasePath(server: AsyncHttpServer) {

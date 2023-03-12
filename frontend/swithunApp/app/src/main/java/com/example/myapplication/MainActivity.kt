@@ -144,6 +144,7 @@ fun ScreenSetup(
         VideoScreen(activityVar)
         WordsScreen(activityVar)
         FTPView(activityVar)
+        ServerList(activityVar)
         FileManagerView(activityVar)
     }
 }
@@ -163,6 +164,19 @@ fun FileManagerView(activityVar: ActivityVar) {
                 is PathItem.FolderItem -> {
                     FolderItemView(path, activityVar)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ServerList(activityVar: ActivityVar) {
+    LazyColumn(modifier = Modifier.width(Dp(200f))) {
+        items(activityVar.nasVM.allServersInLan) { serverIp: String ->
+            Button(onClick = {
+
+            }) {
+                Text(text = serverIp)
             }
         }
     }
@@ -255,13 +269,6 @@ fun FTPView(activityVar: ActivityVar) {
         }) {
             Text(text = "list 5656")
         }
-//        Button(onClick = {
-//            activityVar.ftpVM.viewModelScope.launch(Dispatchers.IO) {
-//                val url = activityVar.ftpVM.downloadFile(5656)
-//            }
-//        }) {
-//            Text(text = "download file")
-//        }
         Button(onClick = {
             activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
                 activityVar.fileManagerViewModel.refreshBasePathListFromRemote()
@@ -272,11 +279,11 @@ fun FTPView(activityVar: ActivityVar) {
         Button(onClick = {
             activityVar.activity.lifecycleScope.launch(Dispatchers.IO) {
                 SwithunLog.d("begin get ips")
-                val ips = ServerSDK.getAllServerInLAN()
+                val ips = activityVar.nasVM.searchAllServer()
                 SwithunLog.d(ips)
             }
         }) {
-            Text(text = "get all server")
+            Text(text = activityVar.nasVM.getAllServerBtnText)
         }
     }
 }

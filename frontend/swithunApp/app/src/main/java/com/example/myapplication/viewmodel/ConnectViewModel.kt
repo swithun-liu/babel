@@ -1,5 +1,8 @@
 package com.example.myapplication.viewmodel
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.ActivityVar
@@ -10,6 +13,7 @@ import com.example.myapplication.model.KernelConfig
 import com.example.myapplication.websocket.RawData
 import com.example.myapplication.websocket.WebSocketRepository
 import com.google.gson.Gson
+import com.swithun.liu.ServerSDK
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
