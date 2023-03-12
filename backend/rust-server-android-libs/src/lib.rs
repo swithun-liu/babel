@@ -4,10 +4,7 @@
 use jni::objects::{JClass, JObject, JString};
 use jni::{JNIEnv};
 
-use std::{
-    sync::{atomic::AtomicUsize, Arc},
-    time::{Instant},
-};
+use std::{env, sync::{atomic::AtomicUsize, Arc}, time::{Instant}};
 
 use actix::{Actor, Addr};
 use actix_files::NamedFile;
@@ -21,7 +18,7 @@ use std::ffi::OsStr;
 use std::fmt::format;
 use std::fs::{File, read};
 use std::io::{Read, Seek, SeekFrom};
-use std::net::Ipv4Addr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::pin::Pin;
 use std::process::{Command, Output};
 use std::sync::{Mutex};
@@ -33,6 +30,9 @@ use android_logger::Config;
 use log::{debug, info, Level};
 use crate::model::option_code;
 use futures::{SinkExt, TryFutureExt, TryStreamExt};
+use pnet::datalink::NetworkInterface;
+use pnet::ipnetwork::IpNetwork;
+use pnet::util::MacAddr;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -120,9 +120,10 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
 async fn scan_network() -> Vec<String> {
     let mut tasks= vec![];
 
-    for i in 0..=255 {
+    for i in 100..=115{
         let ip = format!("192.168.0.{}", i);
         let clone_ip = ip.clone();
+
         tasks.push(tokio::spawn(async move {
             let output = Command::new("ping")
                 .args(["-c", "1", "-W", "1", &ip])
@@ -151,22 +152,13 @@ async fn scan_network() -> Vec<String> {
 }
 
 async fn is_server_available(ip: &str) -> bool {
-    match TcpStream::connect(format!("{}:8088", ip)).await {
-        Ok(mut stream) => {
-            if let Ok(_) = stream.write_all(b"GET /test HTTP/1.0\r\n\r\n").await {
-                let mut reader = tokio::io::BufReader::new(stream);
-                let mut line = String::new();
-                if let Ok(_) = reader.read_line(&mut line).await {
-                    debug!("is_server_available true: {}", line);
-                    if line.starts_with("i am server") {
-                        return true;
-                    }
-                }
-            }
-            false
-        }
-        Err(_) => false,
-    }
+    let client = awc::Client::default();
+    let url = format!("http://{}:8088/test", ip);
+    debug!("url {}", url);
+    let req = client.get(url);
+    let res = req.send().await.unwrap();
+    debug!("res {:?}", res);
+    true
 }
 
 async fn index() -> impl Responder {
@@ -395,6 +387,7 @@ async fn chat_route(
 }
 
 async fn test() -> String {
+    debug!("somebody test");
     "i am server".to_string()
 }
 

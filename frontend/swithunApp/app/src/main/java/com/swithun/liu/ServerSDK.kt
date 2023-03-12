@@ -9,4 +9,5 @@ object ServerSDK {
     external fun getTestStr(): String
     external fun getTestStrWithInput(input: String): String
     external suspend fun startSever()
+    external suspend fun getAllServerInLAN(): Array<String>
 }

@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.model.KernelConfig
 import com.example.myapplication.model.SectionItem
@@ -267,6 +268,15 @@ fun FTPView(activityVar: ActivityVar) {
             }
         }) {
             Text(text = "HTTP get file list")
+        }
+        Button(onClick = {
+            activityVar.activity.lifecycleScope.launch(Dispatchers.IO) {
+                SwithunLog.d("begin get ips")
+                val ips = ServerSDK.getAllServerInLAN()
+                SwithunLog.d(ips)
+            }
+        }) {
+            Text(text = "get all server")
         }
     }
 }
