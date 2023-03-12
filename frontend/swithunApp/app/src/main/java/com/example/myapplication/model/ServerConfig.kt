@@ -15,7 +15,7 @@ object ServerConfig {
             const val path = "get-video"
             const val paramPath = "path"
         }
-        object WSPath {
+        object WebSocketPath {
             const val path = "ws"
         }
     }

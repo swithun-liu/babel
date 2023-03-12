@@ -1,5 +1,6 @@
 package com.example.myapplication.viewmodel
 
+import com.example.myapplication.ActivityVar
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.model.KernelConfig
 import com.example.myapplication.model.ServerConfig
@@ -11,9 +12,9 @@ import org.json.JSONObject
 import java.io.File
 import java.lang.Exception
 
-class FileManagerHTTPRepository {
+class FileManagerHTTPRepository(val activityVar: () -> ActivityVar?) {
 
-    private val GET_PATH_LIST_URL get() = "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.GetPathList.path}"
+    private val GET_PATH_LIST_URL get() = "http://${activityVar()?.serverConfig?.serverHost}/${ServerConfig.ServerPath.GetPathList.path}"
 
     suspend fun getBasePathList(): List<PathItem> {
         return getChildrenPathList("base")

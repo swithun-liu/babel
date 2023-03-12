@@ -13,7 +13,6 @@ import com.example.myapplication.model.VideoExtension
 import com.example.myapplication.nullCheck
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import tv.danmaku.ijk.media.player.IjkMediaPlayer
 import java.io.File
 
 class FileManagerViewModel : ViewModel() {
@@ -22,7 +21,7 @@ class FileManagerViewModel : ViewModel() {
     var pathList: List<PathItem> by mutableStateOf(listOf())
     var activityVar: ActivityVar? = null
 
-    private val remoteRepository = FileManagerHTTPRepository()
+    private val remoteRepository = FileManagerHTTPRepository { activityVar }
     private val localRepository = FileManagerLocalRepository(fileBasePath)
 
     fun init(activityVar: ActivityVar) {

@@ -5,6 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.example.myapplication.ActivityVar
 import com.example.myapplication.MainActivity
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.nullCheck
@@ -18,6 +20,9 @@ import com.koushikdutta.async.http.server.AsyncHttpServerResponse
 import com.koushikdutta.async.http.server.HttpServerRequestCallback
 import com.koushikdutta.async.stream.OutputStreamDataCallback
 import com.swithun.liu.ServerSDK
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -31,12 +36,20 @@ class NasViewModel(activity: () -> MainActivity) : ViewModel() {
     private val server = AsyncHttpServer()
     private val asyncServer = AsyncServer()
     private val fileManagerViewModel: FileManagerViewModel = ViewModelProvider(activity.invoke()).get(FileManagerViewModel::class.java)
+    private var activityVar: ActivityVar? = null
 
-    var getAllServerBtnText: String by mutableStateOf("搜寻可用server")
+    var getAllServerBtnText: String by mutableStateOf("搜寻其他可用server")
     var allServersInLan: List<String> by mutableStateOf(mutableListOf())
+
+    var startMeAsServerBtnText: String by mutableStateOf("启动server：未启动")
 
     init {
         initVideoServer()
+    }
+
+
+    fun init(activityVar: ActivityVar) {
+        this.activityVar = activityVar
     }
 
     private fun initVideoServer() {
@@ -47,13 +60,28 @@ class NasViewModel(activity: () -> MainActivity) : ViewModel() {
         SwithunLog.d("start http server")
     }
 
+    fun startMeAsServer() {
+        viewModelScope.launch(Dispatchers.IO) {
+            startMeAsServerBtnText = "启动server：启动中..."
+            launch(Dispatchers.IO) {
+                delay(500)
+                // 连接内核
+                startMeAsServerBtnText = "启动server：连接内核中..."
+                activityVar?.connectVM?.connectKernel()
+                startMeAsServerBtnText = "启动server：已连接内核"
+            }
+            // 启动内核
+            ServerSDK.startSever()
+        }
+    }
+
     suspend fun searchAllServer() {
         getAllServerBtnText = "搜寻中..."
 
         val ips = ServerSDK.getAllServerInLAN()
         allServersInLan = ips.toList()
 
-        getAllServerBtnText = "搜寻可用server"
+        getAllServerBtnText = "搜寻其他可用server"
     }
 
     private fun getBasePath(server: AsyncHttpServer) {

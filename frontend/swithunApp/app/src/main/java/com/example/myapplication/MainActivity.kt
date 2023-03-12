@@ -36,6 +36,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.model.KernelConfig
 import com.example.myapplication.model.SectionItem
+import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.util.AuthChecker
 import com.example.myapplication.util.HeaderParams
@@ -71,13 +72,7 @@ class MainActivity : ComponentActivity() {
                 SwithunLog.d("websocket - handle 1")
                 delay( 5000 )
                 SwithunLog.d("websocket - handle 2")
-                activityVar.wordsVM.handleCreate()
-                activityVar.connectVM.create()
             }
-            SwithunLog.d("websocket - handle 0")
-            ServerSDK.startSever()
-            SwithunLog.d("websocket - handle 00")
-            delay(30000)
         }
 
         setContent {
@@ -86,7 +81,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background,
                 ) {
-                    ScreenSetup(activityVar)
+                    // ScreenSetup(activityVar)
+                    Myapp(activityVar)
                 }
             }
         }
@@ -97,18 +93,19 @@ class MainActivity : ComponentActivity() {
 class ActivityVar(
     var activity: MainActivity,
     val kernelConfig: KernelConfig = KernelConfig { activity },
+    val serverConfig: ServerConfig = ServerConfig,
     var mySurfaceView: SurfaceView? = null,
-    val connectVM: ConnectViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
+    val connectVM: ConnectKernelViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return ConnectViewModel() as T
+            return ConnectKernelViewModel() as T
         }
-    }).get(ConnectViewModel::class.java),
-    val wordsVM: WordsViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
+    }).get(ConnectKernelViewModel::class.java),
+    val connectServerVM: ConnectServerViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return WordsViewModel() as T
+            return ConnectServerViewModel() as T
         }
 
-    }).get(WordsViewModel::class.java),
+    }).get(ConnectServerViewModel::class.java),
     val videoVM: VideoViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
             return VideoViewModel { activity } as T
@@ -131,6 +128,85 @@ class ActivityVar(
     init {
         fileManagerViewModel.init(this)
         connectVM.init(this)
+        nasVM.init(this)
+        connectServerVM.init(this)
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.M)
+@Composable
+fun Myapp(activityVar: ActivityVar) {
+
+    val (selectedItem: Int, setSelectedItem: (Int) -> Unit) = remember { mutableStateOf(0) }
+
+    Scaffold(topBar = {
+
+    }, content = {
+        Row(modifier = Modifier.horizontalScroll(ScrollState(0), true)) {
+            Column(modifier = Modifier
+                .fillMaxHeight()
+                .width(100.dp)
+                .background(Color.Gray)) {
+                Button(onClick = { setSelectedItem(0) }) {
+                    Text("视频")
+                }
+                Button(onClick = { setSelectedItem(1) }) {
+                    Text("传输")
+                }
+                Button(onClick = { setSelectedItem(2) }) {
+                    Text("server设置")
+                }
+            }
+            when (selectedItem) {
+                0 -> VideoPage(activityVar)
+                1 -> TranferPage(activityVar)
+                2 -> ServerSettingPage(activityVar)
+            }
+        }
+    })
+}
+
+@RequiresApi(Build.VERSION_CODES.M)
+@Composable
+fun VideoPage(activityVar: ActivityVar) {
+    IjkPlayer(player = activityVar.videoVM.player, activityVar)
+}
+
+@Composable
+fun TranferPage(activityVar: ActivityVar) {
+    WordsScreen(activityVar)
+}
+
+@Composable
+fun ServerSettingPage(activityVar: ActivityVar) {
+    Row(modifier = Modifier.fillMaxHeight()) {
+        Column {
+            Text(text = activityVar.ftpVM.myIPStr)
+            Row {
+                Button(onClick = {
+                    activityVar.activity.lifecycleScope.launch(Dispatchers.IO) {
+                        SwithunLog.d("begin get ips")
+                        val ips = activityVar.nasVM.searchAllServer()
+                        SwithunLog.d(ips)
+                    }
+                }) {
+                    Text(text = activityVar.nasVM.getAllServerBtnText)
+                }
+                ServerList(activityVar)
+            }
+        }
+
+            Box(modifier = Modifier
+                .width(10.dp)
+                .fillMaxHeight()
+                .padding(2.dp)
+                .background(Color.Black)
+            )
+            Button(onClick = {
+                activityVar.nasVM.startMeAsServer()
+            }) {
+                Text(text = activityVar.nasVM.startMeAsServerBtnText)
+            }
     }
 }
 
@@ -174,9 +250,9 @@ fun ServerList(activityVar: ActivityVar) {
     LazyColumn(modifier = Modifier.width(Dp(200f))) {
         items(activityVar.nasVM.allServersInLan) { serverIp: String ->
             Button(onClick = {
-
+                activityVar.connectServerVM.connectServer(serverIp)
             }) {
-                Text(text = serverIp)
+                Text(text = "连接 $serverIp")
             }
         }
     }
@@ -247,7 +323,6 @@ fun FTPView(activityVar: ActivityVar) {
         }) {
             Text(text = "start FTP")
         }
-        Text(text = activityVar.ftpVM.myIPStr)
         Button(onClick = {
             activityVar.ftpVM.connectFTP(2221)
         }) {
@@ -275,15 +350,6 @@ fun FTPView(activityVar: ActivityVar) {
             }
         }) {
             Text(text = "HTTP get file list")
-        }
-        Button(onClick = {
-            activityVar.activity.lifecycleScope.launch(Dispatchers.IO) {
-                SwithunLog.d("begin get ips")
-                val ips = activityVar.nasVM.searchAllServer()
-                SwithunLog.d(ips)
-            }
-        }) {
-            Text(text = activityVar.nasVM.getAllServerBtnText)
         }
     }
 }
@@ -599,13 +665,13 @@ fun WordsScreen(activityVar: ActivityVar) {
 
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = "单词：")
-            Text(text = activityVar.wordsVM.wordsResult.word)
+            Text(text = activityVar.connectServerVM.wordsResult.word)
         }
         val bullet = "\u2022"
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = "解释：")
             Text(text = buildAnnotatedString {
-                activityVar.wordsVM.wordsResult.explains.forEach {
+                activityVar.connectServerVM.wordsResult.explains.forEach {
                     withStyle(ParagraphStyle(textIndent = TextIndent(restLine = 12.sp))) {
                         append(bullet)
                         append("\t\t")
@@ -617,10 +683,10 @@ fun WordsScreen(activityVar: ActivityVar) {
 
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = "翻译：")
-            Text(text = activityVar.wordsVM.wordsResult.translation)
+            Text(text = activityVar.connectServerVM.wordsResult.translation)
         }
 
-        Button(onClick = { activityVar.wordsVM.sendMessage(textState) }) {
+        Button(onClick = { activityVar.connectServerVM.sendMessage(textState) }) {
             Text(text = "Send Message")
         }
     }

@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.lang.Exception
 
-class ConnectViewModel: ViewModel() {
+class ConnectKernelViewModel: ViewModel() {
 
     private var remoteWordFlow: Flow<RawData>? = null
     private val repository = WebSocketRepository()
@@ -30,7 +30,7 @@ class ConnectViewModel: ViewModel() {
         this.activityVar = activityVar
     }
 
-    fun create() {
+     fun connectKernel() {
         val kernelConfig = activityVar?.kernelConfig ?: return
 
         remoteWordFlow = repository.webSocketCreate(

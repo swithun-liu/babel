@@ -23,7 +23,7 @@ import java.security.NoSuchAlgorithmException
 
 
 @SuppressLint("LongLogTag")
-class WordsViewModel: ViewModel() {
+class ConnectServerViewModel: ViewModel() {
 
     private var remoteWordFlow: Flow<RawData>? = null
     var wordsResult by mutableStateOf(WordsResult("", emptyList(), ""))
@@ -35,60 +35,76 @@ class WordsViewModel: ViewModel() {
 
     private val TAG = "swithun {WordsViewModel}"
 
-    fun handleCreate() {
-        remoteWordFlow = repository.webSocketCreate("http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.WSPath.path}", viewModelScope, "Client")
+    var activityVar: ActivityVar? = null
 
-        viewModelScope.launch(Dispatchers.IO) {
-            remoteWordFlow?.collect {
-                SwithunLog.d("remoteWordFlow collect ${it.json}")
-                val q = it.json
 
-                val params = mutableMapOf<String, String>().apply {
-                    put("from", "en")
-                    put("to", "zh-CHS")
-                    put("signType", "v3")
-                    val curtime = (System.currentTimeMillis() / 1000).toString()
-                    put("curtime", curtime)
-                    put("appKey", APP_KEY)
-                    put("q", q)
-                    val salt = System.currentTimeMillis().toString()
-                    put("salt", salt)
-                    val signStr = "$APP_KEY${truncate(q)}$salt$curtime$APP_SECRET"
-                    val sign = getDigest(signStr)
-                    put("sign", sign ?: "")
-                }
+    fun init(activityVar: ActivityVar) {
+        this.activityVar = activityVar
+    }
 
-                val jsonBody = postRequest(YOUDAO_URL, params) ?: return@collect
+    fun connectServer(serverIp: String) {
+        this.activityVar?.let { nonNollActivityVar ->
 
-                SwithunLog.d(jsonBody.toString())
+            nonNollActivityVar.serverConfig.serverIP = serverIp
 
-                // translation
-                var translation: String = ""
-                val explains = mutableListOf<String>()
-                jsonBody.safeGetString("translation")?.let {
-                    translation = it
-                    Log.i(TAG, "translation: $it")
-                }
-                // explains
-                if (jsonBody.has("basic")) {
-                    val basic= jsonBody.getJSONObject("basic")
-                    if (basic.has("explains")) {
-                        val a = basic.getJSONArray("explains")
-                        for (i in 0 until a.length()) {
-                            a.get(i)?.toString()?.let {
-                                explains.add(it)
+            remoteWordFlow = repository.webSocketCreate(
+                "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.WebSocketPath.path}",
+                viewModelScope,
+                "Client"
+            )
+
+            viewModelScope.launch(Dispatchers.IO) {
+                remoteWordFlow?.collect {
+                    SwithunLog.d("remoteWordFlow collect ${it.json}")
+                    val q = it.json
+
+                    val params = mutableMapOf<String, String>().apply {
+                        put("from", "en")
+                        put("to", "zh-CHS")
+                        put("signType", "v3")
+                        val curtime = (System.currentTimeMillis() / 1000).toString()
+                        put("curtime", curtime)
+                        put("appKey", APP_KEY)
+                        put("q", q)
+                        val salt = System.currentTimeMillis().toString()
+                        put("salt", salt)
+                        val signStr = "$APP_KEY${truncate(q)}$salt$curtime$APP_SECRET"
+                        val sign = getDigest(signStr)
+                        put("sign", sign ?: "")
+                    }
+
+                    val jsonBody = postRequest(YOUDAO_URL, params) ?: return@collect
+
+                    SwithunLog.d(jsonBody.toString())
+
+                    // translation
+                    var translation: String = ""
+                    val explains = mutableListOf<String>()
+                    jsonBody.safeGetString("translation")?.let {
+                        translation = it
+                        Log.i(TAG, "translation: $it")
+                    }
+                    // explains
+                    if (jsonBody.has("basic")) {
+                        val basic= jsonBody.getJSONObject("basic")
+                        if (basic.has("explains")) {
+                            val a = basic.getJSONArray("explains")
+                            for (i in 0 until a.length()) {
+                                a.get(i)?.toString()?.let {
+                                    explains.add(it)
+                                }
                             }
+                        } else {
+                            Log.d("swithun-xxxx", "no explains")
                         }
                     } else {
-                        Log.d("swithun-xxxx", "no explains")
+                        Log.d("swithun-xxxx", "no basic")
                     }
-                } else {
-                    Log.d("swithun-xxxx", "no basic")
+
+                    delay(500)
+
+                    wordsResult = WordsResult(q, explains, translation)
                 }
-
-                delay(500)
-
-                wordsResult = WordsResult(q, explains, translation)
             }
         }
     }
