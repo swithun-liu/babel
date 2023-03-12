@@ -17,8 +17,8 @@ use std::collections::{HashMap, VecDeque};
 use std::ffi::OsStr;
 use std::fmt::format;
 use std::fs::{File, read};
-use std::io::{Read, Seek, SeekFrom};
-use std::net::{IpAddr, Ipv4Addr};
+use std::io::{Read, Seek, SeekFrom, Write};
+use std::net::{IpAddr, Ipv4Addr, ToSocketAddrs};
 use std::pin::Pin;
 use std::process::{Command, Output};
 use std::sync::{Mutex};
@@ -26,6 +26,7 @@ use futures::channel::oneshot;
 use uuid::Uuid;
 use std::string::String;
 use std::task::{Context, Poll};
+use std::time::Duration;
 use android_logger::Config;
 use log::{debug, info, Level};
 use crate::model::option_code;
@@ -35,6 +36,7 @@ use pnet::ipnetwork::IpNetwork;
 use pnet::util::MacAddr;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
+use tokio::net::unix::SocketAddr;
 
 mod server;
 mod session;
@@ -98,29 +100,29 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
         debug!("response # {}", 3);
         scan_network().await
     });
+    debug!("response # {}", 4);
 
-    // let boxed_ips = Box::new(ips);
-    // Box::into_raw(boxed_ips)
-    //
+    // 找到 Java 中的 String 类
+    let java_string_class = env.find_class("java/lang/String").unwrap();
 
-    let array = env.new_object_array(
-        0,
-        env.find_class("java/lang/String").unwrap(),
-        JObject::null(),
-    ).unwrap();
+    // 创建一个包含所有元素的 jobjectArray
+    let array = env.new_object_array(ips.len() as i32, java_string_class, JObject::null()).unwrap();
 
+    // 遍历 Vec 中的所有字符串，将它们转换为 Java 中的 String，并将它们添加到 jobjectArray 中
     for (i, s) in ips.iter().enumerate() {
         let java_string = env.new_string(s).unwrap();
         env.set_object_array_element(array, i as i32, java_string.into_inner()).unwrap();
     }
 
+    debug!("response # {}", 6);
+
     array.into()
 }
 
 async fn scan_network() -> Vec<String> {
-    let mut tasks= vec![];
+    let mut tasks = vec![];
 
-    for i in 100..=115{
+    for i in 100..=115 {
         let ip = format!("192.168.0.{}", i);
         let clone_ip = ip.clone();
 
@@ -152,13 +154,50 @@ async fn scan_network() -> Vec<String> {
 }
 
 async fn is_server_available(ip: &str) -> bool {
-    let client = awc::Client::default();
-    let url = format!("http://{}:8088/test", ip);
-    debug!("url {}", url);
-    let req = client.get(url);
-    let res = req.send().await.unwrap();
-    debug!("res {:?}", res);
-    true
+    let host = format!("{}:8088", ip);
+    let mut addr_iter_result = host.to_socket_addrs();
+    return match addr_iter_result {
+        Ok(mut addr_iter) => {
+            match addr_iter.next() {
+                Some(addr) => {
+                    debug!("check {}", host);
+                    let mut stream_result = std::net::TcpStream::connect_timeout(&addr, Duration::from_millis(600));
+                    match stream_result {
+                        Ok(mut stream) => {
+                            debug!("is_server_available get stream");
+
+                            let request = format!("GET /test HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n", ip);
+                            debug!("is_server_available get stream 2");
+                            stream.write(request.as_bytes()).unwrap_or(0);
+                            debug!("is_server_available get stream 3");
+
+                            let mut response = String::new();
+                            stream.read_to_string(&mut response).unwrap();
+                            debug!("is server available : {:?}", response);
+
+                            if response.contains("i am server") {
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                        Err(e) => {
+                            debug!("is_server_available err 3 {:?}", e);
+                            false
+                        }
+                    }
+                }
+                None => {
+                    debug!("is_server_available err 1");
+                    false
+                }
+            }
+        }
+        Err(e) => {
+            debug!("is_server_available err 2");
+            false
+        }
+    };
 }
 
 async fn index() -> impl Responder {
