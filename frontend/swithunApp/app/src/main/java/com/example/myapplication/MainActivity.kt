@@ -66,15 +66,6 @@ class MainActivity : ComponentActivity() {
         SwithunLog.d("这个 - ${ServerSDK.getTestStr()}")
         SwithunLog.d("这个 - ${ServerSDK.getTestStrWithInput("我是input")}")
 
-        activityVar.nasVM.viewModelScope.launch(Dispatchers.IO) {
-            delay(3000)
-            launch {
-                SwithunLog.d("websocket - handle 1")
-                delay( 5000 )
-                SwithunLog.d("websocket - handle 2")
-            }
-        }
-
         setContent {
             MyApplicationTheme {
                 Surface(
@@ -123,7 +114,8 @@ class ActivityVar(
     }).get(NasViewModel::class.java),
     val fileManagerViewModel: FileManagerViewModel = ViewModelProvider(activity).get(
         FileManagerViewModel::class.java
-    )
+    ),
+    var scaffoldState: ScaffoldState? = null
 ) {
     init {
         fileManagerViewModel.init(this)
@@ -135,35 +127,68 @@ class ActivityVar(
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun Myapp(activityVar: ActivityVar) {
+fun Myapp(activityVar: ActivityVar, scaffoldState: ScaffoldState = rememberScaffoldState()) {
 
     val (selectedItem: Int, setSelectedItem: (Int) -> Unit) = remember { mutableStateOf(0) }
 
-    Scaffold(topBar = {
+    activityVar.scaffoldState = scaffoldState
 
-    }, content = {
+    Scaffold(
+        scaffoldState = scaffoldState,
+        content = {
         Row(modifier = Modifier.horizontalScroll(ScrollState(0), true)) {
             Column(modifier = Modifier
                 .fillMaxHeight()
-                .width(100.dp)
+                .width(120.dp)
                 .background(Color.Gray)) {
                 Button(onClick = { setSelectedItem(0) }) {
-                    Text("视频")
+                    Text("视频播放")
+                }
+                Button(onClick = {
+                    setSelectedItem(4)
+                }) {
+                    Text("视频列表")
                 }
                 Button(onClick = { setSelectedItem(1) }) {
                     Text("传输")
                 }
                 Button(onClick = { setSelectedItem(2) }) {
-                    Text("server设置")
+                    Text("服务器设置")
+                }
+                Button(onClick = { setSelectedItem(3) }) {
+                    Text("服务器文件")
                 }
             }
             when (selectedItem) {
                 0 -> VideoPage(activityVar)
-                1 -> TranferPage(activityVar)
+                1 -> TransferPage(activityVar)
                 2 -> ServerSettingPage(activityVar)
+                3 -> ServerFilePage(activityVar)
+                4 -> VideoListPage(activityVar)
             }
         }
     })
+}
+
+@RequiresApi(Build.VERSION_CODES.M)
+@Composable
+fun VideoListPage(activityVar: ActivityVar) {
+    VideoScreen(activityVar)
+}
+
+@RequiresApi(Build.VERSION_CODES.M)
+@Composable
+fun ServerFilePage(activityVar: ActivityVar) {
+    Row {
+        Button(onClick = {
+            activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
+                activityVar.fileManagerViewModel.refreshBasePathListFromRemote()
+            }
+        }) {
+            Text(text = "获取服务器文件列表")
+        }
+        FileManagerView(activityVar)
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
@@ -173,7 +198,7 @@ fun VideoPage(activityVar: ActivityVar) {
 }
 
 @Composable
-fun TranferPage(activityVar: ActivityVar) {
+fun TransferPage(activityVar: ActivityVar) {
     WordsScreen(activityVar)
 }
 
@@ -207,21 +232,6 @@ fun ServerSettingPage(activityVar: ActivityVar) {
             }) {
                 Text(text = activityVar.nasVM.startMeAsServerBtnText)
             }
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.M)
-@Composable
-fun ScreenSetup(
-    activityVar: ActivityVar,
-) {
-    Row(modifier = Modifier.horizontalScroll(ScrollState(0), true)) {
-        IjkPlayer(player = activityVar.videoVM.player, activityVar)
-        VideoScreen(activityVar)
-        WordsScreen(activityVar)
-        FTPView(activityVar)
-        ServerList(activityVar)
-        FileManagerView(activityVar)
     }
 }
 
