@@ -24,6 +24,8 @@ futures = "0.3.26"
 uuid = { version = "1.3.0", features = ["v4", "fast-rng",  "macro-diagnostics"] }
 pnet = "0.33.0"
 awc = "3.1.1"
+bincode = "1.3.3"
+mdns = "3.0.0"
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.10"
 

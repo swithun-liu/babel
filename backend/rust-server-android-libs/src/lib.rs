@@ -30,10 +30,11 @@ use std::time::Duration;
 use android_logger::Config;
 use log::{debug, info, Level};
 use crate::model::option_code;
-use futures::{SinkExt, TryFutureExt, TryStreamExt};
+use futures::{pin_mut, SinkExt, TryFutureExt, TryStreamExt};
 use pnet::datalink::NetworkInterface;
 use pnet::ipnetwork::IpNetwork;
 use pnet::util::MacAddr;
+use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::net::unix::SocketAddr;
@@ -89,6 +90,8 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
     env: JNIEnv,
     _: JClass,
 ) -> jobject {
+    let config = Config::default().with_min_level(Level::Debug);
+    android_logger::init_once(config);
     debug!("response # {}", 1);
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -117,6 +120,149 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
     debug!("response # {}", 6);
 
     array.into()
+}
+
+async fn scan_network_2() -> Vec<String> {
+    debug!("m2 # {}", 1);
+    let interface_name = "eth0";
+    debug!("m2 # {}", 2);
+    let interfaces: Vec<NetworkInterface> = pnet::datalink::interfaces();
+    debug!("interface size: {}", interfaces.len());
+
+    for interface in interfaces {
+        debug!("interface ip size : {} {:?}", &interface.ips.len(), interface);
+
+        debug!("m2 # {}", 3);
+        let target_mac = MacAddr::new(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
+        debug!("m2 # {}", 4);
+        let target_ip = Ipv4Addr::new(192, 168, 0, 1);
+        debug!("m2 # {}", 5);
+
+        let source_mac = MacAddr::new(0, 0, 0, 0, 0, 0);
+        let source_ip = Ipv4Addr::new(0, 0, 0, 0);
+
+        debug!("m2 # {}", 6);
+        let mut arp_buffer = [0u8; 42];
+        debug!("m2 arpbuffer # {:?}", arp_buffer);
+        let mut arp_packet = pnet::packet::arp::MutableArpPacket::new(&mut arp_buffer[..]).unwrap();
+        arp_packet.set_hardware_type(pnet::packet::arp::ArpHardwareTypes::Ethernet);
+        arp_packet.set_protocol_type(pnet::packet::ethernet::EtherTypes::Ipv4);
+        arp_packet.set_hw_addr_len(6);
+        arp_packet.set_proto_addr_len(4);
+        arp_packet.set_operation(pnet::packet::arp::ArpOperations::Request);
+        arp_packet.set_sender_hw_addr(source_mac);
+        arp_packet.set_sender_proto_addr(source_ip);
+        arp_packet.set_target_hw_addr(target_mac);
+        arp_packet.set_target_proto_addr(target_ip);
+
+        debug!("m2 # {}", 7);
+        let mut ether_buffer = [0u8; 100];
+        debug!("ether buffer1: {:?}", ether_buffer);
+        let mut ether_packet = pnet::packet::ethernet::MutableEthernetPacket::new(&mut ether_buffer).unwrap();
+        debug!("m2 # {}", 8);
+
+        ether_packet.set_destination(target_mac);
+        debug!("m2 # {}", 9);
+        ether_packet.set_source(source_mac);
+        debug!("m2 # {}", 10);
+        ether_packet.set_ethertype(pnet::packet::ethernet::EtherTypes::Arp);
+        debug!("m2 # {}", 11);
+        debug!("m2 arpbuffer # {:?}", arp_buffer);
+        ether_packet.set_payload(&arp_buffer[..]);
+        debug!("m2 # {}", 12);
+
+        debug!("ether_pakcet: {:?}", ether_packet);
+        debug!("ether buffer2: {:?}", ether_buffer);
+
+        let (mut tx, mut rx) = match pnet::datalink::channel(&interface, Default::default()) {
+            Ok(pnet::datalink::Channel::Ethernet(tx, rx)) => {
+                debug!("suc");
+                (tx, rx)
+            },
+            Err(e) => {
+                debug!("Failed to create datalink channel {:?}", e);
+                panic!("Failed to create datalink channel");
+            }
+            _ => {
+                debug!("Failed to create datalink channel other");
+                panic!("Failed to create datalink channel");
+            }
+        };
+
+        tx.send_to(&ether_buffer, Some(interface));
+
+        while let Ok(packet) = rx.next() {
+            debug!("one");
+            let ether = pnet::packet::ethernet::EthernetPacket::new(packet).unwrap();
+            if ether.get_ethertype() == pnet::packet::ethernet::EtherTypes::Arp {
+                // let arp = pnet::arp::ArpPacket(ether.payload()).unwrap();
+                debug!("IP: {:?}, ", ether);
+            }
+        }
+    }
+
+
+    //
+    // debug!("m2 # {}", 3);
+    // let target_mac = MacAddr::new(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
+    // debug!("m2 # {}", 4);
+    // let target_ip = Ipv4Addr::new(192, 168, 0, 1);
+    // debug!("m2 # {}", 5);
+    //
+    // let source_mac = MacAddr::new(0, 0, 0, 0, 0, 0);
+    // let source_ip = Ipv4Addr::new(0, 0, 0, 0);
+    //
+    // debug!("m2 # {}", 6);
+    // let mut arp_buffer = [0u8; 42];
+    // let mut arp_packet = pnet::packet::arp::MutableArpPacket::new(&mut arp_buffer[..]).unwrap();
+    // arp_packet.set_hardware_type(pnet::packet::arp::ArpHardwareTypes::Ethernet);
+    // arp_packet.set_protocol_type(pnet::packet::ethernet::EtherTypes::Ipv4);
+    // arp_packet.set_hw_addr_len(6);
+    // arp_packet.set_proto_addr_len(4);
+    // arp_packet.set_operation(pnet::packet::arp::ArpOperations::Request);
+    // arp_packet.set_sender_hw_addr(source_mac);
+    // arp_packet.set_sender_proto_addr(source_ip);
+    // arp_packet.set_target_hw_addr(target_mac);
+    // arp_packet.set_target_proto_addr(target_ip);
+    //
+    // debug!("m2 # {}", 7);
+    // let mut ether_buffer = [0u8; 42];
+    // debug!("ether buffer1: {:?}", ether_buffer);
+    // let mut ether_packet = pnet::packet::ethernet::MutableEthernetPacket::new(&mut ether_buffer).unwrap();
+    // debug!("m2 # {}", 8);
+    //
+    // ether_packet.set_destination(target_mac);
+    // ether_packet.set_source(source_mac);
+    // ether_packet.set_ethertype(pnet::packet::ethernet::EtherTypes::Arp);
+    // ether_packet.set_payload(&arp_buffer);
+    //
+    // debug!("ether_pakcet: {:?}", ether_packet);
+    // debug!("ether buffer2: {:?}", ether_buffer);
+    //
+    // let (mut tx, mut rx) = match pnet::datalink::channel(&interface, Default::default()){
+    //     Ok(pnet::datalink::Channel::Ethernet(tx, rx)) => {
+    //         debug!("suc");
+    //         (tx, rx)
+    //     },
+    //     _ => {
+    //         debug!("Failed to create datalink channel");
+    //         panic!("Failed to create datalink channel");
+    //     }
+    // };
+    //
+    // tx.send_to(&ether_buffer, Some(interface));
+    //
+    // while let Ok(packet) = rx.next() {
+    //     debug!("one");
+    //     let ether = pnet::packet::ethernet::EthernetPacket::new(packet).unwrap();
+    //     if ether.get_ethertype() == pnet::packet::ethernet::EtherTypes::Arp {
+    //         // let arp = pnet::arp::ArpPacket(ether.payload()).unwrap();
+    //         debug!("IP: {:?}, ", ether);
+    //     }
+    // }
+
+    vec![]
+
 }
 
 async fn scan_network() -> Vec<String> {
