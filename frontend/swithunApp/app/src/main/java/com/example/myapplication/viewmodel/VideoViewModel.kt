@@ -3,6 +3,7 @@ package com.example.myapplication.viewmodel
 import android.annotation.SuppressLint
 import android.os.Environment
 import android.util.Log
+import android.view.SurfaceView
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.runtime.getValue
@@ -51,6 +52,7 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
     var itemCursor = 0
     var player = IjkMediaPlayer()
     var beginJob: Job? = null
+    var playJob: Job? = null
 
     val ftpVM = ViewModelProvider(activity.invoke(), object : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
@@ -72,6 +74,67 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
 
     init {
         beginJob = begin()
+    }
+
+    fun play(
+        surfaceView: SurfaceView,
+        conanUrl: String,
+        headerParams: HeaderParams ? = null,
+        onComplete: (() -> Unit)? = null
+    ) {
+        playJob?.cancel()
+        playJob = viewModelScope.launch(Dispatchers.IO) {
+            SwithunLog.d("运行playe")
+            val player = getNewPlayer()
+
+            player.reset()
+            // user-agent 需要用这个设置，否则header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
+            player.setOption(
+                IjkMediaPlayer.OPT_CATEGORY_FORMAT,
+                "user-agent",
+                "Bilibili Freedoooooom/MarkII"
+            )
+            player.setOption(
+                IjkMediaPlayer.OPT_CATEGORY_FORMAT,
+                "reconnect",
+                1
+            )
+            //重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
+            player.setOption(
+                IjkMediaPlayer.OPT_CATEGORY_FORMAT,
+                "dns_cache_clear",
+                1
+            )
+            // 解决 Hit dns cache but connect fail hostname
+            player.setOption(
+                IjkMediaPlayer.OPT_CATEGORY_FORMAT,
+                "protocol_whitelist",
+                "async,cache,crypto,file,http,https,ijkhttphook,ijkinject,ijklivehook,ijklongurl,ijksegment,ijktcphook,pipe,rtp,tcp,tls,udp,ijkurlhook,data,ftp"
+            )
+            // 设置播放源
+            if (headerParams == null) {
+                player.dataSource = conanUrl
+            } else {
+                player.setDataSource(conanUrl, headerParams.params)
+            }
+            // 设置surface
+            player.setSurface(surfaceView.holder.surface)
+
+            player.setOnPreparedListener {
+                SwithunLog.d("old prepared")
+                player.seekTo(0)
+            }
+
+            onComplete?.let { nonNullOnComplete ->
+                player.setOnCompletionListener {
+                    nonNullOnComplete.invoke()
+                }
+            }
+
+
+            player.prepareAsync()
+            player.start()
+        }
     }
 
 

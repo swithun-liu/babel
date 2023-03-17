@@ -86,17 +86,21 @@ class ActivityVar(
     val kernelConfig: KernelConfig = KernelConfig { activity },
     val serverConfig: ServerConfig = ServerConfig,
     var mySurfaceView: SurfaceView? = null,
-    val connectVM: ConnectKernelViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return ConnectKernelViewModel() as T
-        }
-    }).get(ConnectKernelViewModel::class.java),
-    val connectServerVM: ConnectServerViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return ConnectServerViewModel() as T
-        }
+    val connectVM: ConnectKernelViewModel = ViewModelProvider(
+        activity,
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+                return ConnectKernelViewModel() as T
+            }
+        }).get(ConnectKernelViewModel::class.java),
+    val connectServerVM: ConnectServerViewModel = ViewModelProvider(
+        activity,
+        object : ViewModelProvider.Factory {
+            override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+                return ConnectServerViewModel() as T
+            }
 
-    }).get(ConnectServerViewModel::class.java),
+        }).get(ConnectServerViewModel::class.java),
     val videoVM: VideoViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
             return VideoViewModel { activity } as T
@@ -136,44 +140,47 @@ fun Myapp(activityVar: ActivityVar, scaffoldState: ScaffoldState = rememberScaff
     Scaffold(
         scaffoldState = scaffoldState,
         content = {
-        Row(modifier = Modifier.horizontalScroll(ScrollState(0), true)) {
-            Column(modifier = Modifier
-                .fillMaxHeight()
-                .width(120.dp)
-                .background(Color.Gray)) {
-                Button(onClick = { setSelectedItem(0) }) {
-                    Text("视频播放")
+            Row(modifier = Modifier.horizontalScroll(ScrollState(0), true)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(120.dp)
+                        .background(Color.Gray)
+                ) {
+                    Button(onClick = { setSelectedItem(0) }) {
+                        Text("视频播放")
+                    }
+                    Button(onClick = { setSelectedItem(4) }) {
+                        Text("视频列表")
+                    }
+                    Button(onClick = { setSelectedItem(1) }) {
+                        Text("传输")
+                    }
+                    Button(onClick = { setSelectedItem(2) }) {
+                        Text("服务器设置")
+                    }
+                    Button(onClick = { setSelectedItem(3) }) {
+                        Text("服务器文件")
+                    }
                 }
-                Button(onClick = {
-                    setSelectedItem(4)
-                }) {
-                    Text("视频列表")
-                }
-                Button(onClick = { setSelectedItem(1) }) {
-                    Text("传输")
-                }
-                Button(onClick = { setSelectedItem(2) }) {
-                    Text("服务器设置")
-                }
-                Button(onClick = { setSelectedItem(3) }) {
-                    Text("服务器文件")
+                when (selectedItem) {
+                    0 -> VideoPage(activityVar)
+                    4 -> VideoListPage(activityVar)
+                    1 -> TransferPage(activityVar)
+                    2 -> ServerSettingPage(activityVar)
+                    3 -> ServerFilePage(activityVar)
                 }
             }
-            when (selectedItem) {
-                0 -> VideoPage(activityVar)
-                1 -> TransferPage(activityVar)
-                2 -> ServerSettingPage(activityVar)
-                3 -> ServerFilePage(activityVar)
-                4 -> VideoListPage(activityVar)
-            }
-        }
-    })
+        })
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun VideoListPage(activityVar: ActivityVar) {
-    VideoScreen(activityVar)
+    Row {
+        VideoView(activityVar)
+        QRCode(activityVar.videoVM)
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
@@ -221,26 +228,28 @@ fun ServerSettingPage(activityVar: ActivityVar) {
             }
         }
 
-            Box(modifier = Modifier
+        Box(
+            modifier = Modifier
                 .width(10.dp)
                 .fillMaxHeight()
                 .padding(2.dp)
                 .background(Color.Black)
-            )
-            Button(onClick = {
-                activityVar.nasVM.startMeAsServer()
-            }) {
-                Text(text = activityVar.nasVM.startMeAsServerBtnText)
-            }
+        )
+        Button(onClick = {
+            activityVar.nasVM.startMeAsServer()
+        }) {
+            Text(text = activityVar.nasVM.startMeAsServerBtnText)
+        }
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun FileManagerView(activityVar: ActivityVar) {
-    LazyColumn(modifier = Modifier
-        .background(Color(R.color.purple_200))
-        .width(Dp(600f))
+    LazyColumn(
+        modifier = Modifier
+            .background(Color(R.color.purple_200))
+            .width(Dp(600f))
     ) {
         items(activityVar.fileManagerViewModel.pathList) { path: PathItem ->
             when (path) {
@@ -271,17 +280,19 @@ fun ServerList(activityVar: ActivityVar) {
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun FolderItemView(folder: PathItem.FolderItem, activityVar: ActivityVar) {
-    Card(modifier = Modifier
-        .fillMaxSize()
-        .clickable {
-            SwithunLog.d("click folder: ${folder.name}")
-            activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
-                activityVar.fileManagerViewModel.clickFolder(folder)
-            }
-        },
+    Card(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable {
+                SwithunLog.d("click folder: ${folder.name}")
+                activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
+                    activityVar.fileManagerViewModel.clickFolder(folder)
+                }
+            },
         backgroundColor = Color(activityVar.activity.getColor(R.color.teal_200))
     ) {
-        Column(Modifier.padding(10.dp)
+        Column(
+            Modifier.padding(10.dp)
         ) {
             Row {
                 Text(text = "Folder: ")
@@ -325,232 +336,38 @@ fun FileItemView(file: PathItem.FileItem, activityVar: ActivityVar) {
     }
 }
 
-@Composable
-fun FTPView(activityVar: ActivityVar) {
-    Column {
-        Button(onClick = {
-            activityVar.ftpVM.initFTP()
-        }) {
-            Text(text = "start FTP")
-        }
-        Button(onClick = {
-            activityVar.ftpVM.connectFTP(2221)
-        }) {
-            Text(text = "connect FTP 2221")
-        }
-        Button(onClick = {
-            activityVar.ftpVM.connectFTP(5656)
-        }) {
-            Text(text = "connect FTP 5656")
-        }
-
-        Button(onClick = {
-            activityVar.ftpVM.listFTP(2221)
-        }) {
-            Text(text = "list 2221")
-        }
-        Button(onClick = {
-            activityVar.ftpVM.listFTP(5656)
-        }) {
-            Text(text = "list 5656")
-        }
-        Button(onClick = {
-            activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
-                activityVar.fileManagerViewModel.refreshBasePathListFromRemote()
-            }
-        }) {
-            Text(text = "HTTP get file list")
-        }
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.M)
-@Composable
-fun VideoScreen(activityVar: ActivityVar) {
-    Row {
-        VideoView(activityVar)
-        QRCode(activityVar.videoVM)
-    }
-}
-private fun play(
-    player: IjkMediaPlayer,
-    surfaceView: SurfaceView,
-    conanUrl: String,
-    headerParams: HeaderParams,
-    onComplete: () -> Unit
-) {
-    SwithunLog.d("运行playe")
-    player.reset()
-    // user-agent 需要用这个设置，否则header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
-    player.setOption(
-        IjkMediaPlayer.OPT_CATEGORY_FORMAT,
-        "user-agent",
-        "Bilibili Freedoooooom/MarkII"
-    )
-    player.setOption(
-        IjkMediaPlayer.OPT_CATEGORY_FORMAT,
-        "reconnect",
-        1
-    );//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
-    player.setOption(
-        IjkMediaPlayer.OPT_CATEGORY_FORMAT,
-        "dns_cache_clear",
-        1
-    );// 解决 Hit dns cache but connect fail hostname
-    player.setOption(
-        IjkMediaPlayer.OPT_CATEGORY_FORMAT,
-        "protocol_whitelist",
-        "async,cache,crypto,file,http,https,ijkhttphook,ijkinject,ijklivehook,ijklongurl,ijksegment,ijktcphook,pipe,rtp,tcp,tls,udp,ijkurlhook,data,ftp"
-    );
-    player.setDataSource(conanUrl, headerParams.params)
-    player.setSurface(surfaceView.holder.surface)
-
-
-    player.setOnPreparedListener {
-        SwithunLog.d("old prepared")
-        player.seekTo(0)
-    }
-
-    player.setOnCompletionListener {
-        onComplete()
-    }
-
-
-    player.prepareAsync()
-    player.start()
-}
-
-
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun VideoView(activityVar: ActivityVar) {
-    val context = LocalContext.current
     val videoViewModel = activityVar.videoVM
 
-    val onGetConanUrl = { conanUrl: String ->
-        activityVar.mySurfaceView?.let { surfaceView ->
-            videoViewModel.player.let { player ->
-                val ua = WebSettings.getDefaultUserAgent(context)
-                SwithunLog.d(ua)
-
-                val headerParams = HeaderParams().apply {
-                    setBilibiliReferer()
-                }
-
-                try {
-                    // 循环播放
-                    play(player, surfaceView, conanUrl, headerParams) {
-                        playNextConan(videoViewModel, player, surfaceView, headerParams)
+    val onGetConanUrl = handler@{ conanUrl: String ->
+        val surfaceView = activityVar.mySurfaceView ?: return@handler
+        val headerParams = HeaderParams().apply { setBilibiliReferer() }
+        try {
+            // 循环播放
+            videoViewModel.play(surfaceView, conanUrl, headerParams) {
+                playNextConan(videoViewModel, surfaceView, headerParams)
+            }
+            // 播放进度计算
+            videoViewModel.viewModelScope.launch {
+                while (true) {
+                    delay(500)
+                    val duration = when (val duration = videoViewModel.player.duration) {
+                        0L -> 1F
+                        else -> duration.toFloat()
                     }
-                    // 播放进度计算
-                    videoViewModel.viewModelScope.launch {
-                        while (true) {
-                            delay(500)
-                            val duration = when (val duration = player.duration) {
-                                0L -> 1F
-                                else -> duration.toFloat()
-                            }
-                            videoViewModel.currentProcess =
-                                player.currentPosition.toFloat() / duration
-                        }
-                    }
-                } catch (e: Error) {
-                    SwithunLog.e("player err")
+                    videoViewModel.currentProcess =
+                        videoViewModel.player.currentPosition.toFloat() / duration
                 }
             }
-        }
-    }
-
-    val onGetFTPUrl = { ftpUrl: String ->
-        SwithunLog.d("ftpUrl: $ftpUrl")
-
-        activityVar.mySurfaceView?.let { surfaceView ->
-            val player = videoViewModel.player
-
-            player.reset()
-            // user-agent 需要用这个设置，否则header里设置会出现2个 https://blog.csdn.net/xiaoduzi1991/article/details/121968386
-//            player.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", "Bilibili Freedoooooom/MarkII")
-            player.setOption(
-                IjkMediaPlayer.OPT_CATEGORY_FORMAT,
-                "reconnect",
-                1
-            );//重连模式，如果中途服务器断开了连接，让它重新连接,参考 https://github.com/Bilibili/ijkplayer/issues/445
-            player.setOption(
-                IjkMediaPlayer.OPT_CATEGORY_FORMAT,
-                "dns_cache_clear",
-                1
-            );// 解决 Hit dns cache but connect fail hostname
-            player.setOption(
-                IjkMediaPlayer.OPT_CATEGORY_FORMAT,
-                "protocol_whitelist",
-                "async,cache,crypto,file,http,https,ijkhttphook,ijkinject,ijklivehook,ijklongurl,ijksegment,ijktcphook,pipe,rtp,tcp,tls,udp,ijkurlhook,data,ftp"
-            );
-            player.dataSource = ftpUrl
-            player.setSurface(surfaceView.holder.surface)
-
-            player.prepareAsync()
-            player.start()
-
-        }
-
-    }
-
-    val onGetHttpUr = { httpUrl: String ->
-        SwithunLog.d("httpUrl: $httpUrl")
-
-        activityVar.mySurfaceView?.let { surfaceView ->
-            val player = videoViewModel.getNewPlayer()
-
-            player.reset()
-            player.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-hevc", 1)
-            player.dataSource = httpUrl
-            player.setSurface(surfaceView.holder.surface)
-
-            player.prepareAsync()
-            player.start()
-
+        } catch (e: Error) {
+            SwithunLog.e("player err")
         }
     }
 
     Row {
         Column {
-            Button(onClick = {
-                videoViewModel.viewModelScope.launch(Dispatchers.IO) {
-                    videoViewModel.getConan()?.let { newConanUrl ->
-                        onGetConanUrl(newConanUrl)
-                    }
-                }
-            }
-            ) {
-                Text(text = "get conna")
-            }
-            Button(onClick = {
-                videoViewModel.viewModelScope.launch(Dispatchers.IO) {
-                    activityVar.ftpVM.viewModelScope.launch(Dispatchers.IO) {
-                        val url = activityVar.ftpVM.downloadFile(2221)
-                        onGetFTPUrl(url)
-                    }
-                }
-            }) {
-                Text(text = "get FTP")
-            }
-            Button(onClick = {
-                videoViewModel.viewModelScope.launch(Dispatchers.IO) {
-                    activityVar.ftpVM.viewModelScope.launch(Dispatchers.IO) {
-                        val url = activityVar.ftpVM.downloadFile(5656)
-                        onGetFTPUrl(url)
-                    }
-                }
-            }) {
-                Text(text = "get FTP 5656")
-            }
-
-            Button(onClick = {
-                onGetHttpUr(videoViewModel.testGetHttpMp4())
-            }) {
-                Text(text = "getHttp")
-            }
-
             Button(onClick = {
                 if (videoViewModel.player.isPlaying) {
                     videoViewModel.player.pause()
@@ -585,15 +402,14 @@ fun VideoView(activityVar: ActivityVar) {
 
 fun playNextConan(
     videoViewModel: VideoViewModel,
-    player: IjkMediaPlayer,
     surfaceView: SurfaceView,
     headerParams: HeaderParams
 ) {
     videoViewModel.viewModelScope.launch {
         val nextConanUrl =
             videoViewModel.getNextConan().nullCheck("get nextConanUrl") ?: return@launch
-        play(player, surfaceView, nextConanUrl, headerParams) {
-            playNextConan(videoViewModel, player, surfaceView, headerParams)
+        videoViewModel.play(surfaceView, nextConanUrl, headerParams) {
+            playNextConan(videoViewModel, surfaceView, headerParams)
         }
     }
 }

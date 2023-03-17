@@ -50,44 +50,12 @@ class FileManagerViewModel : ViewModel() {
         activityVar?.let {
             val fileObj = File(file.path)
             if (VideoExtension.isOneOf(fileObj.extension)) {
-                viewModelScope?.launch(Dispatchers.IO) {
-                    SwithunLog.d("是视频")
-                    val surface = it.mySurfaceView?.holder?.surface ?: return@launch
-                    it.videoVM.playVideo(file.path)
-                    val player = it.videoVM.getNewPlayer()
-                    player.reset()
-                    // player.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-hevc", 1)
-                    player.dataSource =
-                        "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.GetVideoPath.path}?${ServerConfig.ServerPath.GetVideoPath.paramPath}=${file.path}".nullCheck("视频链接: ", true)
-                    player.setSurface(surface)
-                    player.prepareAsync()
-                    player.start()
-//                val player = videoViewModel.getNewPlayer()
-//
-//                player.reset()
-//                player.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-hevc", 1)
-//                player.dataSource = httpUrl
-//                player.setSurface(surfaceView.holder.surface)
-//
-//                player.prepareAsync()
-//                player.start()
-                }
+                val surfaceView = it.mySurfaceView ?: return
+                it.videoVM.play(
+                    surfaceView,
+                    "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.GetVideoPath.path}?${ServerConfig.ServerPath.GetVideoPath.paramPath}=${file.path}")
             } else {
                 SwithunLog.e("不是视频")
-            }
-        }
-    }
-
-    private fun Array<File>.map2Items(): List<PathItem> {
-        return this.map {
-            when {
-                it.isFile -> PathItem.FileItem(
-                    it.path
-                )
-                else -> PathItem.FolderItem(
-                    it.path,
-                    emptyList()
-                )
             }
         }
     }
