@@ -67,7 +67,8 @@ class ConnectKernelViewModel: ViewModel() {
         val jsonObject = KernelAndFrontEndJson(
             uuid = uuid,
             code = code,
-            content = jsonStr
+            content = jsonStr,
+            content_type = KernelAndFrontEndJson.ContentType.TEXT.v
         )
 
         val jsonObjectStr = gson.toJson(jsonObject)

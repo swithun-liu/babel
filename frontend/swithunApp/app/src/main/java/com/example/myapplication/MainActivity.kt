@@ -1,5 +1,7 @@
 package com.example.myapplication
 
+import android.content.ClipboardManager
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.view.SurfaceHolder
@@ -12,7 +14,9 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,12 +24,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.ParagraphStyle
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextIndent
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -129,6 +131,18 @@ class ActivityVar(
     }
 }
 
+enum class PageIndex {
+    VIDEO_PAGE,
+    VIDEO_LIST_PAGE,
+    TRANSFER_PAGE,
+    SERVER_SETTING_PAGE,
+    SERVER_FILE_PAGE;
+
+    companion object {
+        fun fromValue(ordinal: Int) = values().find { it.ordinal == ordinal }
+    }
+}
+
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun Myapp(activityVar: ActivityVar, scaffoldState: ScaffoldState = rememberScaffoldState()) {
@@ -147,28 +161,29 @@ fun Myapp(activityVar: ActivityVar, scaffoldState: ScaffoldState = rememberScaff
                         .width(120.dp)
                         .background(Color.Gray)
                 ) {
-                    Button(onClick = { setSelectedItem(0) }) {
+                    Button(onClick = { setSelectedItem(PageIndex.VIDEO_PAGE.ordinal) }) {
                         Text("视频播放")
                     }
-                    Button(onClick = { setSelectedItem(4) }) {
+                    Button(onClick = { setSelectedItem(PageIndex.VIDEO_LIST_PAGE.ordinal) }) {
                         Text("视频列表")
                     }
-                    Button(onClick = { setSelectedItem(1) }) {
+                    Button(onClick = { setSelectedItem(PageIndex.TRANSFER_PAGE.ordinal) }) {
                         Text("传输")
                     }
-                    Button(onClick = { setSelectedItem(2) }) {
+                    Button(onClick = { setSelectedItem(PageIndex.SERVER_SETTING_PAGE.ordinal) }) {
                         Text("服务器设置")
                     }
-                    Button(onClick = { setSelectedItem(3) }) {
+                    Button(onClick = { setSelectedItem(PageIndex.SERVER_FILE_PAGE.ordinal) }) {
                         Text("服务器文件")
                     }
                 }
-                when (selectedItem) {
-                    0 -> VideoPage(activityVar)
-                    4 -> VideoListPage(activityVar)
-                    1 -> TransferPage(activityVar)
-                    2 -> ServerSettingPage(activityVar)
-                    3 -> ServerFilePage(activityVar)
+                when (PageIndex.fromValue(selectedItem)) {
+                    PageIndex.VIDEO_PAGE -> VideoPage(activityVar)
+                    PageIndex.VIDEO_LIST_PAGE -> VideoListPage(activityVar)
+                    PageIndex.TRANSFER_PAGE -> TransferPage(activityVar)
+                    PageIndex.SERVER_SETTING_PAGE -> ServerSettingPage(activityVar)
+                    PageIndex.SERVER_FILE_PAGE -> ServerFilePage(activityVar)
+                    null -> {}
                 }
             }
         })
@@ -206,7 +221,44 @@ fun VideoPage(activityVar: ActivityVar) {
 
 @Composable
 fun TransferPage(activityVar: ActivityVar) {
-    WordsScreen(activityVar)
+    // WordsScreen(activityVar)
+    Row(
+        modifier = Modifier
+            .fillMaxHeight()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .width(500.dp)
+        ) {
+            val context = LocalContext.current
+            val clipboardContent = remember { mutableStateOf("") }
+
+            Button(onClick = {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString() ?: "Clipboard is empty"
+                clipboardContent.value = text
+            }) {
+                Text(text = "获取剪切板内容")
+            }
+
+            SelectionContainer {
+                Text(text = buildAnnotatedString {
+                    clipboardContent.let {
+                        withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                            append(it.value)
+                        }
+                    }
+                })
+            }
+
+            Button(onClick = {
+                activityVar.connectServerVM
+            }) {
+                Text(text = "发送")
+            }
+        }
+    }
 }
 
 @Composable

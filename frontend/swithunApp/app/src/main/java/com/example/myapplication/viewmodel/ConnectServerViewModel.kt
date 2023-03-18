@@ -147,6 +147,9 @@ class ConnectServerViewModel: ViewModel() {
         return if (len <= 20) q else q.substring(0, 10) + len + q.substring(len - 10, len)
     }
 
+    fun transferData() {
+
+    }
 
     fun sendMessage(text: String) {
         repository.webSocketSend(RawData(text))
