@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.util.postRequest
 import com.example.myapplication.util.safeGetString
+import com.example.myapplication.viewmodel.TransferBiz
 import com.example.myapplication.websocket.RawData
 import com.example.myapplication.websocket.WebSocketRepository
 import kotlinx.coroutines.Dispatchers
@@ -147,8 +148,8 @@ class ConnectServerViewModel: ViewModel() {
         return if (len <= 20) q else q.substring(0, 10) + len + q.substring(len - 10, len)
     }
 
-    fun transferData() {
-
+    fun transferData(data: String): Boolean {
+        return repository.webSocketSend(RawData(TransferBiz.buildTransferData(data).toString()))
     }
 
     fun sendMessage(text: String) {

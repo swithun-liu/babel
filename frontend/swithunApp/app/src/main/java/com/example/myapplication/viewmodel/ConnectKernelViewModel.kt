@@ -1,19 +1,15 @@
 package com.example.myapplication.viewmodel
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.ActivityVar
 import com.example.myapplication.SwithunLog
-import com.example.myapplication.code.OptionCode
-import com.example.myapplication.model.KernelAndFrontEndJson
+import com.example.myapplication.model.TransferData.OptionCode
+import com.example.myapplication.model.TransferData
 import com.example.myapplication.model.KernelConfig
 import com.example.myapplication.websocket.RawData
 import com.example.myapplication.websocket.WebSocketRepository
 import com.google.gson.Gson
-import com.swithun.liu.ServerSDK
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -44,7 +40,7 @@ class ConnectKernelViewModel: ViewModel() {
                 val gson = Gson()
                 try {
                     SwithunLog.d(json)
-                    val jsonObject = gson.fromJson(json, KernelAndFrontEndJson::class.java)
+                    val jsonObject = gson.fromJson(json, TransferData::class.java)
                     SwithunLog.d("get kernal code: ${jsonObject.code}, ${jsonObject.uuid}, ${jsonObject.content}")
                     handleCommand(jsonObject)
                 } catch (e: Exception) {
@@ -64,11 +60,11 @@ class ConnectKernelViewModel: ViewModel() {
 
         val jsonStr = gson.toJson(pathList)
 
-        val jsonObject = KernelAndFrontEndJson(
+        val jsonObject = TransferData(
             uuid = uuid,
             code = code,
             content = jsonStr,
-            content_type = KernelAndFrontEndJson.ContentType.TEXT.v
+            content_type = TransferData.ContentType.TEXT.type
         )
 
         val jsonObjectStr = gson.toJson(jsonObject)
@@ -77,7 +73,7 @@ class ConnectKernelViewModel: ViewModel() {
     }
 
 
-    private fun handleCommand(data: KernelAndFrontEndJson) {
+    private fun handleCommand(data: TransferData) {
         when (OptionCode.fromValue(data.code)) {
             OptionCode.GET_BASE_PATH_LIST_REQUEST -> {
                 activityVar?.let {

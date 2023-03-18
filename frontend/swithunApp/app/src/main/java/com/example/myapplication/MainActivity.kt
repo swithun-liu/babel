@@ -40,6 +40,8 @@ import com.example.myapplication.model.KernelConfig
 import com.example.myapplication.model.SectionItem
 import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.ui.theme.MyApplicationTheme
+import com.example.myapplication.ui.view.ServerFilePage
+import com.example.myapplication.ui.view.TransferPage
 import com.example.myapplication.util.AuthChecker
 import com.example.myapplication.util.HeaderParams
 import com.example.myapplication.viewmodel.*
@@ -145,9 +147,12 @@ enum class PageIndex {
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun Myapp(activityVar: ActivityVar, scaffoldState: ScaffoldState = rememberScaffoldState()) {
+fun Myapp(activityVar: ActivityVar) {
 
     val (selectedItem: Int, setSelectedItem: (Int) -> Unit) = remember { mutableStateOf(0) }
+
+    val scaffoldState = rememberScaffoldState()
+    val coroutineScope = rememberCoroutineScope()
 
     activityVar.scaffoldState = scaffoldState
 
@@ -200,66 +205,10 @@ fun VideoListPage(activityVar: ActivityVar) {
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun ServerFilePage(activityVar: ActivityVar) {
-    Row {
-        Button(onClick = {
-            activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
-                activityVar.fileManagerViewModel.refreshBasePathListFromRemote()
-            }
-        }) {
-            Text(text = "获取服务器文件列表")
-        }
-        FileManagerView(activityVar)
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.M)
-@Composable
 fun VideoPage(activityVar: ActivityVar) {
     IjkPlayer(player = activityVar.videoVM.player, activityVar)
 }
 
-@Composable
-fun TransferPage(activityVar: ActivityVar) {
-    // WordsScreen(activityVar)
-    Row(
-        modifier = Modifier
-            .fillMaxHeight()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .width(500.dp)
-        ) {
-            val context = LocalContext.current
-            val clipboardContent = remember { mutableStateOf("") }
-
-            Button(onClick = {
-                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val text = clipboard.primaryClip?.getItemAt(0)?.text?.toString() ?: "Clipboard is empty"
-                clipboardContent.value = text
-            }) {
-                Text(text = "获取剪切板内容")
-            }
-
-            SelectionContainer {
-                Text(text = buildAnnotatedString {
-                    clipboardContent.let {
-                        withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
-                            append(it.value)
-                        }
-                    }
-                })
-            }
-
-            Button(onClick = {
-                activityVar.connectServerVM
-            }) {
-                Text(text = "发送")
-            }
-        }
-    }
-}
 
 @Composable
 fun ServerSettingPage(activityVar: ActivityVar) {
@@ -295,27 +244,6 @@ fun ServerSettingPage(activityVar: ActivityVar) {
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.M)
-@Composable
-fun FileManagerView(activityVar: ActivityVar) {
-    LazyColumn(
-        modifier = Modifier
-            .background(Color(R.color.purple_200))
-            .width(Dp(600f))
-    ) {
-        items(activityVar.fileManagerViewModel.pathList) { path: PathItem ->
-            when (path) {
-                is PathItem.FileItem -> {
-                    FileItemView(path, activityVar)
-                }
-                is PathItem.FolderItem -> {
-                    FolderItemView(path, activityVar)
-                }
-            }
-        }
-    }
-}
-
 @Composable
 fun ServerList(activityVar: ActivityVar) {
     LazyColumn(modifier = Modifier.width(Dp(200f))) {
@@ -325,65 +253,6 @@ fun ServerList(activityVar: ActivityVar) {
             }) {
                 Text(text = "连接 $serverIp")
             }
-        }
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.M)
-@Composable
-fun FolderItemView(folder: PathItem.FolderItem, activityVar: ActivityVar) {
-    Card(
-        modifier = Modifier
-            .fillMaxSize()
-            .clickable {
-                SwithunLog.d("click folder: ${folder.name}")
-                activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
-                    activityVar.fileManagerViewModel.clickFolder(folder)
-                }
-            },
-        backgroundColor = Color(activityVar.activity.getColor(R.color.teal_200))
-    ) {
-        Column(
-            Modifier.padding(10.dp)
-        ) {
-            Row {
-                Text(text = "Folder: ")
-                Text(text = folder.name)
-            }
-            if (folder.isOpening) {
-                SimplePathListView(folder.children, activityVar)
-            }
-        }
-    }
-}
-
-@RequiresApi(Build.VERSION_CODES.M)
-@Composable
-fun SimplePathListView(pathList: List<PathItem>, activityVar: ActivityVar) {
-    pathList.forEach { path ->
-        when (path) {
-            is PathItem.FileItem -> {
-                FileItemView(path, activityVar)
-            }
-            is PathItem.FolderItem -> {
-                FolderItemView(path, activityVar)
-            }
-        }
-    }
-}
-
-@Composable
-fun FileItemView(file: PathItem.FileItem, activityVar: ActivityVar) {
-    Card(modifier = Modifier
-        .fillMaxSize()
-        .clickable {
-            SwithunLog.d("click file: ${file.name}")
-            activityVar.fileManagerViewModel.clickFile(file)
-        }
-    ) {
-        Row(Modifier.padding(10.dp)) {
-            Text(text = "File: ")
-            Text(text = file.name)
         }
     }
 }
