@@ -2,7 +2,7 @@ package com.example.myapplication.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication.ActivityVar
+import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.model.MessageDTO.OptionCode
 import com.example.myapplication.model.MessageDTO

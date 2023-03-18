@@ -1,8 +1,7 @@
 package com.example.myapplication.viewmodel
 
-import com.example.myapplication.ActivityVar
+import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.SwithunLog
-import com.example.myapplication.model.KernelConfig
 import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.nullCheck
 import com.example.myapplication.util.UrlEncodeParams

@@ -1,21 +1,16 @@
 package com.example.myapplication.viewmodel
 
 import android.annotation.SuppressLint
-import android.os.Environment
 import android.util.Log
 import android.view.SurfaceView
 import androidx.activity.ComponentActivity
-import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication.ActivityVar
-import com.example.myapplication.MainActivity
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.errcode.LogInErrCode
 import com.example.myapplication.model.GetEpisode
@@ -26,11 +21,6 @@ import com.example.myapplication.nullCheck
 import com.example.myapplication.util.*
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
-import com.koushikdutta.async.AsyncServer
-import com.koushikdutta.async.http.server.AsyncHttpServer
-import com.koushikdutta.async.http.server.AsyncHttpServerRequest
-import com.koushikdutta.async.http.server.AsyncHttpServerResponse
-import com.koushikdutta.async.http.server.HttpServerRequestCallback
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -38,10 +28,6 @@ import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
-import java.io.File
-import java.io.FileInputStream
-import java.io.IOException
-import java.lang.Exception
 
 class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel() {
 

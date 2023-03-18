@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.*
 import com.example.myapplication.R
+import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.viewmodel.PathItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

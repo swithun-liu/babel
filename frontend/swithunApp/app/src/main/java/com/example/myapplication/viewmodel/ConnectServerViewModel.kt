@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.model.MessageDTO
 import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.model.TransferData

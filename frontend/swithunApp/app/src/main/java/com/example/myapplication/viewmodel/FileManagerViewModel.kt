@@ -5,14 +5,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.myapplication.ActivityVar
+import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.model.VideoExtension
-import com.example.myapplication.nullCheck
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.io.File
 
 class FileManagerViewModel : ViewModel() {
