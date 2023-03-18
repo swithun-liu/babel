@@ -54,12 +54,6 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
     var beginJob: Job? = null
     var playJob: Job? = null
 
-    val ftpVM = ViewModelProvider(activity.invoke(), object : ViewModelProvider.Factory {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return FTPViewModel { activity.invoke() } as T
-        }
-    }).get(FTPViewModel::class.java)
-
     fun getNewPlayer() = IjkMediaPlayer().also {
         this.player = it
     }

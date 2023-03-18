@@ -1,21 +1,20 @@
 package com.example.myapplication
 
-import android.content.ClipboardManager
-import android.content.Context
+import android.annotation.SuppressLint
 import android.os.Build
 import android.os.Bundle
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.ViewGroup
-import android.webkit.WebSettings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +31,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.model.KernelConfig
 import com.example.myapplication.model.SectionItem
 import com.example.myapplication.model.ServerConfig
@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
             MyApplicationTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colors.background,
+                    color = MaterialTheme.colorScheme.background,
                 ) {
                     // ScreenSetup(activityVar)
                     Myapp(activityVar)
@@ -119,14 +119,15 @@ class ActivityVar(
     val fileManagerViewModel: FileManagerViewModel = ViewModelProvider(activity).get(
         FileManagerViewModel::class.java
     ),
-    var scaffoldState: ScaffoldState? = null
 ) {
+
     init {
         fileManagerViewModel.init(this)
         connectVM.init(this)
         nasVM.init(this)
         connectServerVM.init(this)
     }
+
 }
 
 enum class PageIndex {
@@ -141,19 +142,18 @@ enum class PageIndex {
     }
 }
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun Myapp(activityVar: ActivityVar) {
 
     val (selectedItem: Int, setSelectedItem: (Int) -> Unit) = remember { mutableStateOf(0) }
 
-    val scaffoldState = rememberScaffoldState()
-    val coroutineScope = rememberCoroutineScope()
-
-    activityVar.scaffoldState = scaffoldState
+    val snackbarHostState = rememberScaffoldState()
 
     Scaffold(
-        scaffoldState = scaffoldState,
+        scaffoldState = snackbarHostState,
         content = {
             Row(modifier = Modifier.horizontalScroll(ScrollState(0), true)) {
                 Column(
@@ -213,6 +213,7 @@ fun ServerSettingPage(activityVar: ActivityVar) {
             Text(text = activityVar.ftpVM.myIPStr)
             Row {
                 Button(onClick = {
+                    activityVar.activity.lifecycle
                     activityVar.activity.lifecycleScope.launch(Dispatchers.IO) {
                         SwithunLog.d("begin get ips")
                         val ips = activityVar.nasVM.searchAllServer()
@@ -386,6 +387,7 @@ fun QRCode(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WordsScreen(activityVar: ActivityVar) {
     Column(
@@ -397,14 +399,15 @@ fun WordsScreen(activityVar: ActivityVar) {
             textState = text
         }
 
-        OutlinedTextField(
-            value = textState,
-            onValueChange = { onTextChange(it) },
-            singleLine = true,
-            label = { Text(text = "Enter message") },
-            modifier = Modifier.padding(10.dp),
-            textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 30.sp),
-        )
+
+//        OutlinedTextField(
+//            value = textState,
+//            onValueChange = { onTextChange(it) },
+//            singleLine = true,
+//            label = { Text(text = "Enter message") },
+//            modifier = Modifier.padding(10.dp),
+//            textStyle = TextStyle(fontWeight = FontWeight.Bold, fontSize = 30.sp),
+//        )
 
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = "单词：")

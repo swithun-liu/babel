@@ -79,15 +79,17 @@ class ConnectServerViewModel: ViewModel() {
                                 receivedData = newList
                             }
                             null -> {
-                                activityVar?.scaffoldState?.snackbarHostState?.showSnackbar(
+                                // activityVar?.scaffoldState?.snackbarHostState?.showSnackbar(
+/*
                                     message = "无code"
                                 )
+*/
                             }
                         }
                     } catch (e: Exception) {
-                        activityVar?.scaffoldState?.snackbarHostState?.showSnackbar(
-                            message = "解析失败"
-                        )
+                        // activityVar?.scaffoldState?.snackbarHostState?.showSnackbar(
+//                            message = "解析失败"
+//                        )
                     }
                 }
             }

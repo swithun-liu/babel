@@ -5,11 +5,9 @@ import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material.Button
-import androidx.compose.material.Snackbar
-import androidx.compose.material.Text
-import androidx.compose.material.TextField
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -45,14 +43,15 @@ fun TransferPage(activityVar: ActivityVar) {
                 Text(text = "获取剪切板内容")
             }
 
-            TextField(value = clipboardContent, onValueChange = { clipboardContent = it })
+            BasicTextField(value =  clipboardContent, onValueChange = { clipboardContent = it })
 
             Button(onClick = {
                 val suc = activityVar.connectServerVM.transferData(clipboardContent)
                 activityVar.activity.lifecycleScope.launch {
-                    activityVar.scaffoldState?.snackbarHostState?.showSnackbar(
-                        message = if (suc) { "成功发送" } else { "发送失败" }
-                    )
+                    // swithun-xxx todo
+//                    activityVar.scaffoldState?.snackbarHostState?.showSnackbar(
+//                        message = if (suc) { "成功发送" } else { "发送失败" }
+//                    )
                 }
             }) {
                 Text(text = "发送")

@@ -6,6 +6,10 @@ plugins {
 android {
     compileSdk 32
 
+    packagingOptions {
+        exclude "META-INF/DEPENDENCIES"
+    }
+
     sourceSets {
         main {
             jniLibs.srcDirs = ['libs']
@@ -45,33 +49,8 @@ android {
         kotlinCompilerExtensionVersion compose_version
     }
     packagingOptions {
-        exclude 'META-INF/DEPENDENCIES'
-        exclude 'META-INF/LICENSE'
-        exclude 'META-INF/LICENSE.txt'
-        exclude 'META-INF/license.txt'
-        exclude 'META-INF/NOTICE'
-        exclude 'META-INF/NOTICE.txt'
-        exclude 'META-INF/notice.txt'
-        exclude 'META-INF/ASL2.0'
-
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
-        }
-    }
-
-    buildscript {
-        ext {
-            compose_compiler = '1.3.1'         //compiler
-            compose_version = '1.3.0-beta02'   //compose dependencies
-            compose_material3 = '1.0.0-beta02' //material3 release
-        }
-    }
-    splits {
-        abi {
-            enable true
-            reset()
-            include 'x86', 'x86_64', 'armeabi', "arm64-v8a", 'armeabi-v7a'
-            universalApk false
         }
     }
 }
@@ -80,10 +59,17 @@ dependencies {
 
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation "androidx.compose.ui:ui:$compose_version"
-    implementation "androidx.compose.material:material:$compose_version"
+    implementation 'androidx.compose.material3:material3:1.0.0-alpha01'
     implementation "androidx.compose.ui:ui-tooling-preview:$compose_version"
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.3.1'
     implementation 'androidx.activity:activity-compose:1.3.1'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation "androidx.compose.ui:ui-test-junit4:$compose_version"
+    debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
+    debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_version"
+
 
     implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.4.1'
     implementation 'com.squareup.okhttp3:okhttp:4.2.1'
@@ -92,14 +78,6 @@ dependencies {
 
     // https://github.com/journeyapps/zxing-android-embedded
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
-
-
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
-    androidTestImplementation "androidx.compose.ui:ui-test-junit4:$compose_version"
-    debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
-    debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_version"
 
     // ijkplayer
     api 'tv.danmaku.ijk.media:ijkplayer-java:0.8.8'

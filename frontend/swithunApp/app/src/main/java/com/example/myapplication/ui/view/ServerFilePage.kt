@@ -7,9 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.Button
-import androidx.compose.material.Card
-import androidx.compose.material.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -61,12 +59,13 @@ fun FileManagerView(activityVar: ActivityVar) {
 
 @Composable
 fun FileItemView(file: PathItem.FileItem, activityVar: ActivityVar) {
-    Card(modifier = Modifier
+    Surface(
+        modifier = Modifier
         .fillMaxSize()
         .clickable {
             SwithunLog.d("click file: ${file.name}")
             activityVar.fileManagerViewModel.clickFile(file)
-        }
+        },
     ) {
         Row(Modifier.padding(10.dp)) {
             Text(text = "File: ")
@@ -78,7 +77,7 @@ fun FileItemView(file: PathItem.FileItem, activityVar: ActivityVar) {
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun FolderItemView(folder: PathItem.FolderItem, activityVar: ActivityVar) {
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxSize()
             .clickable {
@@ -87,7 +86,7 @@ fun FolderItemView(folder: PathItem.FolderItem, activityVar: ActivityVar) {
                     activityVar.fileManagerViewModel.clickFolder(folder)
                 }
             },
-        backgroundColor = Color(activityVar.activity.getColor(R.color.teal_200))
+        color = Color(activityVar.activity.getColor(R.color.teal_200))
     ) {
         Column(
             Modifier.padding(10.dp)
