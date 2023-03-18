@@ -7,12 +7,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.model.MessageDTO
 import com.example.myapplication.model.ServerConfig
+import com.example.myapplication.model.TransferData
 import com.example.myapplication.util.postRequest
 import com.example.myapplication.util.safeGetString
 import com.example.myapplication.viewmodel.TransferBiz
 import com.example.myapplication.websocket.RawData
 import com.example.myapplication.websocket.WebSocketRepository
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -38,6 +41,7 @@ class ConnectServerViewModel: ViewModel() {
 
     var activityVar: ActivityVar? = null
 
+    var receivedData by mutableStateOf(mutableListOf<TransferData>())
 
     fun init(activityVar: ActivityVar) {
         this.activityVar = activityVar
@@ -57,60 +61,88 @@ class ConnectServerViewModel: ViewModel() {
             viewModelScope.launch(Dispatchers.IO) {
                 remoteWordFlow?.collect {
                     SwithunLog.d("remoteWordFlow collect ${it.json}")
-                    val q = it.json
-
-                    val params = mutableMapOf<String, String>().apply {
-                        put("from", "en")
-                        put("to", "zh-CHS")
-                        put("signType", "v3")
-                        val curtime = (System.currentTimeMillis() / 1000).toString()
-                        put("curtime", curtime)
-                        put("appKey", APP_KEY)
-                        put("q", q)
-                        val salt = System.currentTimeMillis().toString()
-                        put("salt", salt)
-                        val signStr = "$APP_KEY${truncate(q)}$salt$curtime$APP_SECRET"
-                        val sign = getDigest(signStr)
-                        put("sign", sign ?: "")
-                    }
-
-                    val jsonBody = postRequest(YOUDAO_URL, params) ?: return@collect
-
-                    SwithunLog.d(jsonBody.toString())
-
-                    // translation
-                    var translation: String = ""
-                    val explains = mutableListOf<String>()
-                    jsonBody.safeGetString("translation")?.let {
-                        translation = it
-                        Log.i(TAG, "translation: $it")
-                    }
-                    // explains
-                    if (jsonBody.has("basic")) {
-                        val basic= jsonBody.getJSONObject("basic")
-                        if (basic.has("explains")) {
-                            val a = basic.getJSONArray("explains")
-                            for (i in 0 until a.length()) {
-                                a.get(i)?.toString()?.let {
-                                    explains.add(it)
+                    val gson = Gson()
+                    try {
+                        val message = gson.fromJson(it.json, MessageDTO::class.java)
+                        when (MessageDTO.OptionCode.fromValue(message.code)) {
+                            MessageDTO.OptionCode.TRANSFER_DATA -> {
+                                val list = receivedData
+                                val newList = mutableListOf<TransferData>(
+                                    TransferData.TextData(message.content)
+                                )
+                                var i = 0
+                                for (item in list) {
+                                    i++
+                                    if (i == 5) break
+                                    newList.add(item)
                                 }
+                                receivedData = newList
                             }
-                        } else {
-                            Log.d("swithun-xxxx", "no explains")
+                            null -> {
+                                activityVar?.scaffoldState?.snackbarHostState?.showSnackbar(
+                                    message = "无code"
+                                )
+                            }
                         }
-                    } else {
-                        Log.d("swithun-xxxx", "no basic")
+                    } catch (e: Exception) {
+                        activityVar?.scaffoldState?.snackbarHostState?.showSnackbar(
+                            message = "解析失败"
+                        )
                     }
-
-                    delay(500)
-
-                    wordsResult = WordsResult(q, explains, translation)
                 }
             }
         }
     }
 
-    init {
+    suspend fun translate(data: RawData) {
+        val q = data.json
+
+        val params = mutableMapOf<String, String>().apply {
+            put("from", "en")
+            put("to", "zh-CHS")
+            put("signType", "v3")
+            val curtime = (System.currentTimeMillis() / 1000).toString()
+            put("curtime", curtime)
+            put("appKey", APP_KEY)
+            put("q", q)
+            val salt = System.currentTimeMillis().toString()
+            put("salt", salt)
+            val signStr = "$APP_KEY${truncate(q)}$salt$curtime$APP_SECRET"
+            val sign = getDigest(signStr)
+            put("sign", sign ?: "")
+        }
+
+        val jsonBody = postRequest(YOUDAO_URL, params) ?: return
+
+        SwithunLog.d(jsonBody.toString())
+
+        // translation
+        var translation: String = ""
+        val explains = mutableListOf<String>()
+        jsonBody.safeGetString("translation")?.let {
+            translation = it
+            Log.i(TAG, "translation: $it")
+        }
+        // explains
+        if (jsonBody.has("basic")) {
+            val basic= jsonBody.getJSONObject("basic")
+            if (basic.has("explains")) {
+                val a = basic.getJSONArray("explains")
+                for (i in 0 until a.length()) {
+                    a.get(i)?.toString()?.let {
+                        explains.add(it)
+                    }
+                }
+            } else {
+                Log.d("swithun-xxxx", "no explains")
+            }
+        } else {
+            Log.d("swithun-xxxx", "no basic")
+        }
+
+        delay(500)
+
+        wordsResult = WordsResult(q, explains, translation)
     }
 
     /**
@@ -149,7 +181,7 @@ class ConnectServerViewModel: ViewModel() {
     }
 
     fun transferData(data: String): Boolean {
-        return repository.webSocketSend(RawData(TransferBiz.buildTransferData(data).toString()))
+        return repository.webSocketSend(RawData(TransferBiz.buildTransferData(data).toJsonStr()))
     }
 
     fun sendMessage(text: String) {

@@ -1,16 +1,16 @@
 package com.example.myapplication.viewmodel
 
-import com.example.myapplication.model.TransferData
+import com.example.myapplication.model.MessageDTO
 import java.util.*
 
 object TransferBiz {
-    fun buildTransferData(text: String): TransferData {
+    fun buildTransferData(text: String): MessageDTO {
         val uuid = UUID.randomUUID().toString()
-        return TransferData(
+        return MessageDTO(
             uuid,
-            TransferData.OptionCode.TRANSFER_DATA.code,
+            MessageDTO.OptionCode.TRANSFER_DATA.code,
             text,
-            TransferData.ContentType.TEXT.type
+            MessageDTO.ContentType.TEXT.type
         )
     }
 }

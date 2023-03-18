@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.ActivityVar
 import com.example.myapplication.SwithunLog
-import com.example.myapplication.model.TransferData.OptionCode
-import com.example.myapplication.model.TransferData
+import com.example.myapplication.model.MessageDTO.OptionCode
+import com.example.myapplication.model.MessageDTO
 import com.example.myapplication.model.KernelConfig
 import com.example.myapplication.websocket.RawData
 import com.example.myapplication.websocket.WebSocketRepository
@@ -40,7 +40,7 @@ class ConnectKernelViewModel: ViewModel() {
                 val gson = Gson()
                 try {
                     SwithunLog.d(json)
-                    val jsonObject = gson.fromJson(json, TransferData::class.java)
+                    val jsonObject = gson.fromJson(json, MessageDTO::class.java)
                     SwithunLog.d("get kernal code: ${jsonObject.code}, ${jsonObject.uuid}, ${jsonObject.content}")
                     handleCommand(jsonObject)
                 } catch (e: Exception) {
@@ -60,11 +60,11 @@ class ConnectKernelViewModel: ViewModel() {
 
         val jsonStr = gson.toJson(pathList)
 
-        val jsonObject = TransferData(
+        val jsonObject = MessageDTO(
             uuid = uuid,
             code = code,
             content = jsonStr,
-            content_type = TransferData.ContentType.TEXT.type
+            content_type = MessageDTO.ContentType.TEXT.type
         )
 
         val jsonObjectStr = gson.toJson(jsonObject)
@@ -73,7 +73,7 @@ class ConnectKernelViewModel: ViewModel() {
     }
 
 
-    private fun handleCommand(data: TransferData) {
+    private fun handleCommand(data: MessageDTO) {
         when (OptionCode.fromValue(data.code)) {
             OptionCode.GET_BASE_PATH_LIST_REQUEST -> {
                 activityVar?.let {

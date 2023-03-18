@@ -3,6 +3,8 @@ package com.example.myapplication.ui.view
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.Button
 import androidx.compose.material.Snackbar
@@ -11,13 +13,10 @@ import androidx.compose.material.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.example.myapplication.ActivityVar
+import com.example.myapplication.model.TransferData
 import kotlinx.coroutines.launch
 
 @Composable
@@ -59,6 +58,19 @@ fun TransferPage(activityVar: ActivityVar) {
                 Text(text = "发送")
             }
         }
+        LazyColumn {
+            items(activityVar.connectServerVM.receivedData) { data ->
+                when (data) {
+                    is TransferData.TextData -> {
+                        TransferText(data.text)
+                    }
+                }
+            }
+        }
     }
+}
 
+@Composable
+fun TransferText(text: String) {
+    Text(text = text)
 }
