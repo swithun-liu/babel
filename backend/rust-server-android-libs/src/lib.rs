@@ -268,7 +268,7 @@ async fn scan_network_2() -> Vec<String> {
 async fn scan_network() -> Vec<String> {
     let mut tasks = vec![];
 
-    for i in 100..=115 {
+    for i in 100..=110 {
         let ip = format!("192.168.0.{}", i);
         let clone_ip = ip.clone();
 
@@ -521,6 +521,7 @@ async fn get_path_list(
                         uuid: new_uuid,
                         code: option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST as i32,
                         content: "".to_string(),
+                        content_type: 0,
                     };
                     kernel_send_message_to_front_end(json_struct);
 
@@ -540,6 +541,7 @@ async fn get_path_list(
                         uuid: new_uuid,
                         code: option_code::OptionCode::CommonOptionCode::GET_CHILDREN_PATH_LIST_REQUEST as i32,
                         content: path.to_string(),
+                        content_type: 0
                     };
                     kernel_send_message_to_front_end(json_struct);
 

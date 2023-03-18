@@ -6,6 +6,7 @@ use std::{
 use actix::{Recipient, Actor, Context, Handler, Message, Addr};
 use log::{debug, info};
 use rand::{rngs::ThreadRng, Rng};
+use serde_json::json;
 use crate::model::option_code;
 
 use crate::model::communicate_models;
@@ -77,10 +78,9 @@ impl Handler<ClientMessage> for ClientServer {
     type Result = ();
 
     fn handle(&mut self, msg: ClientMessage, ctx: &mut Self::Context) -> Self::Result {
-        info!("ChatServer # handle #ClientMessage");
         let msg = msg.msg.as_str();
         let msg_clone = msg.clone();
-
+        debug!("ChatServer # handle #ClientMessage {}", msg_clone);
 
         let json_struct_result = serde_json::from_str::<communicate_models::CommonCommunicateJsonStruct>(msg);
 
@@ -89,6 +89,9 @@ impl Handler<ClientMessage> for ClientServer {
                 match option_code::OptionCode::CommonOptionCode::try_from(communicate_json.code).unwrap() {
                     option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST => {
                         crate::kernel_send_message_to_front_end(communicate_json)
+                    }
+                    option_code::OptionCode::CommonOptionCode::TRANSFER_DATA => {
+                        self.send_message((msg_clone.to_owned()).as_str())
                     }
                     _ => {
                         self.send_message((msg_clone.to_owned() + "1!!!").as_str())
