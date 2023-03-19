@@ -36,17 +36,19 @@ fun PreviewMyApp() {
 @Composable
 fun Myapp(activityVar: ActivityVar) {
 
-    var (selectedItem: Int, setSelectedItem: (Int) -> Unit) = remember { mutableStateOf(0) }
+    val (selectedItem: Int, setSelectedItem: (Int) -> Unit) = remember { mutableStateOf(0) }
     val items: List<String> = PageIndex.values().map { it.text }
     val icons: List<ImageVector> = listOf(Icons.Filled.Home, Icons.Filled.Search, Icons.Filled.Settings, Icons.Filled.Settings, Icons.Filled.Settings)
 
-    val scaffoldState: ScaffoldState = rememberScaffoldState()
-    activityVar.scaffoldState = scaffoldState
+    val snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
+    activityVar.scaffoldState = snackbarHostState
 
     Scaffold(
-        scaffoldState = scaffoldState,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         content = {
-            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(ScrollState(0), true)) {
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(ScrollState(0), true)) {
                 NavigationRail(
                 ) {
                     items.forEachIndexed { index: Int, item: String ->

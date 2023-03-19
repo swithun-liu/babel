@@ -5,10 +5,13 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.ViewGroup
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.model.ActivityVar
@@ -30,10 +33,6 @@ fun IjkPlayer(player: IjkMediaPlayer, activityVar: ActivityVar) {
             val surfaceView = SurfaceView(context)
             surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
                 override fun surfaceCreated(holder: SurfaceHolder) {
-                    val temp = surfaceView.layoutParams
-                    temp.height = ViewGroup.LayoutParams.WRAP_CONTENT
-                    temp.width = ViewGroup.LayoutParams.WRAP_CONTENT
-                    surfaceView.layoutParams = temp
                     // surfaceView在activity Stop时会destroy，重新切到前台会重新走create，这里要重新setDisplay
                     // 否则会黑屏但是有声音 https://github.com/Bilibili/ijkplayer/issues/2666#issuecomment-800083756
                     player.setDisplay(holder)
@@ -44,7 +43,7 @@ fun IjkPlayer(player: IjkMediaPlayer, activityVar: ActivityVar) {
                     holder: SurfaceHolder,
                     format: Int,
                     width: Int,
-                    height: Int
+                    height: Int,
                 ) {
                 }
 
@@ -58,7 +57,7 @@ fun IjkPlayer(player: IjkMediaPlayer, activityVar: ActivityVar) {
 
             surfaceView
         },
-        modifier = Modifier.width(Dp(1000f)),
+        modifier = Modifier.width(100.dp).height(100.dp),
         update = {
             SwithunLog.d("AndroidView # update")
         })

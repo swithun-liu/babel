@@ -2,52 +2,36 @@ package com.example.myapplication.model
 
 import android.view.SurfaceView
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ScaffoldState
+import androidx.compose.material3.SnackbarHostState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.MainActivity
 import com.example.myapplication.viewmodel.*
 
-class ActivityVar @OptIn(ExperimentalMaterial3Api::class) constructor(
+class ActivityVar constructor(
     var activity: MainActivity,
-    val kernelConfig: KernelConfig = KernelConfig( { activity }),
+    val kernelConfig: KernelConfig = KernelConfig({ activity }),
     val serverConfig: ServerConfig = ServerConfig,
     var mySurfaceView: SurfaceView? = null,
-    val connectVM: ConnectKernelViewModel = ViewModelProvider(
-        activity,
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-                return ConnectKernelViewModel() as T
-            }
-        }).get(ConnectKernelViewModel::class.java),
-    val connectServerVM: ConnectServerViewModel = ViewModelProvider(
-        activity,
-        object : ViewModelProvider.Factory {
-            override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-                return ConnectServerViewModel() as T
-            }
-
-        }).get(ConnectServerViewModel::class.java),
-    val videoVM: VideoViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return VideoViewModel { activity } as T
-        }
-    }).get(VideoViewModel::class.java),
-    val ftpVM: FTPViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return FTPViewModel { activity } as T
-        }
-    }).get(FTPViewModel::class.java),
-    val nasVM: NasViewModel = ViewModelProvider(activity, object : ViewModelProvider.Factory {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-            return NasViewModel { activity } as T
-        }
-    }).get(NasViewModel::class.java),
-    val fileManagerViewModel: FileManagerViewModel = ViewModelProvider(activity).get(
-        FileManagerViewModel::class.java
-    ),
-    var scaffoldState: ScaffoldState? = null
+    val connectVM: ConnectKernelViewModel = ViewModelProvider(activity,
+        ViewModelProviderFactories(ConnectKernelViewModel::class.java).getFactory { activity })[ConnectKernelViewModel::class.java],
+    val connectServerVM: ConnectServerViewModel = ViewModelProvider(activity,
+        ViewModelProviderFactories(ConnectServerViewModel::class.java).getFactory { activity }
+    )[ConnectServerViewModel::class.java],
+    val videoVM: VideoViewModel = ViewModelProvider(activity,
+        ViewModelProviderFactories(VideoViewModel::class.java).getFactory { activity }
+    )[VideoViewModel::class.java],
+    val ftpVM: FTPViewModel = ViewModelProvider(activity,
+        ViewModelProviderFactories(FTPViewModel::class.java).getFactory { activity }
+    )[FTPViewModel::class.java],
+    val nasVM: NasViewModel = ViewModelProvider(activity,
+        ViewModelProviderFactories(NasViewModel::class.java).getFactory { activity }
+    )[NasViewModel::class.java],
+    val fileManagerViewModel: FileManagerViewModel = ViewModelProvider(activity,
+        ViewModelProviderFactories(NasViewModel::class.java).getFactory { activity }
+    )[FileManagerViewModel::class.java],
+    var scaffoldState: SnackbarHostState? = null,
 ) {
 
     init {

@@ -94,6 +94,9 @@ class ConnectKernelViewModel: ViewModel() {
             null -> {
                 SwithunLog.d("unKnown code")
             }
+            else -> {
+                SwithunLog.d("other code")
+            }
         }
    }
 }

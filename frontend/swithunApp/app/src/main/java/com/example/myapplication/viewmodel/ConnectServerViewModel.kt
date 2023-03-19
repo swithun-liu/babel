@@ -86,6 +86,9 @@ class ConnectServerViewModel: ViewModel() {
                                 )
 */
                             }
+                            else -> {
+                                "other code 不处理"
+                            }
                         }
                     } catch (e: Exception) {
                         // activityVar?.scaffoldState?.snackbarHostState?.showSnackbar(
