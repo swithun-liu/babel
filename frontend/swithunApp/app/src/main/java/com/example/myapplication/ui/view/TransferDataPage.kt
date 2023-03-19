@@ -48,7 +48,7 @@ fun TransferPage(activityVar: ActivityVar) {
                 val suc = activityVar.connectServerVM.transferData(clipboardContent)
                 activityVar.activity.lifecycleScope.launch {
                     // swithun-xxx todo
-//                    activityVar.scaffoldState?.snackbarHostState?.showSnackbar(
+//                    activityVar.scaffoldState?.showSnackbar(
 //                        message = if (suc) { "成功发送" } else { "发送失败" }
 //                    )
                 }

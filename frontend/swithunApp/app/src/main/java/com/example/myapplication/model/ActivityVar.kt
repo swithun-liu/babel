@@ -1,15 +1,17 @@
 package com.example.myapplication.model
 
 import android.view.SurfaceView
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ScaffoldState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.MainActivity
 import com.example.myapplication.viewmodel.*
 
-class ActivityVar(
+class ActivityVar @OptIn(ExperimentalMaterial3Api::class) constructor(
     var activity: MainActivity,
-    val kernelConfig: KernelConfig = KernelConfig { activity },
+    val kernelConfig: KernelConfig = KernelConfig( { activity }),
     val serverConfig: ServerConfig = ServerConfig,
     var mySurfaceView: SurfaceView? = null,
     val connectVM: ConnectKernelViewModel = ViewModelProvider(
@@ -45,6 +47,7 @@ class ActivityVar(
     val fileManagerViewModel: FileManagerViewModel = ViewModelProvider(activity).get(
         FileManagerViewModel::class.java
     ),
+    var scaffoldState: ScaffoldState? = null
 ) {
 
     init {

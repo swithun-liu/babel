@@ -6,6 +6,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
@@ -16,10 +17,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.ui.view.*
+
+
+@RequiresApi(Build.VERSION_CODES.M)
+@Preview
+@Composable
+fun PreviewMyApp() {
+    Myapp(activityVar = ActivityVar(MainActivity()))
+}
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,13 +40,15 @@ fun Myapp(activityVar: ActivityVar) {
     val items: List<String> = PageIndex.values().map { it.text }
     val icons: List<ImageVector> = listOf(Icons.Filled.Home, Icons.Filled.Search, Icons.Filled.Settings, Icons.Filled.Settings, Icons.Filled.Settings)
 
-    val snackbarHostState = rememberScaffoldState()
+    val scaffoldState: ScaffoldState = rememberScaffoldState()
+    activityVar.scaffoldState = scaffoldState
 
     Scaffold(
-        scaffoldState = snackbarHostState,
+        scaffoldState = scaffoldState,
         content = {
-            Row(modifier = Modifier.horizontalScroll(ScrollState(0), true)) {
-                NavigationRail {
+            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(ScrollState(0), true)) {
+                NavigationRail(
+                ) {
                     items.forEachIndexed { index: Int, item: String ->
                         NavigationRailItem(
                             selected = selectedItem == index,

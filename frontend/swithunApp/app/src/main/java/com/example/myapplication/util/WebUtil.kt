@@ -7,9 +7,9 @@ import android.net.wifi.WifiManager
 import android.util.Log
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.nullCheck
+import com.google.zxing.client.android.AmbientLightManager
 import okhttp3.*
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
-import org.json.JSONArray
 import org.json.JSONObject
 import ru.gildor.coroutines.okhttp.await
 
@@ -20,12 +20,11 @@ object WebUtil {
 
     // wifi下获取本地网络IP地址（局域网地址）
     fun getLocalIPAddress(context: Context): String {
-        val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        @SuppressLint("MissingPermission") val wifiInfo = wifiManager.connectionInfo
-        val ipAddress = wifiInfo.ipAddress
-        val ip =
-            (ipAddress and 0xff).toString() + "." + (ipAddress shr 8 and 0xff) + "." + (ipAddress shr 16 and 0xff) + "." + (ipAddress shr 24 and 0xff)
-        return ip
+        val wifiManager =
+            context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        @SuppressLint("MissingPermission") val wifiInfo = wifiManager?.connectionInfo
+        val ipAddress = wifiInfo?.ipAddress ?: return ""
+        return (ipAddress and 0xff).toString() + "." + (ipAddress shr 8 and 0xff) + "." + (ipAddress shr 16 and 0xff) + "." + (ipAddress shr 24 and 0xff)
     }
 }
 
