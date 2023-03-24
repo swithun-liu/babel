@@ -2,6 +2,7 @@ package com.example.myapplication.viewmodel
 
 import android.annotation.SuppressLint
 import android.util.Log
+import android.view.Surface
 import android.view.SurfaceView
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
@@ -13,10 +14,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.errcode.LogInErrCode
-import com.example.myapplication.model.GetEpisode
-import com.example.myapplication.model.GetEpisodeList
-import com.example.myapplication.model.SectionItem
-import com.example.myapplication.model.ServerConfig
+import com.example.myapplication.model.*
 import com.example.myapplication.nullCheck
 import com.example.myapplication.util.*
 import com.google.zxing.BarcodeFormat
@@ -39,6 +37,11 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
     var player = IjkMediaPlayer()
     var beginJob: Job? = null
     var playJob: Job? = null
+    var activityVar: ActivityVar? = null
+
+    fun init(activityVar: ActivityVar) {
+        this.activityVar = activityVar
+    }
 
     fun getNewPlayer() = IjkMediaPlayer().also {
         this.player = it
@@ -57,7 +60,7 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
     }
 
     fun play(
-        surfaceView: SurfaceView,
+        surfaceView: SurfaceView?,
         conanUrl: String,
         headerParams: HeaderParams ? = null,
         onComplete: (() -> Unit)? = null
@@ -98,7 +101,11 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
                 player.setDataSource(conanUrl, headerParams.params)
             }
             // 设置surface
-            player.setSurface(surfaceView.holder.surface)
+            // player.setSurface(surfaceView.holder.surface)
+            activityVar?.textureView?.let {
+                it.release()
+                player.setSurface(Surface(it))
+            }
 
             player.setOnPreparedListener {
                 SwithunLog.d("old prepared")
