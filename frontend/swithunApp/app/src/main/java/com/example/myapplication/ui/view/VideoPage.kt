@@ -29,41 +29,6 @@ fun VideoPage(activityVar: ActivityVar) {
 @Composable
 fun IjkPlayer(player: IjkMediaPlayer, activityVar: ActivityVar) {
     // https://juejin.cn/post/7034363130121551903
-//    AndroidView(
-//        factory = { context ->
-//            SwithunLog.d("AndroidView # factory")
-//            val surfaceView = SurfaceView(context)
-//            surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
-//                override fun surfaceCreated(holder: SurfaceHolder) {
-//                    // surfaceView在activity Stop时会destroy，重新切到前台会重新走create，这里要重新setDisplay
-//                    // 否则会黑屏但是有声音 https://github.com/Bilibili/ijkplayer/issues/2666#issuecomment-800083756
-//                    player.setDisplay(holder)
-//                    player.start()
-//                }
-//
-//                override fun surfaceChanged(
-//                    holder: SurfaceHolder,
-//                    format: Int,
-//                    width: Int,
-//                    height: Int,
-//                ) {
-//                }
-//
-//                override fun surfaceDestroyed(holder: SurfaceHolder) {
-//                    player.pause()
-//                }
-//
-//            })
-//
-//            activityVar.mySurfaceView = surfaceView
-//
-//            surfaceView
-//        },
-//        modifier = Modifier.width(100.dp).height(100.dp),
-//        update = {
-//            SwithunLog.d("AndroidView # update")
-//        })
-
     AndroidView(modifier = Modifier
         .width(100.dp)
         .height(100.dp), factory = { context ->
