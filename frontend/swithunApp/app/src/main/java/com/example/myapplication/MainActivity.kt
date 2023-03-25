@@ -61,7 +61,7 @@ fun playNextConan(
     videoViewModel.viewModelScope.launch {
         val nextConanUrl =
             videoViewModel.getNextConan().nullCheck("get nextConanUrl") ?: return@launch
-        videoViewModel.play(surfaceView, nextConanUrl, headerParams) {
+        videoViewModel.play(nextConanUrl, headerParams) {
             playNextConan(videoViewModel, surfaceView, headerParams)
         }
     }

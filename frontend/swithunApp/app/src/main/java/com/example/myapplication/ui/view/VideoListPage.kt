@@ -22,7 +22,6 @@ import com.example.myapplication.R
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.model.SectionItem
-import com.example.myapplication.playNextConan
 import com.example.myapplication.util.HeaderParams
 import com.example.myapplication.viewmodel.VideoViewModel
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +47,7 @@ fun ConanVideoView(activityVar: ActivityVar) {
         val headerParams = HeaderParams().apply { setBilibiliReferer() }
         try {
             // 循环播放
-            videoViewModel.play(surfaceView, conanUrl, headerParams) {
+            videoViewModel.play(conanUrl, headerParams) {
                 // playNextConan(videoViewModel, surfaceView, headerParams)
             }
             // 播放进度计算

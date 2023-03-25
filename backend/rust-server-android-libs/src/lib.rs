@@ -2,47 +2,51 @@
 #![allow(non_snake_case)]
 
 use jni::objects::{JClass, JObject, JString};
-use jni::{JNIEnv};
+use jni::JNIEnv;
 
-use std::{env, sync::{atomic::AtomicUsize, Arc}, time::{Instant}};
+use std::{
+    env,
+    sync::{atomic::AtomicUsize, Arc},
+    time::Instant,
+};
 
+use crate::model::option_code;
 use actix::{Actor, Addr};
 use actix_files::NamedFile;
-use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web::rt::Runtime;
+use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_actors::ws;
+use android_logger::Config;
+use futures::channel::oneshot;
+use futures::{pin_mut, SinkExt, TryFutureExt, TryStreamExt};
 use jni::sys::{jobject, jstring};
 use lazy_static::lazy_static;
-use std::collections::{HashMap, VecDeque};
-use std::ffi::OsStr;
-use std::fmt::format;
-use std::fs::{File, read};
-use std::io::{Read, Seek, SeekFrom, Write};
-use std::net::{IpAddr, Ipv4Addr, ToSocketAddrs};
-use std::pin::Pin;
-use std::process::{Command, Output};
-use std::sync::{Mutex};
-use futures::channel::oneshot;
-use uuid::Uuid;
-use std::string::String;
-use std::task::{Context, Poll};
-use std::time::Duration;
-use android_logger::Config;
 use log::{debug, info, Level};
-use crate::model::option_code;
-use futures::{pin_mut, SinkExt, TryFutureExt, TryStreamExt};
 use pnet::datalink::NetworkInterface;
 use pnet::ipnetwork::IpNetwork;
 use pnet::util::MacAddr;
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, VecDeque};
+use std::ffi::OsStr;
+use std::fmt::format;
+use std::fs::{read, File};
+use std::io::{Read, Seek, SeekFrom, Write};
+use std::net::{IpAddr, Ipv4Addr, ToSocketAddrs};
+use std::pin::Pin;
+use std::process::{Command, Output};
+use std::string::String;
+use std::sync::Mutex;
+use std::task::{Context, Poll};
+use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
 use tokio::net::unix::SocketAddr;
+use tokio::net::TcpStream;
+use uuid::Uuid;
 
-mod server;
-mod session;
 mod connect;
 mod model;
+mod server;
+mod session;
 
 use crate::model::communicate_models;
 
@@ -52,14 +56,14 @@ extern crate android_logger;
 extern crate core;
 
 lazy_static! {
-    static ref KERNEL_SERVER: Addr<connect::connect_server::ConnectServer> = {
-        connect::connect_server::ConnectServer::new().start()
-    };
+    static ref KERNEL_SERVER: Addr<connect::connect_server::ConnectServer> =
+        { connect::connect_server::ConnectServer::new().start() };
     static ref CLIENT_SERVER: Addr<server::ClientServer> = {
         let app_state = Arc::new(AtomicUsize::new(0));
-        server::ClientServer::new(app_state.clone(),  KERNEL_SERVER.clone()).start()
+        server::ClientServer::new(app_state.clone(), KERNEL_SERVER.clone()).start()
     };
-    static ref SERVER_CLIENT_REQUEST_MAP: Arc<Mutex<HashMap<std::string::String, oneshot::Sender<std::string::String>>>> = Arc::new(Mutex::new(HashMap::new()));
+    static ref SERVER_CLIENT_REQUEST_MAP: Arc<Mutex<HashMap<std::string::String, oneshot::Sender<std::string::String>>>> =
+        Arc::new(Mutex::new(HashMap::new()));
 }
 
 #[no_mangle]
@@ -109,12 +113,15 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
     let java_string_class = env.find_class("java/lang/String").unwrap();
 
     // 创建一个包含所有元素的 jobjectArray
-    let array = env.new_object_array(ips.len() as i32, java_string_class, JObject::null()).unwrap();
+    let array = env
+        .new_object_array(ips.len() as i32, java_string_class, JObject::null())
+        .unwrap();
 
     // 遍历 Vec 中的所有字符串，将它们转换为 Java 中的 String，并将它们添加到 jobjectArray 中
     for (i, s) in ips.iter().enumerate() {
         let java_string = env.new_string(s).unwrap();
-        env.set_object_array_element(array, i as i32, java_string.into_inner()).unwrap();
+        env.set_object_array_element(array, i as i32, java_string.into_inner())
+            .unwrap();
     }
 
     debug!("response # {}", 6);
@@ -130,7 +137,11 @@ async fn scan_network_2() -> Vec<String> {
     debug!("interface size: {}", interfaces.len());
 
     for interface in interfaces {
-        debug!("interface ip size : {} {:?}", &interface.ips.len(), interface);
+        debug!(
+            "interface ip size : {} {:?}",
+            &interface.ips.len(),
+            interface
+        );
 
         debug!("m2 # {}", 3);
         let target_mac = MacAddr::new(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
@@ -158,7 +169,8 @@ async fn scan_network_2() -> Vec<String> {
         debug!("m2 # {}", 7);
         let mut ether_buffer = [0u8; 100];
         debug!("ether buffer1: {:?}", ether_buffer);
-        let mut ether_packet = pnet::packet::ethernet::MutableEthernetPacket::new(&mut ether_buffer).unwrap();
+        let mut ether_packet =
+            pnet::packet::ethernet::MutableEthernetPacket::new(&mut ether_buffer).unwrap();
         debug!("m2 # {}", 8);
 
         ether_packet.set_destination(target_mac);
@@ -178,7 +190,7 @@ async fn scan_network_2() -> Vec<String> {
             Ok(pnet::datalink::Channel::Ethernet(tx, rx)) => {
                 debug!("suc");
                 (tx, rx)
-            },
+            }
             Err(e) => {
                 debug!("Failed to create datalink channel {:?}", e);
                 panic!("Failed to create datalink channel");
@@ -200,7 +212,6 @@ async fn scan_network_2() -> Vec<String> {
             }
         }
     }
-
 
     //
     // debug!("m2 # {}", 3);
@@ -262,7 +273,6 @@ async fn scan_network_2() -> Vec<String> {
     // }
 
     vec![]
-
 }
 
 async fn scan_network() -> Vec<String> {
@@ -303,42 +313,44 @@ async fn is_server_available(ip: &str) -> bool {
     let host = format!("{}:8088", ip);
     let mut addr_iter_result = host.to_socket_addrs();
     return match addr_iter_result {
-        Ok(mut addr_iter) => {
-            match addr_iter.next() {
-                Some(addr) => {
-                    debug!("check {}", host);
-                    let mut stream_result = std::net::TcpStream::connect_timeout(&addr, Duration::from_millis(600));
-                    match stream_result {
-                        Ok(mut stream) => {
-                            debug!("is_server_available get stream");
+        Ok(mut addr_iter) => match addr_iter.next() {
+            Some(addr) => {
+                debug!("check {}", host);
+                let mut stream_result =
+                    std::net::TcpStream::connect_timeout(&addr, Duration::from_millis(600));
+                match stream_result {
+                    Ok(mut stream) => {
+                        debug!("is_server_available get stream");
 
-                            let request = format!("GET /test HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n", ip);
-                            debug!("is_server_available get stream 2");
-                            stream.write(request.as_bytes()).unwrap_or(0);
-                            debug!("is_server_available get stream 3");
+                        let request = format!(
+                            "GET /test HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n",
+                            ip
+                        );
+                        debug!("is_server_available get stream 2");
+                        stream.write(request.as_bytes()).unwrap_or(0);
+                        debug!("is_server_available get stream 3");
 
-                            let mut response = String::new();
-                            stream.read_to_string(&mut response).unwrap();
-                            debug!("is server available : {:?}", response);
+                        let mut response = String::new();
+                        stream.read_to_string(&mut response).unwrap();
+                        debug!("is server available : {:?}", response);
 
-                            if response.contains("i am server") {
-                                true
-                            } else {
-                                false
-                            }
-                        }
-                        Err(e) => {
-                            debug!("is_server_available err 3 {:?}", e);
+                        if response.contains("i am server") {
+                            true
+                        } else {
                             false
                         }
                     }
-                }
-                None => {
-                    debug!("is_server_available err 1");
-                    false
+                    Err(e) => {
+                        debug!("is_server_available err 3 {:?}", e);
+                        false
+                    }
                 }
             }
-        }
+            None => {
+                debug!("is_server_available err 1");
+                false
+            }
+        },
         Err(e) => {
             debug!("is_server_available err 2");
             false
@@ -357,23 +369,25 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
 
     debug!("rust debug");
 
-    Runtime::new().unwrap().block_on(
-        async {
-            HttpServer::new(move || {
-                App::new()
-                    .app_data(web::Data::new(CLIENT_SERVER.clone()))
-                    .service(web::resource("/").to(index))
-                    .service(web::resource("/ws").to(chat_route))
-                    .service(web::resource("/test").to(test))
-                    .app_data(web::Data::new(KERNEL_SERVER.clone()))
-                    .service(web::resource("/connect").to(connect))
-                    .service(web::resource("/get_path_list").route(web::get().to(get_path_list)))
-                    .service(web::resource("/get-video").to(get_video))
-            })
-                .workers(2)
-                .bind(("0.0.0.0", 8088)).unwrap().run().await.expect("panic");
-        }
-    )
+    Runtime::new().unwrap().block_on(async {
+        HttpServer::new(move || {
+            App::new()
+                .app_data(web::Data::new(CLIENT_SERVER.clone()))
+                .service(web::resource("/").to(index))
+                .service(web::resource("/ws").to(chat_route))
+                .service(web::resource("/test").to(test))
+                .app_data(web::Data::new(KERNEL_SERVER.clone()))
+                .service(web::resource("/connect").to(connect))
+                .service(web::resource("/get_path_list").route(web::get().to(get_path_list)))
+                .service(web::resource("/get-video").to(get_video))
+        })
+            .workers(2)
+            .bind(("0.0.0.0", 8088))
+            .unwrap()
+            .run()
+            .await
+            .expect("panic");
+    })
 }
 
 async fn get_video(
@@ -408,7 +422,11 @@ async fn get_video(
         info!("2");
         let start = parts.next()?.parse().ok()?;
         info!("3");
-        let end = parts.next().map(|s| s.parse().ok()).unwrap_or(Some(content_length as usize - 1)).unwrap_or(content_length as usize - 1);
+        let end = parts
+            .next()
+            .map(|s| s.parse().ok())
+            .unwrap_or(Some(content_length as usize - 1))
+            .unwrap_or(content_length as usize - 1);
         info!("4");
         info!("start {} end {}", start, end);
         Some((start, end))
@@ -423,21 +441,18 @@ async fn get_video(
             }
             (start, end)
         }
-        None => (0, content_length as usize - 1)
+        None => (0, content_length as usize - 1),
     };
 
     let size = (end - start + 1) as u64;
-    Ok(
-        HttpResponse::PartialContent()
-            .append_header(("Content-Type", content_type))
-            .append_header(("Content-Length", content_length))
-            .append_header(("Content-Range", format!("bytes {}-{}/{}", start, end, content_length)))
-            .streaming(
-                Box::pin(
-                    FileReaderStream::new(file, start as u64)
-                )
-            )
-    )
+    Ok(HttpResponse::PartialContent()
+        .append_header(("Content-Type", content_type))
+        .append_header(("Content-Length", content_length))
+        .append_header((
+            "Content-Range",
+            format!("bytes {}-{}/{}", start, end, content_length),
+        ))
+        .streaming(Box::pin(FileReaderStream::new(file, start as u64))))
 }
 
 struct FileReaderStream {
@@ -447,10 +462,7 @@ struct FileReaderStream {
 
 impl FileReaderStream {
     fn new(file: std::fs::File, pos: u64) -> FileReaderStream {
-        FileReaderStream {
-            file,
-            pos,
-        }
+        FileReaderStream { file, pos }
     }
 }
 
@@ -466,7 +478,7 @@ impl futures::Stream for FileReaderStream {
         let n = match file.read(&mut buf) {
             Ok(n) => n,
             Err(ref e) if e.kind() == std::io::ErrorKind::Interrupted => return Poll::Pending,
-            Err(e) => return Poll::Ready(Some(Err(actix_web::Error::from(e))))
+            Err(e) => return Poll::Ready(Some(Err(actix_web::Error::from(e)))),
         };
 
         if n == 0 {
@@ -497,64 +509,74 @@ fn get_content_type(file_path: &str) -> Option<&'static str> {
         Some("webm") => Some("video/webm"),
         Some("wmv") => Some("video/x-ms-wmv"),
         Some("mkv") => Some("video/x-matroska"),
-        _ => None
+        _ => None,
     }
 }
 
-async fn get_path_list(
-    query: web::Query<HashMap<String, String>>
-) -> impl Responder {
+async fn get_path_list(query: web::Query<HashMap<String, String>>) -> impl Responder {
     let path_option = query.get("path");
 
     debug!("rust get_path_list/{}", path_option.clone().unwrap());
 
     match path_option {
-        Some(path) => {
-            match path.as_str() {
-                "base" => {
-                    debug!("get_path_list: base_string, {}", option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST as i32);
-                    let new_uuid: std::string::String = format!("{}", Uuid::new_v4());
-                    let (tx, rx) = oneshot::channel();
+        Some(path) => match path.as_str() {
+            "base" => {
+                debug!(
+                    "get_path_list: base_string, {}",
+                    option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST as i32
+                );
+                let new_uuid: std::string::String = format!("{}", Uuid::new_v4());
+                let (tx, rx) = oneshot::channel();
 
-                    SERVER_CLIENT_REQUEST_MAP.lock().unwrap().insert(new_uuid.clone(), tx);
-                    let json_struct = communicate_models::CommonCommunicateJsonStruct {
-                        uuid: new_uuid,
-                        code: option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST as i32,
-                        content: "".to_string(),
-                        content_type: 0,
-                    };
-                    kernel_send_message_to_front_end(json_struct);
+                SERVER_CLIENT_REQUEST_MAP
+                    .lock()
+                    .unwrap()
+                    .insert(new_uuid.clone(), tx);
+                let json_struct = communicate_models::CommonCommunicateJsonStruct {
+                    uuid: new_uuid,
+                    code: option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST
+                        as i32,
+                    content: "".to_string(),
+                    content_type: 0,
+                };
+                kernel_send_message_to_front_end(json_struct);
 
-                    match rx.await {
-                        Ok(result) => HttpResponse::Ok().body(result),
-                        Err(_) => HttpResponse::InternalServerError().finish(),
-                    }
-                }
-                _ => {
-                    debug!("get_path_list: {} code {}", path, option_code::OptionCode::CommonOptionCode::GET_CHILDREN_PATH_LIST_REQUEST as i32);
-
-                    let new_uuid: std::string::String = format!("{}", Uuid::new_v4());
-                    let (tx, rx) = oneshot::channel();
-
-                    SERVER_CLIENT_REQUEST_MAP.lock().unwrap().insert(new_uuid.clone(), tx);
-                    let json_struct = communicate_models::CommonCommunicateJsonStruct {
-                        uuid: new_uuid,
-                        code: option_code::OptionCode::CommonOptionCode::GET_CHILDREN_PATH_LIST_REQUEST as i32,
-                        content: path.to_string(),
-                        content_type: 0
-                    };
-                    kernel_send_message_to_front_end(json_struct);
-
-                    match rx.await {
-                        Ok(result) => HttpResponse::Ok().body(result),
-                        Err(_) => HttpResponse::InternalServerError().finish(),
-                    }
+                match rx.await {
+                    Ok(result) => HttpResponse::Ok().body(result),
+                    Err(_) => HttpResponse::InternalServerError().finish(),
                 }
             }
-        }
-        None => {
-            HttpResponse::Ok().body("err 1".to_string())
-        }
+            _ => {
+                debug!(
+                    "get_path_list: {} code {}",
+                    path,
+                    option_code::OptionCode::CommonOptionCode::GET_CHILDREN_PATH_LIST_REQUEST
+                        as i32
+                );
+
+                let new_uuid: std::string::String = format!("{}", Uuid::new_v4());
+                let (tx, rx) = oneshot::channel();
+
+                SERVER_CLIENT_REQUEST_MAP
+                    .lock()
+                    .unwrap()
+                    .insert(new_uuid.clone(), tx);
+                let json_struct = communicate_models::CommonCommunicateJsonStruct {
+                    uuid: new_uuid,
+                    code: option_code::OptionCode::CommonOptionCode::GET_CHILDREN_PATH_LIST_REQUEST
+                        as i32,
+                    content: path.to_string(),
+                    content_type: 0,
+                };
+                kernel_send_message_to_front_end(json_struct);
+
+                match rx.await {
+                    Ok(result) => HttpResponse::Ok().body(result),
+                    Err(_) => HttpResponse::InternalServerError().finish(),
+                }
+            }
+        },
+        None => HttpResponse::Ok().body("err 1".to_string()),
     }
 }
 
@@ -591,7 +613,9 @@ async fn connect(
     ws::start(session, &req, stream)
 }
 
-pub fn kernel_send_message_to_front_end(json_struct: communicate_models::CommonCommunicateJsonStruct) {
+pub fn kernel_send_message_to_front_end(
+    json_struct: communicate_models::CommonCommunicateJsonStruct,
+) {
     let json_struct_str = serde_json::to_string(&json_struct).unwrap();
 
     KERNEL_SERVER.do_send(connect::connect_server::KernelToFrontEndMessage {
@@ -599,7 +623,9 @@ pub fn kernel_send_message_to_front_end(json_struct: communicate_models::CommonC
     })
 }
 
-pub fn handle_android_front_end_response(kernel_and_front_end_json: communicate_models::CommonCommunicateJsonStruct) {
+pub fn handle_android_front_end_response(
+    kernel_and_front_end_json: communicate_models::CommonCommunicateJsonStruct,
+) {
     let uuid = kernel_and_front_end_json.uuid;
     let result = kernel_and_front_end_json.content;
     let mut request_map = SERVER_CLIENT_REQUEST_MAP.lock().unwrap();
@@ -612,3 +638,4 @@ pub fn handle_android_front_end_response(kernel_and_front_end_json: communicate_
         }
     }
 }
+

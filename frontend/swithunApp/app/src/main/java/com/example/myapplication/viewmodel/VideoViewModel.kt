@@ -3,7 +3,6 @@ package com.example.myapplication.viewmodel
 import android.annotation.SuppressLint
 import android.util.Log
 import android.view.Surface
-import android.view.SurfaceView
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +37,7 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
     var beginJob: Job? = null
     var playJob: Job? = null
     var activityVar: ActivityVar? = null
+    var aspectRatio: Float by mutableStateOf(1.toFloat())
 
     fun init(activityVar: ActivityVar) {
         this.activityVar = activityVar
@@ -60,9 +60,8 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
     }
 
     fun play(
-        surfaceView: SurfaceView?,
         conanUrl: String,
-        headerParams: HeaderParams ? = null,
+        headerParams: HeaderParams? = null,
         onComplete: (() -> Unit)? = null
     ) {
         playJob?.cancel()
@@ -108,7 +107,10 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
             }
 
             player.setOnPreparedListener {
-                SwithunLog.d("old prepared")
+                val w = player.videoWidth.takeIf { it != 0 } ?: 1
+                val h = player.videoHeight.takeIf { it != 0 } ?: 1
+                aspectRatio = w.toFloat()/h
+                SwithunLog.d("player ready w: $w h: $h aspectRatio: $aspectRatio")
                 player.seekTo(0)
             }
 

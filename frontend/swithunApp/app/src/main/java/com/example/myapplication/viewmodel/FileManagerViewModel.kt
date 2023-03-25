@@ -48,8 +48,8 @@ class FileManagerViewModel : ViewModel() {
             if (VideoExtension.isOneOf(fileObj.extension)) {
                 val surfaceView = it.mySurfaceView ?: return
                 it.videoVM.play(
-                    surfaceView,
-                    "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.GetVideoPath.path}?${ServerConfig.ServerPath.GetVideoPath.paramPath}=${file.path}")
+                    "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.GetVideoPath.path}?${ServerConfig.ServerPath.GetVideoPath.paramPath}=${file.path}"
+                )
             } else {
                 SwithunLog.e("不是视频")
             }

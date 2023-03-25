@@ -1,13 +1,16 @@
-use std::{
+pub(crate) use std::{
     collections::HashMap,
-    sync::{atomic::{AtomicUsize, Ordering}, Arc},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
 };
 
-use actix::{Recipient, Actor, Context, Handler, Message, Addr};
+use crate::model::option_code;
+use actix::{Actor, Addr, Context, Handler, Message, Recipient};
 use log::{debug, info};
 use rand::{rngs::ThreadRng, Rng};
 use serde_json::json;
-use crate::model::option_code;
 
 use crate::model::communicate_models;
 
@@ -25,10 +28,13 @@ pub struct ClientServer {
 }
 
 impl ClientServer {
-    pub fn new(visitor_count: Arc<AtomicUsize>, connect_server: Addr<crate::connect::connect_server::ConnectServer>) -> ClientServer {
+    pub fn new(
+        visitor_count: Arc<AtomicUsize>,
+        connect_server: Addr<crate::connect::connect_server::ConnectServer>,
+    ) -> ClientServer {
         ClientServer {
             sessions: HashMap::new(),
-            visitor_count: visitor_count,
+            visitor_count,
             connect_server,
             rng: rand::thread_rng(),
         }
@@ -82,25 +88,24 @@ impl Handler<ClientMessage> for ClientServer {
         let msg_clone = msg.clone();
         debug!("ChatServer # handle #ClientMessage {}", msg_clone);
 
-        let json_struct_result = serde_json::from_str::<communicate_models::CommonCommunicateJsonStruct>(msg);
+        let json_struct_result =
+            serde_json::from_str::<communicate_models::CommonCommunicateJsonStruct>(msg);
 
         match json_struct_result {
             Ok(communicate_json) => {
-                match option_code::OptionCode::CommonOptionCode::try_from(communicate_json.code).unwrap() {
+                match option_code::OptionCode::CommonOptionCode::try_from(communicate_json.code)
+                    .unwrap()
+                {
                     option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST => {
                         crate::kernel_send_message_to_front_end(communicate_json)
                     }
                     option_code::OptionCode::CommonOptionCode::TRANSFER_DATA => {
                         self.send_message((msg_clone.to_owned()).as_str())
                     }
-                    _ => {
-                        self.send_message((msg_clone.to_owned() + "1!!!").as_str())
-                    }
+                    _ => self.send_message((msg_clone.to_owned() + "1!!!").as_str()),
                 }
             }
-            Err(_) => {
-                self.send_message((msg_clone.to_owned() + "2!!!").as_str())
-            }
+            Err(_) => self.send_message((msg_clone.to_owned() + "2!!!").as_str()),
         }
     }
 }
@@ -113,13 +118,22 @@ impl Handler<Disconnect> for ClientServer {
 
         let mut old_size: usize = 0;
         if self.sessions.remove(&msg.id).is_some() {
-            old_size = self.visitor_count.fetch_update(Ordering::SeqCst, Ordering::SeqCst, |x| Some(x - 1)).unwrap();
+            old_size = self
+                .visitor_count
+                .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |x| Some(x - 1))
+                .unwrap();
             println!("ChatServer # handle # Disconnect $ remove {}", msg.id);
         }
-        self.send_message(("Disconnect $ remove ".to_string() + &msg.id.to_string() + &" ".to_string() + &(old_size - 1).to_string() + &"left".to_string()).as_str())
+        self.send_message(
+            ("Disconnect $ remove ".to_string()
+                + &msg.id.to_string()
+                + &" ".to_string()
+                + &(old_size - 1).to_string()
+                + &"left".to_string())
+                .as_str(),
+        )
     }
 }
-
 
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -139,3 +153,4 @@ pub struct Disconnect {
 pub struct Connect {
     pub addr: Recipient<SessionMessage>,
 }
+
