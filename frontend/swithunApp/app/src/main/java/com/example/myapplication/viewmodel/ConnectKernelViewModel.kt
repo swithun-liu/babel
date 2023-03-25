@@ -39,7 +39,7 @@ class ConnectKernelViewModel: ViewModel() {
                 val json = it.json
                 val gson = Gson()
                 try {
-                    SwithunLog.d(json)
+                    SwithunLog.d("from kernel: $json")
                     val jsonObject = gson.fromJson(json, MessageDTO::class.java)
                     SwithunLog.d("get kernal code: ${jsonObject.code}, ${jsonObject.uuid}, ${jsonObject.content}")
                     handleCommand(jsonObject)

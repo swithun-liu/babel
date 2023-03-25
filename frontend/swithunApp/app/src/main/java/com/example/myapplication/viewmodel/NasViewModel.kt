@@ -64,7 +64,7 @@ class NasViewModel(activity: () -> MainActivity) : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             startMeAsServerBtnText = "启动server：启动中..."
             launch(Dispatchers.IO) {
-                delay(500)
+                delay(1000)
                 // 连接内核
                 startMeAsServerBtnText = "启动server：连接内核中..."
                 activityVar?.connectVM?.connectKernel()

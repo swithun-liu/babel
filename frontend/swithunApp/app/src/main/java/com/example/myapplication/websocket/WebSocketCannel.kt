@@ -49,6 +49,7 @@ class WebSocketChannel(url: String, private val scope: CoroutineScope, private v
                     socket?.send(it.json)
                 }
             } finally {
+                SwithunLog.e("ws socket channel: finally")
                 close()
             }
         }
@@ -108,7 +109,7 @@ class WebSocketChannel(url: String, private val scope: CoroutineScope, private v
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             Log.d("swithun-xxxx", "[WebSocketChannelListener] - onFailure")
-            SwithunLog.d(response)
+            //SwithunLog.d(response)
             incoming.close()
             outgoing.close()
         }
