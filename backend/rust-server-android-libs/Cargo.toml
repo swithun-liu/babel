@@ -30,6 +30,5 @@ mdns = "3.0.0"
 android_logger = "0.10"
 
 [lib]
-name = "my_lib"
 path = "src/lib.rs"
 crate_type = ["cdylib"]

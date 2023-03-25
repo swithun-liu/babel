@@ -4,11 +4,7 @@
 use jni::objects::{JClass, JObject, JString};
 use jni::JNIEnv;
 
-use std::{
-    env,
-    sync::{atomic::AtomicUsize, Arc},
-    time::Instant,
-};
+use std::{sync::{atomic::AtomicUsize, Arc}, time::Instant};
 
 use crate::model::option_code;
 use actix::{Actor, Addr};
@@ -18,28 +14,23 @@ use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responde
 use actix_web_actors::ws;
 use android_logger::Config;
 use futures::channel::oneshot;
-use futures::{pin_mut, SinkExt, TryFutureExt, TryStreamExt};
+use futures::{SinkExt, TryFutureExt, TryStreamExt};
 use jni::sys::{jobject, jstring};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use pnet::datalink::NetworkInterface;
-use pnet::ipnetwork::IpNetwork;
 use pnet::util::MacAddr;
-use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, VecDeque};
-use std::ffi::OsStr;
-use std::fmt::format;
-use std::fs::{read, File};
+use std::collections::HashMap;
+use std::fs::File;
 use std::io::{Read, Seek, SeekFrom, Write};
-use std::net::{IpAddr, Ipv4Addr, ToSocketAddrs};
+use std::net::{Ipv4Addr, ToSocketAddrs};
 use std::pin::Pin;
-use std::process::{Command, Output};
+use std::process::Command;
 use std::string::String;
 use std::sync::Mutex;
 use std::task::{Context, Poll};
 use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
-use tokio::net::unix::SocketAddr;
 use tokio::net::TcpStream;
 use uuid::Uuid;
 
@@ -367,27 +358,64 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
     let config = Config::default().with_min_level(Level::Debug);
     android_logger::init_once(config);
 
-    debug!("rust debug");
+    debug!("rust debug 1");
 
-    Runtime::new().unwrap().block_on(async {
-        HttpServer::new(move || {
-            App::new()
-                .app_data(web::Data::new(CLIENT_SERVER.clone()))
-                .service(web::resource("/").to(index))
-                .service(web::resource("/ws").to(chat_route))
-                .service(web::resource("/test").to(test))
-                .app_data(web::Data::new(KERNEL_SERVER.clone()))
-                .service(web::resource("/connect").to(connect))
-                .service(web::resource("/get_path_list").route(web::get().to(get_path_list)))
-                .service(web::resource("/get-video").to(get_video))
-        })
-            .workers(2)
-            .bind(("0.0.0.0", 8088))
-            .unwrap()
-            .run()
-            .await
-            .expect("panic");
-    })
+    // Runtime::new().unwrap().block_on(async {
+    //     HttpServer::new(move || {
+    //         App::new()
+    //             .app_data(web::Data::new(CLIENT_SERVER.clone()))
+    //             .service(web::resource("/").to(index))
+    //             .service(web::resource("/ws").to(chat_route))
+    //             .service(web::resource("/test").to(test))
+    //             .app_data(web::Data::new(KERNEL_SERVER.clone()))
+    //             .service(web::resource("/connect").to(connect))
+    //             .service(web::resource("/get_path_list").route(web::get().to(get_path_list)))
+    //             .service(web::resource("/get-video").to(get_video))
+    //     })
+    //         .workers(2)
+    //         .bind(("0.0.0.0", 8088))
+    //         .unwrap()
+    //         .run()
+    //         .await
+    //         .expect("panic");
+    // })
+
+    let rt = Runtime::new();
+    match rt {
+        Ok(rt) => {
+            debug!("0s");
+            rt.block_on(
+                async {
+                    let a = HttpServer::new(move || {
+                        App::new()
+                            .app_data(web::Data::new(CLIENT_SERVER.clone()))
+                            .service(web::resource("/").to(index))
+                            .service(web::resource("/ws").to(chat_route))
+                            .service(web::resource("/test").to(test))
+                            .app_data(web::Data::new(KERNEL_SERVER.clone()))
+                            .service(web::resource("/connect").to(connect))
+                            .service(web::resource("/get_path_list").route(web::get().to(get_path_list)))
+                            .service(web::resource("/get-video").to(get_video))
+                    })
+                        .workers(2)
+                        .bind(("0.0.0.0", 8088));
+
+                    match a {
+                        Ok(aa) => {
+                            debug!("1s");
+                            aa.run().await.expect("haha")
+                        }
+                        Err(e) => {
+                            debug!("1e : {}", {e})
+                        }
+                    }
+                }
+            )
+        }
+        Err(e) => {
+            debug!("0e : {}", e);
+        }
+    }
 }
 
 async fn get_video(
