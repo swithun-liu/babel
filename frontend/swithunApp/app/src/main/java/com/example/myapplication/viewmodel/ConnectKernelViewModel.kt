@@ -7,7 +7,8 @@ import com.example.myapplication.SwithunLog
 import com.example.myapplication.model.MessageDTO.OptionCode
 import com.example.myapplication.model.MessageDTO
 import com.example.myapplication.model.KernelConfig
-import com.example.myapplication.websocket.RawData
+import com.example.myapplication.websocket.RawDataBase
+import com.example.myapplication.websocket.RawDataBase.RawTextData
 import com.example.myapplication.websocket.WebSocketRepository
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +18,7 @@ import java.lang.Exception
 
 class ConnectKernelViewModel: ViewModel() {
 
-    private var remoteWordFlow: Flow<RawData>? = null
+    private var remoteWordFlow: Flow<RawDataBase>? = null
     private val repository = WebSocketRepository()
     private var activityVar: ActivityVar? = null
 
@@ -35,22 +36,29 @@ class ConnectKernelViewModel: ViewModel() {
         )
         viewModelScope.launch(Dispatchers.IO) {
             remoteWordFlow?.collect {
-                val json = it.json
-                val gson = Gson()
-                try {
-                    SwithunLog.d("from kernel: $json")
-                    val jsonObject = gson.fromJson(json, MessageDTO::class.java)
-                    SwithunLog.d("get kernal code: ${jsonObject.code}, ${jsonObject.uuid}, ${jsonObject.content}")
-                    handleCommand(jsonObject)
-                } catch (e: Exception) {
-                    SwithunLog.d("parse err")
-                }
+                when (it) {
+                    is RawDataBase.RawByteData -> {
 
+                    }
+                    is RawTextData -> {
+                        val json = it.json
+                        val gson = Gson()
+                        try {
+                            SwithunLog.d("from kernel: $json")
+                            val jsonObject = gson.fromJson(json, MessageDTO::class.java)
+                            SwithunLog.d("get kernal code: ${jsonObject.code}, ${jsonObject.uuid}, ${jsonObject.content}")
+                            handleCommand(jsonObject)
+                        } catch (e: Exception) {
+                            SwithunLog.d("parse err")
+                        }
+
+                    }
+                }
             }
         }
     }
 
-    fun sendCommand(data: RawData) {
+    fun sendCommand(data: RawTextData) {
         repository.webSocketSend(data)
     }
 
@@ -68,7 +76,7 @@ class ConnectKernelViewModel: ViewModel() {
 
         val jsonObjectStr = gson.toJson(jsonObject)
 
-        sendCommand(RawData(jsonObjectStr))
+        sendCommand(RawTextData(jsonObjectStr))
     }
 
 

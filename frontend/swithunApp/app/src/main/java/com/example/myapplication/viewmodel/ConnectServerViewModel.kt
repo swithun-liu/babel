@@ -7,7 +7,6 @@ import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.content.FileProvider
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -18,13 +17,16 @@ import com.example.myapplication.model.TransferData
 import com.example.myapplication.util.postRequest
 import com.example.myapplication.util.safeGetString
 import com.example.myapplication.viewmodel.TransferBiz
-import com.example.myapplication.websocket.RawData
+import com.example.myapplication.websocket.RawDataBase
+import com.example.myapplication.websocket.RawDataBase.RawTextData
 import com.example.myapplication.websocket.WebSocketRepository
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import okio.ByteString
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
@@ -35,7 +37,7 @@ import java.security.NoSuchAlgorithmException
 @SuppressLint("LongLogTag")
 class ConnectServerViewModel : ViewModel() {
 
-    private var remoteWordFlow: Flow<RawData>? = null
+    private var remoteWordFlow: Flow<RawDataBase>? = null
     var wordsResult by mutableStateOf(WordsResult("", emptyList(), ""))
     private val repository = WebSocketRepository()
 
@@ -66,40 +68,47 @@ class ConnectServerViewModel : ViewModel() {
 
             viewModelScope.launch(Dispatchers.IO) {
                 remoteWordFlow?.collect {
-                    SwithunLog.d("remoteWordFlow collect ${it.json}")
-                    val gson = Gson()
-                    try {
-                        val message = gson.fromJson(it.json, MessageDTO::class.java)
-                        when (MessageDTO.OptionCode.fromValue(message.code)) {
-                            MessageDTO.OptionCode.TRANSFER_DATA -> {
-                                val list = receivedData
-                                val newList = mutableListOf<TransferData>(
-                                    TransferData.TextData(message.content)
-                                )
-                                var i = 0
-                                for (item in list) {
-                                    i++
-                                    if (i == 5) break
-                                    newList.add(item)
+                    when (it) {
+                        is RawDataBase.RawByteData -> {
+                            SwithunLog.d("remoteWordFlow collect RawByteData")
+                        }
+                        is RawTextData -> {
+                            SwithunLog.d("remoteWordFlow collect ${it.json}")
+                            val gson = Gson()
+                            try {
+                                val message = gson.fromJson(it.json, MessageDTO::class.java)
+                                when (MessageDTO.OptionCode.fromValue(message.code)) {
+                                    MessageDTO.OptionCode.TRANSFER_DATA -> {
+                                        val list = receivedData
+                                        val newList = mutableListOf<TransferData>(
+                                            TransferData.TextData(message.content)
+                                        )
+                                        var i = 0
+                                        for (item in list) {
+                                            i++
+                                            if (i == 5) break
+                                            newList.add(item)
+                                        }
+                                        receivedData = newList
+                                    }
+                                    null -> {
+                                        activityVar?.scaffoldState?.showSnackbar(message = "无code")
+                                    }
+                                    else -> {
+                                        activityVar?.scaffoldState?.showSnackbar(message = "other code 不处理")
+                                    }
                                 }
-                                receivedData = newList
-                            }
-                            null -> {
-                                activityVar?.scaffoldState?.showSnackbar(message = "无code")
-                            }
-                            else -> {
-                                activityVar?.scaffoldState?.showSnackbar(message = "other code 不处理")
+                            } catch (e: Exception) {
+                                activityVar?.scaffoldState?.showSnackbar(message = "解析失败")
                             }
                         }
-                    } catch (e: Exception) {
-                        activityVar?.scaffoldState?.showSnackbar(message = "解析失败")
                     }
                 }
             }
         }
     }
 
-    suspend fun translate(data: RawData) {
+    suspend fun translate(data: RawTextData) {
         val q = data.json
 
         val params = mutableMapOf<String, String>().apply {
@@ -186,7 +195,7 @@ class ConnectServerViewModel : ViewModel() {
     }
 
     fun transferData(data: String): Boolean {
-        return repository.webSocketSend(RawData(TransferBiz.buildTransferData(data).toJsonStr()))
+        return repository.webSocketSend(RawTextData(TransferBiz.buildTransferData(data).toJsonStr()))
     }
 
     fun transferData(uri: Uri, context: Context) {
@@ -213,8 +222,9 @@ class ConnectServerViewModel : ViewModel() {
             destinationFile.createNewFile()
 
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                FileOutputStream(destinationFile).use { outputStream ->
+                ByteArrayOutputStream().use { outputStream ->
                     inputStream.copyTo(outputStream)
+                    repository.webSocketSend(RawDataBase.RawByteData(ByteString.of(*outputStream.toByteArray())))
                 }
             }
         } catch (e: Exception) {

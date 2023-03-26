@@ -121,152 +121,6 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
     array.into()
 }
 
-async fn scan_network_2() -> Vec<String> {
-    debug!("m2 # {}", 1);
-    let interface_name = "eth0";
-    debug!("m2 # {}", 2);
-    let interfaces: Vec<NetworkInterface> = pnet::datalink::interfaces();
-    debug!("interface size: {}", interfaces.len());
-
-    for interface in interfaces {
-        debug!(
-            "interface ip size : {} {:?}",
-            &interface.ips.len(),
-            interface
-        );
-
-        debug!("m2 # {}", 3);
-        let target_mac = MacAddr::new(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
-        debug!("m2 # {}", 4);
-        let target_ip = Ipv4Addr::new(192, 168, 0, 1);
-        debug!("m2 # {}", 5);
-
-        let source_mac = MacAddr::new(0, 0, 0, 0, 0, 0);
-        let source_ip = Ipv4Addr::new(0, 0, 0, 0);
-
-        debug!("m2 # {}", 6);
-        let mut arp_buffer = [0u8; 42];
-        debug!("m2 arpbuffer # {:?}", arp_buffer);
-        let mut arp_packet = pnet::packet::arp::MutableArpPacket::new(&mut arp_buffer[..]).unwrap();
-        arp_packet.set_hardware_type(pnet::packet::arp::ArpHardwareTypes::Ethernet);
-        arp_packet.set_protocol_type(pnet::packet::ethernet::EtherTypes::Ipv4);
-        arp_packet.set_hw_addr_len(6);
-        arp_packet.set_proto_addr_len(4);
-        arp_packet.set_operation(pnet::packet::arp::ArpOperations::Request);
-        arp_packet.set_sender_hw_addr(source_mac);
-        arp_packet.set_sender_proto_addr(source_ip);
-        arp_packet.set_target_hw_addr(target_mac);
-        arp_packet.set_target_proto_addr(target_ip);
-
-        debug!("m2 # {}", 7);
-        let mut ether_buffer = [0u8; 100];
-        debug!("ether buffer1: {:?}", ether_buffer);
-        let mut ether_packet =
-            pnet::packet::ethernet::MutableEthernetPacket::new(&mut ether_buffer).unwrap();
-        debug!("m2 # {}", 8);
-
-        ether_packet.set_destination(target_mac);
-        debug!("m2 # {}", 9);
-        ether_packet.set_source(source_mac);
-        debug!("m2 # {}", 10);
-        ether_packet.set_ethertype(pnet::packet::ethernet::EtherTypes::Arp);
-        debug!("m2 # {}", 11);
-        debug!("m2 arpbuffer # {:?}", arp_buffer);
-        ether_packet.set_payload(&arp_buffer[..]);
-        debug!("m2 # {}", 12);
-
-        debug!("ether_pakcet: {:?}", ether_packet);
-        debug!("ether buffer2: {:?}", ether_buffer);
-
-        let (mut tx, mut rx) = match pnet::datalink::channel(&interface, Default::default()) {
-            Ok(pnet::datalink::Channel::Ethernet(tx, rx)) => {
-                debug!("suc");
-                (tx, rx)
-            }
-            Err(e) => {
-                debug!("Failed to create datalink channel {:?}", e);
-                panic!("Failed to create datalink channel");
-            }
-            _ => {
-                debug!("Failed to create datalink channel other");
-                panic!("Failed to create datalink channel");
-            }
-        };
-
-        tx.send_to(&ether_buffer, Some(interface));
-
-        while let Ok(packet) = rx.next() {
-            debug!("one");
-            let ether = pnet::packet::ethernet::EthernetPacket::new(packet).unwrap();
-            if ether.get_ethertype() == pnet::packet::ethernet::EtherTypes::Arp {
-                // let arp = pnet::arp::ArpPacket(ether.payload()).unwrap();
-                debug!("IP: {:?}, ", ether);
-            }
-        }
-    }
-
-    //
-    // debug!("m2 # {}", 3);
-    // let target_mac = MacAddr::new(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
-    // debug!("m2 # {}", 4);
-    // let target_ip = Ipv4Addr::new(192, 168, 0, 1);
-    // debug!("m2 # {}", 5);
-    //
-    // let source_mac = MacAddr::new(0, 0, 0, 0, 0, 0);
-    // let source_ip = Ipv4Addr::new(0, 0, 0, 0);
-    //
-    // debug!("m2 # {}", 6);
-    // let mut arp_buffer = [0u8; 42];
-    // let mut arp_packet = pnet::packet::arp::MutableArpPacket::new(&mut arp_buffer[..]).unwrap();
-    // arp_packet.set_hardware_type(pnet::packet::arp::ArpHardwareTypes::Ethernet);
-    // arp_packet.set_protocol_type(pnet::packet::ethernet::EtherTypes::Ipv4);
-    // arp_packet.set_hw_addr_len(6);
-    // arp_packet.set_proto_addr_len(4);
-    // arp_packet.set_operation(pnet::packet::arp::ArpOperations::Request);
-    // arp_packet.set_sender_hw_addr(source_mac);
-    // arp_packet.set_sender_proto_addr(source_ip);
-    // arp_packet.set_target_hw_addr(target_mac);
-    // arp_packet.set_target_proto_addr(target_ip);
-    //
-    // debug!("m2 # {}", 7);
-    // let mut ether_buffer = [0u8; 42];
-    // debug!("ether buffer1: {:?}", ether_buffer);
-    // let mut ether_packet = pnet::packet::ethernet::MutableEthernetPacket::new(&mut ether_buffer).unwrap();
-    // debug!("m2 # {}", 8);
-    //
-    // ether_packet.set_destination(target_mac);
-    // ether_packet.set_source(source_mac);
-    // ether_packet.set_ethertype(pnet::packet::ethernet::EtherTypes::Arp);
-    // ether_packet.set_payload(&arp_buffer);
-    //
-    // debug!("ether_pakcet: {:?}", ether_packet);
-    // debug!("ether buffer2: {:?}", ether_buffer);
-    //
-    // let (mut tx, mut rx) = match pnet::datalink::channel(&interface, Default::default()){
-    //     Ok(pnet::datalink::Channel::Ethernet(tx, rx)) => {
-    //         debug!("suc");
-    //         (tx, rx)
-    //     },
-    //     _ => {
-    //         debug!("Failed to create datalink channel");
-    //         panic!("Failed to create datalink channel");
-    //     }
-    // };
-    //
-    // tx.send_to(&ether_buffer, Some(interface));
-    //
-    // while let Ok(packet) = rx.next() {
-    //     debug!("one");
-    //     let ether = pnet::packet::ethernet::EthernetPacket::new(packet).unwrap();
-    //     if ether.get_ethertype() == pnet::packet::ethernet::EtherTypes::Arp {
-    //         // let arp = pnet::arp::ArpPacket(ether.payload()).unwrap();
-    //         debug!("IP: {:?}, ", ether);
-    //     }
-    // }
-
-    vec![]
-}
-
 async fn scan_network() -> Vec<String> {
     let mut tasks = vec![];
 
@@ -278,13 +132,11 @@ async fn scan_network() -> Vec<String> {
         let clone_ip = ip.clone();
 
         tasks.push(tokio::spawn(async move {
-            debug!("scan_network # begin: {}", &ip);
             let output = Command::new("ping")
                 .args(["-c", "1", "-W", "1", &ip])
                 .output()
                 .expect("Failed to execute command");
             let stdout = String::from_utf8_lossy(&output.stdout);
-            debug!("scan_network # end: {}", &ip);
             if stdout.contains("1 received") {
                 if is_server_available(&clone_ip.as_str()).await {
                     debug!("scan_network # add {}", clone_ip);
@@ -366,26 +218,6 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
 
     debug!("rust debug 1");
 
-    // Runtime::new().unwrap().block_on(async {
-    //     HttpServer::new(move || {
-    //         App::new()
-    //             .app_data(web::Data::new(CLIENT_SERVER.clone()))
-    //             .service(web::resource("/").to(index))
-    //             .service(web::resource("/ws").to(chat_route))
-    //             .service(web::resource("/test").to(test))
-    //             .app_data(web::Data::new(KERNEL_SERVER.clone()))
-    //             .service(web::resource("/connect").to(connect))
-    //             .service(web::resource("/get_path_list").route(web::get().to(get_path_list)))
-    //             .service(web::resource("/get-video").to(get_video))
-    //     })
-    //         .workers(2)
-    //         .bind(("0.0.0.0", 8088))
-    //         .unwrap()
-    //         .run()
-    //         .await
-    //         .expect("panic");
-    // })
-
     let rt = Runtime::new();
     match rt {
         Ok(rt) => {
@@ -396,7 +228,7 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
                         App::new()
                             .app_data(web::Data::new(CLIENT_SERVER.clone()))
                             .service(web::resource("/").to(index))
-                            .service(web::resource("/ws").to(chat_route))
+                            .service(web::resource("/ws").to(transfer))
                             .service(web::resource("/test").to(test))
                             .app_data(web::Data::new(KERNEL_SERVER.clone()))
                             .service(web::resource("/connect").to(connect))
@@ -614,16 +446,16 @@ async fn get_path_list(query: web::Query<HashMap<String, String>>) -> impl Respo
     }
 }
 
-async fn chat_route(
+async fn transfer(
     req: HttpRequest,
     stream: web::Payload,
     srv: web::Data<Addr<server::ClientServer>>,
 ) -> Result<HttpResponse, Error> {
-    let session = session::WsChatSession {
+    let session = session::ClientSession {
         id: 0,
         hb: Instant::now(),
         name: None,
-        chat_server: srv.get_ref().clone(),
+        transfer_server: srv.get_ref().clone(),
     };
 
     ws::start(session, &req, stream)
