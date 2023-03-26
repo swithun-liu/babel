@@ -20,6 +20,11 @@
 
 # 进展
 
+# 2023/03/25
+- done
+  1. 升级`compose`依赖之后，`AndroidView`导致其他`view`黑屏。
+  2. 并发`ping LAN`，加速局域网内`server`查找。
+
 # 2023/03/12
 - done
   1. 搜索局域网内启动的server，目前使用ping过滤有LAN内设备ip，太慢需要优化
