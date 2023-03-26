@@ -88,7 +88,8 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
     let config = Config::default().with_min_level(Level::Debug);
     android_logger::init_once(config);
     debug!("response # {}", 1);
-    let rt = tokio::runtime::Builder::new_current_thread()
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(50)
         .enable_all()
         .build()
         .unwrap();
@@ -269,16 +270,21 @@ async fn scan_network_2() -> Vec<String> {
 async fn scan_network() -> Vec<String> {
     let mut tasks = vec![];
 
-    for i in 100..=110 {
+    let num_cores = num_cpus::get_physical();
+    debug!("cpu core num: {}", num_cores);
+
+    for i in 0..=255 {
         let ip = format!("192.168.0.{}", i);
         let clone_ip = ip.clone();
 
         tasks.push(tokio::spawn(async move {
+            debug!("scan_network # begin: {}", &ip);
             let output = Command::new("ping")
                 .args(["-c", "1", "-W", "1", &ip])
                 .output()
                 .expect("Failed to execute command");
             let stdout = String::from_utf8_lossy(&output.stdout);
+            debug!("scan_network # end: {}", &ip);
             if stdout.contains("1 received") {
                 if is_server_available(&clone_ip.as_str()).await {
                     debug!("scan_network # add {}", clone_ip);
