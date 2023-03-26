@@ -26,8 +26,8 @@ import kotlinx.coroutines.launch
 fun ServerFilePage(activityVar: ActivityVar) {
     Row {
         Button(onClick = {
-            activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
-                activityVar.fileManagerViewModel.refreshBasePathListFromRemote()
+            activityVar.fileVM.viewModelScope.launch(Dispatchers.IO) {
+                activityVar.fileVM.refreshBasePathListFromRemote()
             }
         }) {
             Text(text = "获取服务器文件列表")
@@ -44,7 +44,7 @@ fun FileManagerView(activityVar: ActivityVar) {
             .background(Color(R.color.purple_200))
             .width(Dp(600f))
     ) {
-        items(activityVar.fileManagerViewModel.pathList) { path: PathItem ->
+        items(activityVar.fileVM.pathList) { path: PathItem ->
             when (path) {
                 is PathItem.FileItem -> {
                     FileItemView(path, activityVar)
@@ -65,7 +65,7 @@ fun FileItemView(file: PathItem.FileItem, activityVar: ActivityVar) {
         .fillMaxSize()
         .clickable {
             SwithunLog.d("click file: ${file.name}")
-            activityVar.fileManagerViewModel.clickFile(file)
+            activityVar.fileVM.clickFile(file)
         },
     ) {
         Row(Modifier.padding(10.dp)) {
@@ -83,8 +83,8 @@ fun FolderItemView(folder: PathItem.FolderItem, activityVar: ActivityVar) {
             .fillMaxSize()
             .clickable {
                 SwithunLog.d("click folder: ${folder.name}")
-                activityVar.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
-                    activityVar.fileManagerViewModel.clickFolder(folder)
+                activityVar.fileVM.viewModelScope.launch(Dispatchers.IO) {
+                    activityVar.fileVM.clickFolder(folder)
                 }
             },
         color = Color(activityVar.activity.getColor(R.color.teal_200))

@@ -1,10 +1,14 @@
 package com.example.myapplication
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.content.FileProvider
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.model.ActivityVar
@@ -20,15 +24,16 @@ import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 
 
 @SuppressLint("LongLogTag")
-class ConnectServerViewModel: ViewModel() {
+class ConnectServerViewModel : ViewModel() {
 
     private var remoteWordFlow: Flow<RawData>? = null
     var wordsResult by mutableStateOf(WordsResult("", emptyList(), ""))
@@ -80,20 +85,14 @@ class ConnectServerViewModel: ViewModel() {
                                 receivedData = newList
                             }
                             null -> {
-                                // activityVar?.scaffoldState?.snackbarHostState?.showSnackbar(
-/*
-                                    message = "无code"
-                                )
-*/
+                                activityVar?.scaffoldState?.showSnackbar(message = "无code")
                             }
                             else -> {
-                                "other code 不处理"
+                                activityVar?.scaffoldState?.showSnackbar(message = "other code 不处理")
                             }
                         }
                     } catch (e: Exception) {
-                        // activityVar?.scaffoldState?.snackbarHostState?.showSnackbar(
-//                            message = "解析失败"
-//                        )
+                        activityVar?.scaffoldState?.showSnackbar(message = "解析失败")
                     }
                 }
             }
@@ -131,7 +130,7 @@ class ConnectServerViewModel: ViewModel() {
         }
         // explains
         if (jsonBody.has("basic")) {
-            val basic= jsonBody.getJSONObject("basic")
+            val basic = jsonBody.getJSONObject("basic")
             if (basic.has("explains")) {
                 val a = basic.getJSONArray("explains")
                 for (i in 0 until a.length()) {
@@ -190,12 +189,38 @@ class ConnectServerViewModel: ViewModel() {
         return repository.webSocketSend(RawData(TransferBiz.buildTransferData(data).toJsonStr()))
     }
 
-    fun sendMessage(text: String) {
-        repository.webSocketSend(RawData(text))
-    }
+    fun transferData(uri: Uri, context: Context) {
+        val fd = DocumentFile.fromSingleUri(context, uri).nullCheck("documentFile: ") ?: return
+        val fname = fd.name.nullCheck("fname", true) ?: return
+        val destinationFolder = activityVar!!.fileVM.getCacheTransferDataParent()
+        var destinationFile = File(destinationFolder, fname)
 
-    fun sendCommand(data: RawData) {
-        repository.webSocketSend(data)
+        try {
+            if (destinationFile.exists()) {
+                var i = 1
+                while (true) {
+                    val numberedFile = File(destinationFolder, "$fname($i)")
+                    if (!numberedFile.exists()) {
+                        SwithunLog.d("rename to ${numberedFile.name}")
+                        destinationFile.renameTo(numberedFile)
+                        break
+                    }
+                    i++
+                }
+            }
+
+            SwithunLog.d("try create new file :${destinationFile.path}")
+            destinationFile.createNewFile()
+
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                FileOutputStream(destinationFile).use { outputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+            }
+        } catch (e: Exception) {
+            SwithunLog.e("err : $e")
+        }
+
     }
 
 }
@@ -203,5 +228,5 @@ class ConnectServerViewModel: ViewModel() {
 data class WordsResult(
     val word: String,
     val explains: List<String>,
-    val translation: String
+    val translation: String,
 )

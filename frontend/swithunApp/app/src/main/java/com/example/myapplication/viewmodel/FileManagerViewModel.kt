@@ -11,6 +11,8 @@ import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.model.VideoExtension
 import java.io.File
 
+// Babel / 蓝田
+
 class FileManagerViewModel : ViewModel() {
 
     val fileBasePath: String = Environment.getExternalStorageDirectory().absolutePath
@@ -74,6 +76,15 @@ class FileManagerViewModel : ViewModel() {
 
     suspend fun getChildrenPathListFromRemote(parentPath: String): List<PathItem> {
         return remoteRepository.getChildrenPathList(parentPath)
+    }
+
+    fun getCacheTransferDataParent(): File {
+        val p = "/babel/cache/transfer"
+        val dir = File(fileBasePath, p)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        return dir
     }
 
 }

@@ -61,8 +61,5 @@ fun WordsScreen(activityVar: ActivityVar) {
             Text(text = activityVar.connectServerVM.wordsResult.translation)
         }
 
-        Button(onClick = { activityVar.connectServerVM.sendMessage(textState) }) {
-            Text(text = "Send Message")
-        }
     }
 }

@@ -12,7 +12,6 @@ import com.example.myapplication.websocket.WebSocketRepository
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.lang.Exception
 
@@ -77,16 +76,16 @@ class ConnectKernelViewModel: ViewModel() {
         when (OptionCode.fromValue(data.code)) {
             OptionCode.GET_BASE_PATH_LIST_REQUEST -> {
                 activityVar?.let {
-                    it.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
-                        val basePathList = it.fileManagerViewModel.getBasePathListFromLocal()
+                    it.fileVM.viewModelScope.launch(Dispatchers.IO) {
+                        val basePathList = it.fileVM.getBasePathListFromLocal()
                         responsePathList(data.uuid, OptionCode.GET_BASE_PATH_LIST_RESPONSE.code, basePathList)
                     }
                 }
             }
             OptionCode.GET_CHILDREN_PATH_LIST_REQUEST -> {
                 activityVar?.let {
-                    it.fileManagerViewModel.viewModelScope.launch(Dispatchers.IO) {
-                        val childrenPathList = it.fileManagerViewModel.getChildrenPathListFromLocal(data.content)
+                    it.fileVM.viewModelScope.launch(Dispatchers.IO) {
+                        val childrenPathList = it.fileVM.getChildrenPathListFromLocal(data.content)
                         responsePathList(data.uuid, OptionCode.GET_CHILDREN_PATH_LIST_RESPONSE.code, childrenPathList)
                     }
                 }

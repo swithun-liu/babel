@@ -34,6 +34,10 @@ object SwithunLog {
         Log.d("swithun-xxxx", generateMsg(msg.convert2Json()))
     }
 
+    fun d(msg: Any?, description: String) {
+        Log.d("swithun-xxxx", generateMsg(description + " : " + msg.convert2Json()))
+    }
+
     fun e(msg: Any?) {
         Log.e("swithun-xxxx", generateMsg(msg.convert2Json()))
     }
