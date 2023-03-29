@@ -112,7 +112,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ClientSession {
                     msg: msg.to_owned(),
                 })
             },
-            ws::Message::Binary(_) => {
+            ws::Message::Binary(byte) => {
                 debug!("WsChatSession - StreamHandler - handle - Binary");
             },
             ws::Message::Continuation(_) => {

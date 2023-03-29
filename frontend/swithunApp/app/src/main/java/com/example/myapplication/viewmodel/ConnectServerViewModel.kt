@@ -29,9 +29,12 @@ import okio.ByteString
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.ByteBuffer
+import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
+import java.util.UUID
 
 
 @SuppressLint("LongLogTag")
@@ -199,40 +202,31 @@ class ConnectServerViewModel : ViewModel() {
     }
 
     fun transferData(uri: Uri, context: Context) {
-        val fd = DocumentFile.fromSingleUri(context, uri).nullCheck("documentFile: ") ?: return
-        val fname = fd.name.nullCheck("fname", true) ?: return
-        val destinationFolder = activityVar!!.fileVM.getCacheTransferDataParent()
-        var destinationFile = File(destinationFolder, fname)
-
-        try {
-            if (destinationFile.exists()) {
-                var i = 1
-                while (true) {
-                    val numberedFile = File(destinationFolder, "$fname($i)")
-                    if (!numberedFile.exists()) {
-                        SwithunLog.d("rename to ${numberedFile.name}")
-                        destinationFile.renameTo(numberedFile)
-                        break
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val bufferSize = 4 * 1024
+                    val buffer = ByteArray(bufferSize)
+                    var seq = 0
+                    val contentId = UUID.randomUUID().toString()
+                    while (true) {
+                        SwithunLog.d("send $seq")
+                        val bytesRead = inputStream.read(buffer)
+                        if (bytesRead == -1) {
+                            break
+                        }
+                        val payload = buffer.sliceArray(0 until bytesRead)
+                        val message = MessageDTO(contentId, seq, ByteString.of(*payload))
+                        val messageBytes = message.toByteArray()
+                        repository.webSocketSend(RawDataBase.RawByteData(ByteString.of(*messageBytes)))
+                        seq++
                     }
-                    i++
                 }
+            } catch (e: Exception) {
+                SwithunLog.e("err : $e")
             }
-
-            SwithunLog.d("try create new file :${destinationFile.path}")
-            destinationFile.createNewFile()
-
-            context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                ByteArrayOutputStream().use { outputStream ->
-                    inputStream.copyTo(outputStream)
-                    repository.webSocketSend(RawDataBase.RawByteData(ByteString.of(*outputStream.toByteArray())))
-                }
-            }
-        } catch (e: Exception) {
-            SwithunLog.e("err : $e")
         }
-
     }
-
 }
 
 data class WordsResult(
@@ -240,3 +234,21 @@ data class WordsResult(
     val explains: List<String>,
     val translation: String,
 )
+
+data class MessageDTO(
+    val contentId: String,
+    val seq: Int,
+    val payload: ByteString
+) {
+    fun toByteArray(): ByteArray {
+        val contentIdBytes: ByteArray = contentId.toByteArray(Charsets.UTF_8)
+        val seqBytes: ByteArray = ByteBuffer.allocate(4).putInt(seq).array()
+        val payloadBytes = payload.toByteArray()
+        val totalLength = contentIdBytes.size + seqBytes.size + payloadBytes.size
+        val result = ByteArray(totalLength)
+        System.arraycopy(contentIdBytes, 0, result, 0, contentIdBytes.size)
+        System.arraycopy(seqBytes, 0, result, contentIdBytes.size, seqBytes.size)
+        System.arraycopy(payloadBytes, 0, result, contentIdBytes.size + seqBytes.size, payloadBytes.size)
+        return result
+    }
+}
