@@ -130,3 +130,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ClientSession {
         }
     }
 }
+
+
+struct MessageDTO {
+    content_id: u32,
+    seq: u32,
+    payload: Vec<u8>
+}
