@@ -1,6 +1,3 @@
-#![cfg(target_os = "android")]
-#![allow(non_snake_case)]
-
 use jni::objects::{JClass, JObject, JString};
 use jni::JNIEnv;
 
@@ -14,41 +11,35 @@ use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responde
 use actix_web_actors::ws;
 use android_logger::Config;
 use futures::channel::oneshot;
-use futures::{SinkExt, TryFutureExt, TryStreamExt};
 use jni::sys::{jobject, jstring};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
-use pnet::datalink::NetworkInterface;
-use pnet::util::MacAddr;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom, Write};
-use std::net::{Ipv4Addr, ToSocketAddrs};
+use std::net::ToSocketAddrs;
 use std::pin::Pin;
 use std::process::Command;
 use std::string::String;
 use std::sync::Mutex;
 use std::task::{Context, Poll};
 use std::time::Duration;
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
 use uuid::Uuid;
 
 mod connect;
 mod model;
 mod server;
 mod session;
+pub mod logger;
 
 use crate::model::communicate_models;
 
-#[macro_use]
 extern crate log;
-extern crate android_logger;
 extern crate core;
 
 lazy_static! {
     static ref KERNEL_SERVER: Addr<connect::connect_server::ConnectServer> =
-        { connect::connect_server::ConnectServer::new().start() };
+        connect::connect_server::ConnectServer::new().start();
     static ref CLIENT_SERVER: Addr<server::ClientServer> = {
         let app_state = Arc::new(AtomicUsize::new(0));
         server::ClientServer::new(app_state.clone(), KERNEL_SERVER.clone()).start()
@@ -85,21 +76,23 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
     env: JNIEnv,
     _: JClass,
 ) -> jobject {
+
+
     let config = Config::default().with_min_level(Level::Debug);
     android_logger::init_once(config);
-    debug!("response # {}", 1);
+    debug!("response # {}", "1");
     let rt = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(50)
         .enable_all()
         .build()
         .unwrap();
-    debug!("response # {}", 2);
+    debug!("response # {}", "2");
 
     let ips: Vec<String> = rt.block_on(async {
-        debug!("response # {}", 3);
+        debug!("response # {}", "3");
         scan_network().await
     });
-    debug!("response # {}", 4);
+    debug!("response # {}", "4");
 
     // 找到 Java 中的 String 类
     let java_string_class = env.find_class("java/lang/String").unwrap();
@@ -109,6 +102,7 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
         .new_object_array(ips.len() as i32, java_string_class, JObject::null())
         .unwrap();
 
+
     // 遍历 Vec 中的所有字符串，将它们转换为 Java 中的 String，并将它们添加到 jobjectArray 中
     for (i, s) in ips.iter().enumerate() {
         let java_string = env.new_string(s).unwrap();
@@ -116,7 +110,7 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
             .unwrap();
     }
 
-    debug!("response # {}", 6);
+    debug!("response # {}", "6");
 
     array.into()
 }
@@ -124,8 +118,8 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
 async fn scan_network() -> Vec<String> {
     let mut tasks = vec![];
 
-    let num_cores = num_cpus::get_physical();
-    debug!("cpu core num: {}", num_cores);
+    // let num_cores = num_cpus::get_physical();
+    // debug!("cpu core num: {}", num_cores);
 
     for i in 0..=255 {
         let ip = format!("192.168.0.{}", i);
@@ -160,12 +154,12 @@ async fn scan_network() -> Vec<String> {
 
 async fn is_server_available(ip: &str) -> bool {
     let host = format!("{}:8088", ip);
-    let mut addr_iter_result = host.to_socket_addrs();
+    let addr_iter_result: Result<std::vec::IntoIter<std::net::SocketAddr>, std::io::Error> = host.to_socket_addrs();
     return match addr_iter_result {
         Ok(mut addr_iter) => match addr_iter.next() {
             Some(addr) => {
                 debug!("check {}", host);
-                let mut stream_result =
+                let stream_result =
                     std::net::TcpStream::connect_timeout(&addr, Duration::from_millis(600));
                 match stream_result {
                     Ok(mut stream) => {
@@ -201,7 +195,7 @@ async fn is_server_available(ip: &str) -> bool {
             }
         },
         Err(e) => {
-            debug!("is_server_available err 2");
+            debug!("is_server_available err 2: {}", e);
             false
         }
     };
@@ -269,7 +263,7 @@ async fn get_video(
     let content_length = metadata.len();
     let content_type = get_content_type(&path.as_str()).unwrap_or("err");
     info!(
-        "get_video # content_length: {} content-type: {}",
+        "get_video # content_length: {:?} content-type: {}",
         content_length,
         content_type.clone()
     );
@@ -335,7 +329,7 @@ impl FileReaderStream {
 impl futures::Stream for FileReaderStream {
     type Item = Result<actix_web::web::Bytes, actix_web::Error>;
 
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+    fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let mut file = &self.file;
         let mut buf = vec![0u8; 1024 * 1024];
 

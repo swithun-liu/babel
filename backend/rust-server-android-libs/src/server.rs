@@ -1,4 +1,4 @@
-pub(crate) use std::{
+use std::{
     collections::HashMap,
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -8,9 +8,9 @@ pub(crate) use std::{
 
 use crate::model::option_code;
 use actix::{Actor, Addr, Context, Handler, Message, Recipient};
-use log::{debug, info};
+use log::debug;
 use rand::{rngs::ThreadRng, Rng};
-use serde_json::json;
+
 
 use crate::model::communicate_models;
 

@@ -27,7 +27,7 @@ awc = "3.1.1"
 bincode = "1.3.3"
 mdns = "3.0.0"
 num_cpus = "1.15.0"
-[target.'cfg(target_os = "android")'.dependencies]
+# [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.10"
 
 [lib]
