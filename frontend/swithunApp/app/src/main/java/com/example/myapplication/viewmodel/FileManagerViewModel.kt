@@ -42,7 +42,7 @@ class FileManagerViewModel : ViewModel() {
         // todo 看看怎么做不用这样赋值
         val oldList = pathList
         pathList = mutableListOf()
-        pathList = oldList
+        pathList = addMainToFirst(oldList.toMutableList())
     }
 
     fun clickFile(file: PathItem.FileItem) {
@@ -72,7 +72,18 @@ class FileManagerViewModel : ViewModel() {
     }
 
     suspend fun refreshBasePathListFromRemote() {
-        pathList = remoteRepository.getBasePathList()
+        pathList = addMainToFirst(remoteRepository.getBasePathList().toMutableList())
+    }
+
+    private fun addMainToFirst(basePathList: MutableList<PathItem>): MutableList<PathItem> {
+        val a = basePathList.find {
+            it.path == "$fileBasePath/swithun"
+        }
+        if (a != null) {
+            basePathList.remove(a)
+            basePathList.add(0, a)
+        }
+        return basePathList
     }
 
     suspend fun getChildrenPathListFromRemote(parentPath: String): List<PathItem> {
