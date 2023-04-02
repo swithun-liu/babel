@@ -1,7 +1,10 @@
 use jni::objects::{JClass, JObject, JString};
 use jni::JNIEnv;
 
-use std::{sync::{atomic::AtomicUsize, Arc}, time::Instant};
+use std::{
+    sync::{atomic::AtomicUsize, Arc},
+    time::Instant,
+};
 
 use crate::model::option_code;
 use actix::{Actor, Addr};
@@ -14,28 +17,30 @@ use futures::channel::oneshot;
 use jni::sys::{jobject, jstring};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::{Read, Seek, SeekFrom, Write};
-use std::net::ToSocketAddrs;
-use std::pin::Pin;
-use std::process::Command;
-use std::string::String;
-use std::sync::Mutex;
-use std::task::{Context, Poll};
-use std::time::Duration;
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{Read, Seek, SeekFrom, Write},
+    net::ToSocketAddrs,
+    pin::Pin,
+    process::Command,
+    string::String,
+    sync::Mutex,
+    task::{Context, Poll},
+    time::Duration,
+};
 use uuid::Uuid;
 
 mod connect;
+pub mod logger;
 mod model;
 mod server;
 mod session;
-pub mod logger;
 
 use crate::model::communicate_models;
 
-extern crate log;
 extern crate core;
+extern crate log;
 
 lazy_static! {
     static ref KERNEL_SERVER: Addr<connect::connect_server::ConnectServer> =
@@ -76,8 +81,6 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
     env: JNIEnv,
     _: JClass,
 ) -> jobject {
-
-
     let config = Config::default().with_min_level(Level::Debug);
     android_logger::init_once(config);
     debug!("response # {}", "1");
@@ -101,7 +104,6 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_getAllServerInLAN(
     let array = env
         .new_object_array(ips.len() as i32, java_string_class, JObject::null())
         .unwrap();
-
 
     // 遍历 Vec 中的所有字符串，将它们转换为 Java 中的 String，并将它们添加到 jobjectArray 中
     for (i, s) in ips.iter().enumerate() {
@@ -154,7 +156,8 @@ async fn scan_network() -> Vec<String> {
 
 async fn is_server_available(ip: &str) -> bool {
     let host = format!("{}:8088", ip);
-    let addr_iter_result: Result<std::vec::IntoIter<std::net::SocketAddr>, std::io::Error> = host.to_socket_addrs();
+    let addr_iter_result: Result<std::vec::IntoIter<std::net::SocketAddr>, std::io::Error> =
+        host.to_socket_addrs();
     return match addr_iter_result {
         Ok(mut addr_iter) => match addr_iter.next() {
             Some(addr) => {
@@ -216,33 +219,33 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
     match rt {
         Ok(rt) => {
             debug!("0s");
-            rt.block_on(
-                async {
-                    let a = HttpServer::new(move || {
-                        App::new()
-                            .app_data(web::Data::new(CLIENT_SERVER.clone()))
-                            .service(web::resource("/").to(index))
-                            .service(web::resource("/ws").to(transfer))
-                            .service(web::resource("/test").to(test))
-                            .app_data(web::Data::new(KERNEL_SERVER.clone()))
-                            .service(web::resource("/connect").to(connect))
-                            .service(web::resource("/get_path_list").route(web::get().to(get_path_list)))
-                            .service(web::resource("/get-video").to(get_video))
-                    })
-                        .workers(2)
-                        .bind(("0.0.0.0", 8088));
+            rt.block_on(async {
+                let a = HttpServer::new(move || {
+                    App::new()
+                        .app_data(web::Data::new(CLIENT_SERVER.clone()))
+                        .service(web::resource("/").to(index))
+                        .service(web::resource("/ws").to(transfer))
+                        .service(web::resource("/test").to(test))
+                        .app_data(web::Data::new(KERNEL_SERVER.clone()))
+                        .service(web::resource("/connect").to(connect))
+                        .service(
+                            web::resource("/get_path_list").route(web::get().to(get_path_list)),
+                        )
+                        .service(web::resource("/get-video").to(get_video))
+                })
+                .workers(2)
+                .bind(("0.0.0.0", 8088));
 
-                    match a {
-                        Ok(aa) => {
-                            debug!("1s");
-                            aa.run().await.expect("haha")
-                        }
-                        Err(e) => {
-                            debug!("1e : {}", {e})
-                        }
+                match a {
+                    Ok(aa) => {
+                        debug!("1s");
+                        aa.run().await.expect("haha")
+                    }
+                    Err(e) => {
+                        debug!("1e : {}", { e })
                     }
                 }
-            )
+            })
         }
         Err(e) => {
             debug!("0e : {}", e);
@@ -304,7 +307,7 @@ async fn get_video(
         None => (0, content_length as usize - 1),
     };
 
-    let size = (end - start + 1) as u64;
+    let _size = (end - start + 1) as u64;
     Ok(HttpResponse::PartialContent()
         .append_header(("Content-Type", content_type))
         .append_header(("Content-Length", content_length))
@@ -498,4 +501,3 @@ pub fn handle_android_front_end_response(
         }
     }
 }
-

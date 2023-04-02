@@ -24,6 +24,7 @@ class FileManagerViewModel : ViewModel() {
 
     fun init(activityVar: ActivityVar) {
         this.activityVar = activityVar
+        SwithunLog.d("fileBasePath: $fileBasePath")
     }
 
     suspend fun clickFolder(folder: PathItem.FolderItem) {

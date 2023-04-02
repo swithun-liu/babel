@@ -34,9 +34,6 @@ class MainActivity : ComponentActivity() {
 
         super.onCreate(savedInstanceState)
 
-        SwithunLog.d("这个 - ${ServerSDK.getTestStr()}")
-        SwithunLog.d("这个 - ${ServerSDK.getTestStrWithInput("我是input")}")
-
         setContent {
             MyApplicationTheme {
                 Surface(

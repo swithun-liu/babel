@@ -241,7 +241,9 @@ data class MessageDTO(
     val payload: ByteString
 ) {
     fun toByteArray(): ByteArray {
-        val contentIdBytes: ByteArray = contentId.toByteArray(Charsets.UTF_8)
+        SwithunLog.d("contentId: $contentId")
+        val contentIdBytes: ByteArray = contentId.toByteArray(Charsets.UTF_8).copyOf(36)
+        SwithunLog.d("contentIdBytes $contentIdBytes")
         val seqBytes: ByteArray = ByteBuffer.allocate(4).putInt(seq).array()
         val payloadBytes = payload.toByteArray()
         val totalLength = contentIdBytes.size + seqBytes.size + payloadBytes.size
