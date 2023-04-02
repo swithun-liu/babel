@@ -26,6 +26,8 @@ interface IWebSocketChannel {
         reason: String? = null
     )
     fun send(data: RawDataBase)
+
+    suspend fun suspendSend(data: RawDataBase)
 }
 
 class WebSocketChannel(url: String, private val scope: CoroutineScope, private val tag: String): IWebSocketChannel {
@@ -81,6 +83,11 @@ class WebSocketChannel(url: String, private val scope: CoroutineScope, private v
             SwithunLog.d("[$tag] outgoing send data $data")
             outgoing.send(data)
         }
+    }
+
+    override suspend fun suspendSend(data: RawDataBase) {
+        SwithunLog.d("[$tag] outgoing suspend send data $data")
+        outgoing.send(data)
     }
 
     inner class WebSocketChannelListener(

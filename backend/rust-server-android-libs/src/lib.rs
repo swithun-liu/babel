@@ -453,6 +453,7 @@ async fn transfer(
         hb: Instant::now(),
         name: None,
         transfer_server: srv.get_ref().clone(),
+        uploading_file: HashMap::new()
     };
 
     ws::start(session, &req, stream)

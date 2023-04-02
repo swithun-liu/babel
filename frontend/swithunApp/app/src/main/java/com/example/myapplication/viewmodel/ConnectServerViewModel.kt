@@ -3,6 +3,7 @@ package com.example.myapplication
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +27,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import okio.ByteString
+import okio.ByteString.Companion.encode
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -205,10 +207,31 @@ class ConnectServerViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                    val bufferSize = 4 * 1024
+                    val bufferSize = 60 * 1024
                     val buffer = ByteArray(bufferSize)
+
                     var seq = 0
                     val contentId = UUID.randomUUID().toString()
+
+                    val fileName: String = context.contentResolver.query(
+                        uri, null, null, null, null
+                    )?.use { cursor ->
+                        cursor.moveToFirst()
+                        cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)?.let {
+                            if (it >= 0) {
+                                cursor.getString(it)
+                            } else {
+                                "unknown"
+                            }
+                        }
+                    } ?: "unknown"
+
+                    val fileNameBytes = fileName.encodeToByteArray()
+                    val fileNameMessage = MessageDTO(contentId, seq, ByteString.of(*fileNameBytes))
+                    repository.webSocketSuspendSend(RawDataBase.RawByteData(ByteString.of(*fileNameMessage.toByteArray())))
+
+                    seq++
+
                     while (true) {
                         SwithunLog.d("send $seq")
                         val bytesRead = inputStream.read(buffer)
@@ -218,7 +241,7 @@ class ConnectServerViewModel : ViewModel() {
                         val payload = buffer.sliceArray(0 until bytesRead)
                         val message = MessageDTO(contentId, seq, ByteString.of(*payload))
                         val messageBytes = message.toByteArray()
-                        repository.webSocketSend(RawDataBase.RawByteData(ByteString.of(*messageBytes)))
+                        repository.webSocketSuspendSend(RawDataBase.RawByteData(ByteString.of(*messageBytes)))
                         seq++
                     }
                 }

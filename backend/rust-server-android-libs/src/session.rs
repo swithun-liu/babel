@@ -1,6 +1,9 @@
-use std::fs::File;
+use std::collections::HashMap;
+use std::fs::{File, self, OpenOptions};
+use std::io::{Seek, SeekFrom, Write};
 use std::string::ToString;
 use std::time::{Instant, Duration};
+use std::usize;
 
 use actix::{Addr, Actor, StreamHandler, ActorContext, AsyncContext, Handler, WrapFuture, ActorFutureExt, fut, ContextFutureSpawner};
 use actix_web_actors::ws;
@@ -23,7 +26,9 @@ pub struct ClientSession {
 
     pub name: Option<String>,
 
-    pub transfer_server: Addr<server::ClientServer>
+    pub transfer_server: Addr<server::ClientServer>,
+
+    pub uploading_file: HashMap<String, String>,
 }
 
 impl ClientSession {
@@ -96,15 +101,14 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ClientSession {
                 return;
             }
         };
-        let TAG= "WsChatSession - StreamHandler";
+
+        let tag = "WsChatSession - StreamHandler";
 
         match msg {
             ws::Message::Ping(msg) => {
-                debug!("WsChatSession - StreamHandler - handle - Ping");
                 ctx.pong(&msg);
             }
             ws::Message::Pong(_) => {
-                debug!("WsChatSession - StreamHandler - handle - Pong");
                 self.hb = Instant::now();
             }
             ws::Message::Text(text) => {
@@ -118,17 +122,77 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ClientSession {
             }
             ws::Message::Binary(byte) => {
                 debug!("WsChatSession - StreamHandler - handle - Binary");
+
+                let temp_file_path = format!("{}{}", PARENT_PATH, "swithun/temp");
+
                 let dto = crate::session::MessageDTO::from_bytes(&byte);
                 match dto {
                     Some(dto) => {
+                        debug!("{} # parse dto suc: seq: {}", tag, dto.seq);
+                        match dto.seq {
+                            0 => {
+                                // 第一片里面，payload是文件名
+                                match String::from_utf8(dto.payload) {
+                                    Ok(file_name) => {
+                                        let new_file_path = format!("{}{}{}", PARENT_PATH, "swithun/", file_name);
+                                        let new_file_path_clone = new_file_path.clone();
+                                        self.uploading_file.insert(dto.content_id, new_file_path_clone);
+                                        debug!("parse file name suc: new_path {}", new_file_path);
+                                        match fs::rename(&temp_file_path, &new_file_path) {
+                                            Ok(_) => {
+                                                debug!("rename file suc");
+                                            },
+                                            Err(e) => {
+                                                debug!("rename file err: {}", e);
+                                            },
+                                        }
+                                    },
+                                    Err(e) => {
+                                        debug!("parse file name err: {}", e);
+                                    },
+                                }
+                            }
+                            // 最后一片
+                            -1 => {
+                                
+                            }
+                            // 其他分片payload都是数据
+                            seq => {
+                                debug!("{} # file seq {}", tag, dto.seq);
+                                let chunk_size = 60 * 1024;
+                                let offset = (seq as u64 - 1) * chunk_size;
 
+                                match self.uploading_file.get(&dto.content_id) {
+                                    Some(file_path) => {
+                                        match OpenOptions::new().read(true).write(true).create(true).open(file_path) {
+                                            Ok(mut file) => {
+                                                match file.seek(SeekFrom::Start(offset)) {
+                                                    Ok(mut seeked_file) => {
+                                                        file.write_all(dto.payload.as_slice());
+                                                    },
+                                                    Err(e) => {
+                                                        debug!("{} file seek to {} failed: {}", tag, offset, e);
+                                                    },
+                                                }
+                                            }
+                                            Err(e) => {
+                                                debug!("{} open file failed: {}", tag, e);
+                                            },
+                                        }
+                                    },
+                                    None => {
+                                        debug!("{} get file from map failed", tag);
+                                    },
+                                }
+
+                            }
+                        }
                     }
                     None => {
-                        debug!("{}", TAG)
+                        debug!("{} # parse dto failed", tag);
                     }
                 }
 
-                let temp_file_path = format!("{}{}", PARENT_PATH, "/swithun/temp");
 
                 let mut file = match File::create(&temp_file_path) {
                     Ok(f) => {

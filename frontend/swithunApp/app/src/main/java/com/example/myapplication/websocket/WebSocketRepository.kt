@@ -24,4 +24,14 @@ class WebSocketRepository {
             }
         }
     }
+
+    suspend fun webSocketSuspendSend(data: RawDataBase): Boolean {
+        return when (val c = channel) {
+            null -> false
+            else -> {
+                c.suspendSend(data)
+                true
+            }
+        }
+    }
 }
