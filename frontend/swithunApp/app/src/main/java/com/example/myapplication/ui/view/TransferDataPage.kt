@@ -29,7 +29,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun TransferPagePreviewer(
     sendCL: () -> Unit = {},
-    receivedData: MutableList<TransferData> = mutableListOf(TransferData.TextData("haha")),
+    receivedData: List<TransferData> = mutableListOf(TransferData.TextData("haha")),
     clipboardContent: String = "clipboa",
     getClipBoardDataCL: () -> Unit = { },
     onTextValueChange: (String) -> Unit = { },
@@ -79,18 +79,25 @@ fun TransferPagePreviewer(
             color = MaterialTheme.colorScheme.surfaceVariant,
             shape = RoundedCornerShape(10.dp)
         ) {
-
+            ReceivedList(receivedData)
         }
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth()
-        ) {
-            items(receivedData) { data ->
-                when (data) {
-                    is TransferData.TextData -> {
-                        TransferText(data.text)
-                    }
+    }
+}
+
+@Preview
+@Composable
+fun ReceivedList(
+    receivedData: List<TransferData> = mutableListOf(TransferData.TextData("haha"))
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxHeight()
+            .fillMaxWidth()
+    ) {
+        items(receivedData) { data ->
+            when (data) {
+                is TransferData.TextData -> {
+                    TransferText(data.text)
                 }
             }
         }

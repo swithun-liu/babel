@@ -7,3 +7,8 @@ pub struct CommonCommunicateJsonStruct {
     pub(crate) content: String,
     pub(crate) content_type: i32,
 }
+
+pub enum ContentType {
+    TEXT = 0,
+    IMAGE = 1
+}

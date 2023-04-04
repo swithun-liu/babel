@@ -34,7 +34,6 @@ use uuid::Uuid;
 mod connect;
 pub mod logger;
 mod model;
-mod server;
 mod session;
 
 use crate::model::communicate_models;
@@ -45,9 +44,9 @@ extern crate log;
 lazy_static! {
     static ref KERNEL_SERVER: Addr<connect::connect_server::ConnectServer> =
         connect::connect_server::ConnectServer::new().start();
-    static ref CLIENT_SERVER: Addr<server::ClientServer> = {
+    static ref CLIENT_SERVER: Addr<session::session_server::SessionServer> = {
         let app_state = Arc::new(AtomicUsize::new(0));
-        server::ClientServer::new(app_state.clone(), KERNEL_SERVER.clone()).start()
+        session::session_server::SessionServer::new(app_state.clone(), KERNEL_SERVER.clone()).start()
     };
     static ref SERVER_CLIENT_REQUEST_MAP: Arc<Mutex<HashMap<std::string::String, oneshot::Sender<std::string::String>>>> =
         Arc::new(Mutex::new(HashMap::new()));
@@ -178,9 +177,9 @@ async fn is_server_available(ip: &str) -> bool {
 
                         let mut response = String::new();
                         stream.read_to_string(&mut response).unwrap();
-                        debug!("is server available : {:?}", response);
+                        debug!("is session available : {:?}", response);
 
-                        if response.contains("i am server") {
+                        if response.contains("i am session") {
                             true
                         } else {
                             false
@@ -224,7 +223,7 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
                     App::new()
                         .app_data(web::Data::new(CLIENT_SERVER.clone()))
                         .service(web::resource("/").to(index))
-                        .service(web::resource("/ws").to(transfer))
+                        .service(web::resource("/ws").to(add_session))
                         .service(web::resource("/test").to(test))
                         .app_data(web::Data::new(KERNEL_SERVER.clone()))
                         .service(web::resource("/connect").to(connect))
@@ -388,7 +387,7 @@ async fn get_path_list(query: web::Query<HashMap<String, String>>) -> impl Respo
                     "get_path_list: base_string, {}",
                     option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST as i32
                 );
-                let new_uuid: std::string::String = format!("{}", Uuid::new_v4());
+                let new_uuid: String = format!("{}", Uuid::new_v4());
                 let (tx, rx) = oneshot::channel();
 
                 SERVER_CLIENT_REQUEST_MAP
@@ -443,16 +442,16 @@ async fn get_path_list(query: web::Query<HashMap<String, String>>) -> impl Respo
     }
 }
 
-async fn transfer(
+async fn add_session(
     req: HttpRequest,
     stream: web::Payload,
-    srv: web::Data<Addr<server::ClientServer>>,
+    srv: web::Data<Addr<session::session_server::SessionServer>>,
 ) -> Result<HttpResponse, Error> {
-    let session = session::ClientSession {
+    let session = session::session::Session {
         id: 0,
         hb: Instant::now(),
         name: None,
-        transfer_server: srv.get_ref().clone(),
+        session_server: srv.get_ref().clone(),
         uploading_file: HashMap::new()
     };
 
@@ -461,7 +460,7 @@ async fn transfer(
 
 async fn test() -> String {
     debug!("somebody test");
-    "i am server".to_string()
+    "i am session".to_string()
 }
 
 async fn connect(

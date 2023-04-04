@@ -8,13 +8,9 @@ import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication.model.ActivityVar
-import com.example.myapplication.model.MessageDTO
-import com.example.myapplication.model.ServerConfig
-import com.example.myapplication.model.TransferData
+import com.example.myapplication.model.*
 import com.example.myapplication.util.postRequest
 import com.example.myapplication.util.safeGetString
 import com.example.myapplication.viewmodel.TransferBiz
@@ -27,12 +23,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import okio.ByteString
-import okio.ByteString.Companion.encode
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileOutputStream
-import java.nio.ByteBuffer
-import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -54,7 +44,7 @@ class ConnectServerViewModel : ViewModel() {
 
     var activityVar: ActivityVar? = null
 
-    var receivedData by mutableStateOf(mutableListOf<TransferData>())
+    var receivedData by mutableStateOf(listOf<TransferData>())
 
     fun init(activityVar: ActivityVar) {
         this.activityVar = activityVar
@@ -85,6 +75,7 @@ class ConnectServerViewModel : ViewModel() {
                                 when (MessageDTO.OptionCode.fromValue(message.code)) {
                                     MessageDTO.OptionCode.TRANSFER_DATA -> {
                                         val list = receivedData
+                                        SwithunLog.d("old list: $list")
                                         val newList = mutableListOf<TransferData>(
                                             TransferData.TextData(message.content)
                                         )
@@ -94,6 +85,7 @@ class ConnectServerViewModel : ViewModel() {
                                             if (i == 5) break
                                             newList.add(item)
                                         }
+                                        SwithunLog.d("new list: $newList")
                                         receivedData = newList
                                     }
                                     null -> {
@@ -227,7 +219,7 @@ class ConnectServerViewModel : ViewModel() {
                     } ?: "unknown"
 
                     val fileNameBytes = fileName.encodeToByteArray()
-                    val fileNameMessage = MessageDTO(contentId, seq, ByteString.of(*fileNameBytes))
+                    val fileNameMessage = MessageBinaryDTO(contentId, seq, ByteString.of(*fileNameBytes))
                     repository.webSocketSuspendSend(RawDataBase.RawByteData(ByteString.of(*fileNameMessage.toByteArray())))
 
                     seq++
@@ -239,11 +231,15 @@ class ConnectServerViewModel : ViewModel() {
                             break
                         }
                         val payload = buffer.sliceArray(0 until bytesRead)
-                        val message = MessageDTO(contentId, seq, ByteString.of(*payload))
+                        val message = MessageBinaryDTO(contentId, seq, ByteString.of(*payload))
                         val messageBytes = message.toByteArray()
                         repository.webSocketSuspendSend(RawDataBase.RawByteData(ByteString.of(*messageBytes)))
                         seq++
                     }
+
+                    val finalDTO = MessageBinaryDTO(contentId, -1, ByteString.of())
+                    repository.webSocketSuspendSend(RawDataBase.RawByteData(ByteString.of(*finalDTO.toByteArray())))
+
                 }
             } catch (e: Exception) {
                 SwithunLog.e("err : $e")
@@ -258,22 +254,3 @@ data class WordsResult(
     val translation: String,
 )
 
-data class MessageDTO(
-    val contentId: String,
-    val seq: Int,
-    val payload: ByteString
-) {
-    fun toByteArray(): ByteArray {
-        SwithunLog.d("contentId: $contentId")
-        val contentIdBytes: ByteArray = contentId.toByteArray(Charsets.UTF_8).copyOf(36)
-        SwithunLog.d("contentIdBytes $contentIdBytes")
-        val seqBytes: ByteArray = ByteBuffer.allocate(4).putInt(seq).array()
-        val payloadBytes = payload.toByteArray()
-        val totalLength = contentIdBytes.size + seqBytes.size + payloadBytes.size
-        val result = ByteArray(totalLength)
-        System.arraycopy(contentIdBytes, 0, result, 0, contentIdBytes.size)
-        System.arraycopy(seqBytes, 0, result, contentIdBytes.size, seqBytes.size)
-        System.arraycopy(payloadBytes, 0, result, contentIdBytes.size + seqBytes.size, payloadBytes.size)
-        return result
-    }
-}
