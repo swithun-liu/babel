@@ -112,7 +112,7 @@ class NasViewModel(activity: () -> MainActivity) : ViewModel() {
                 response: AsyncHttpServerResponse?
             ) {
                 //val path = "$fileBasePath/swithun/mmm.mp4"
-                val path = "${fileManagerViewModel.fileBasePath}/swithun/taxi.mkv"
+                val path = "${fileManagerViewModel.fileBasePath}/babel/taxi.mkv"
                 val file = File(path).takeIf { it.exists() && it.isFile }.nullCheck("check file exists", true)
                 if (file == null) {
                     response?.code(404)?.send("Not found!")

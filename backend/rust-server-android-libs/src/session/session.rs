@@ -88,10 +88,10 @@ impl Actor for Session {
     }
 }
 
-impl Handler<session::session_server::SessionHolder> for Session {
+impl Handler<session::session_server::ServerMessage> for Session {
     type Result = ();
 
-    fn handle(&mut self, msg: session::session_server::SessionHolder, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: session::session_server::ServerMessage, ctx: &mut Self::Context) -> Self::Result {
         match msg.text {
             None => {
                 match msg.binary {
@@ -144,8 +144,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
             ws::Message::Binary(byte) => {
                 debug!("WsChatSession - StreamHandler - handle - Binary");
 
-                let temp_file_path = format!("{}{}", PARENT_PATH, "swithun/temp");
-
                 let dto = crate::model::communicate_models::MessageBinaryDTO::from_bytes(&byte);
                 match dto {
                     Some(dto) => {
@@ -155,7 +153,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
                                 // 第一片里面，payload是文件名
                                 match String::from_utf8(dto.payload) {
                                     Ok(file_name) => {
-                                        let mut new_file_path_str = format!("{}{}{}", PARENT_PATH, "swithun/", file_name);
+                                        let mut new_file_path_str = format!("{}{}{}", PARENT_PATH, "babel/transfer/", file_name);
                                         let mut new_file_path = Path::new(new_file_path_str.as_str());
 
                                         let mut num = 0;
@@ -168,6 +166,12 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
                                         let mut new_file_path_str_clone = new_file_path_str.clone();
                                         self.uploading_file.insert(dto.content_id, new_file_path_str_clone);
                                         debug!("parse file name suc: new_path {}", new_file_path_str);
+
+                                        let parent_path = new_file_path.parent().unwrap().to_str().unwrap_or("");
+                                        debug!("parent path: {}", parent_path);
+                                        std::fs::create_dir_all(parent_path).unwrap_or_else(|why| {
+                                            debug!("create dir failed: {}", why);
+                                        });
 
                                         match File::create(new_file_path) {
                                             Ok(new_file) => {

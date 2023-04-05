@@ -3,6 +3,7 @@ package com.example.myapplication
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
+import android.os.Environment
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -23,6 +24,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import okio.ByteString
+import java.io.File
+import java.io.FileOutputStream
+import java.io.RandomAccessFile
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -45,6 +49,8 @@ class ConnectServerViewModel : ViewModel() {
     var activityVar: ActivityVar? = null
 
     var receivedData by mutableStateOf(listOf<TransferData>())
+    // contentId - 文件名
+    var receivingFileMap = mutableMapOf<String, String>()
 
     fun init(activityVar: ActivityVar) {
         this.activityVar = activityVar
@@ -66,6 +72,9 @@ class ConnectServerViewModel : ViewModel() {
                     when (it) {
                         is RawDataBase.RawByteData -> {
                             SwithunLog.d("remoteWordFlow collect RawByteData")
+                            viewModelScope.launch(Dispatchers.IO) {
+                                handleByteData(it)
+                            }
                         }
                         is RawTextData -> {
                             SwithunLog.d("remoteWordFlow collect RawTextData ${it.json}")
@@ -96,7 +105,7 @@ class ConnectServerViewModel : ViewModel() {
                                                 val uodList = mutableListOf<TransferData>(
                                                     TransferData.ImageData(message.content)
                                                 )
-                                                uodList.addAll(oodList.subList(0, 5))
+                                                uodList.addAll(oodList.take(4))
                                                 SwithunLog.d("uodList: $uodList")
                                                 receivedData = uodList
                                             }
@@ -216,6 +225,66 @@ class ConnectServerViewModel : ViewModel() {
         return repository.webSocketSend(
             RawTextData(TransferBiz.buildRequestTransferData(fileName).toJsonStr())
         )
+    }
+
+    /** 接受会话中的文件 */
+    private fun handleByteData(binary: RawDataBase.RawByteData) {
+        // 把binary转成 MessageBinaryDTO
+        val messageBinaryDTO = MessageBinaryDTO.parseFrom(binary.bytes)
+        val contentId = messageBinaryDTO.contentId
+        SwithunLog.d("handleByteData contentId: $contentId")
+        // when seq == 0, means payload is filename, and we should create a file, seq == -1, means file has finished
+        when (messageBinaryDTO.seq) {
+            0 -> {
+                try {
+                    val fileName = messageBinaryDTO.payload.utf8()
+                    SwithunLog.d("handleByteData error 0 - 1")
+                    val file = File(activityVar?.fileVM?.fileBasePath, "/babel/cache/transfer/$fileName")
+                    SwithunLog.d("handleByteData error 0 - 2")
+                    if (file.exists()) {
+                        SwithunLog.d("handleByteData error 0 - 3")
+                        file.delete()
+                        SwithunLog.d("handleByteData error 0 - 4")
+                    }
+                    file.parentFile?.mkdirs()
+                    SwithunLog.d("handleByteData error 0 - 5")
+                    file.createNewFile()
+                    SwithunLog.d("handleByteData error 0 - 6")
+                    receivingFileMap[contentId] = fileName
+                } catch (e: java.lang.Exception) {
+                    SwithunLog.d("handleByteData error: ${e.message}")
+                }
+            }
+            -1 -> {
+                viewModelScope.launch {
+                    activityVar?.scaffoldState?.showSnackbar(message = "文件接收完成")
+                }
+            }
+            else -> {
+                try {
+                    SwithunLog.d("handleByteData error 1 - 1")
+                    val fileName = receivingFileMap[contentId] ?: return
+                    SwithunLog.d("handleByteData error 1 - 2")
+                    val file = File(activityVar?.fileVM?.fileBasePath, "/babel/cache/transfer/$fileName")
+                    SwithunLog.d("handleByteData error 1 - 3")
+                    // 根据seq计算写入位置（seq * 60kB）
+                    val offset = (messageBinaryDTO.seq - 1) * 60 * 1024
+
+                    SwithunLog.d("handleByteData error 1 - 4")
+                    val raf = RandomAccessFile(file, "rw")
+                    SwithunLog.d("handleByteData error 1 - 5")
+                    raf.seek(offset.toLong())
+                    SwithunLog.d("handleByteData error 1 - 6")
+                    raf.write(messageBinaryDTO.payload.toByteArray())
+                    SwithunLog.d("handleByteData error 1 - 7")
+                    raf.close()
+                } catch (e: java.lang.Exception) {
+                    SwithunLog.d("handleByteData error 1: ${e.message}")
+                }
+            }
+        }
+
+
     }
 
     /** 发送文件到会话 */

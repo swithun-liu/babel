@@ -77,7 +77,7 @@ class FileManagerViewModel : ViewModel() {
 
     private fun addMainToFirst(basePathList: MutableList<PathItem>): MutableList<PathItem> {
         val a = basePathList.find {
-            it.path == "$fileBasePath/swithun"
+            it.path == "$fileBasePath/babel"
         }
         if (a != null) {
             basePathList.remove(a)

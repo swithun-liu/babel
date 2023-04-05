@@ -6,6 +6,7 @@ use std::{
     },
 };
 use std::fmt::Binary;
+use std::io::Read;
 
 use crate::model::option_code;
 use actix::{Actor, Addr, Context, Handler, Message, Recipient};
@@ -17,9 +18,11 @@ use crate::kernel_send_message_to_front_end;
 use crate::model::communicate_models;
 
 
+const PARENT_PATH: &str = "/storage/emulated/0/";
+
 pub struct SessionServer {
     // <人的id，对应的recipient>
-    sessions: HashMap<usize, Recipient<SessionHolder>>,
+    sessions: HashMap<usize, Recipient<ServerMessage>>,
     // 访客人数
     visitor_count: Arc<AtomicUsize>,
     connect_server: Addr<crate::connect::connect_server::ConnectServer>,
@@ -40,25 +43,25 @@ impl SessionServer {
     }
 
     pub fn send_message(&self, message: &str) {
-        println!("[ChatServer] [send_message] {}", message);
+        debug!("[ChatServer] [send_message] {}", message);
 
         for (id, rcp) in &self.sessions {
-            rcp.do_send(SessionHolder { text: Some(message.to_owned()), binary: None })
+            rcp.do_send(ServerMessage { text: Some(message.to_owned()), binary: None })
         }
     }
 
     pub fn send_binary(&self, bytes: Vec<u8>, session_id: usize) {
-        println!("[ChatServer] [send_bytes]");
+        debug!("[ChatServer] [send_bytes]");
         let session_holder = &self.sessions.get(&session_id);
         match session_holder {
             None => {
-
+                debug!("session_holder is None");
             }
             Some(session_holder) => {
                 session_holder.do_send(
-                    SessionHolder {
+                    ServerMessage {
                         text: None,
-                        binary: Some(bytes)
+                        binary: Some(bytes),
                     }
                 )
             }
@@ -68,7 +71,7 @@ impl SessionServer {
     pub fn send_message_to_specific_recipient(&self, recipient_id: usize, message: &str) {
         for (id, rcp) in &self.sessions {
             if *id == recipient_id {
-                rcp.do_send(SessionHolder { text: Some(message.to_owned()), binary: None })
+                rcp.do_send(ServerMessage { text: Some(message.to_owned()), binary: None })
             }
         }
     }
@@ -105,7 +108,7 @@ impl Handler<SessionMessage> for SessionServer {
         let session_id = msg.session_id;
         let msg = msg.json_msg.as_str();
         let msg_clone = msg.clone();
-        debug!("ChatServer # handle #ClientMessage {}", msg_clone);
+        debug!("SessionServer # handle # SessionMessage {}", msg_clone);
 
         let json_struct_result =
             serde_json::from_str::<communicate_models::MessageTextDTO>(msg);
@@ -117,29 +120,81 @@ impl Handler<SessionMessage> for SessionServer {
                 {
                     // client获取server的根目录下文件列表
                     option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST => {
-                        crate::kernel_send_message_to_front_end(communicate_json)
+                        debug!("SessionServer # handle # SessionMessage # GET_BASE_PATH_LIST_REQUEST");
+                        kernel_send_message_to_front_end(communicate_json)
                     }
                     // client发送文件/文件到会话
                     option_code::OptionCode::CommonOptionCode::TRANSFER_DATA => {
+                        debug!("SessionServer # handle # SessionMessage # TRANSFER_DATA");
                         self.send_message((msg_clone.to_owned()).as_str())
                     }
                     // client请求下载会话中的文件
                     option_code::OptionCode::CommonOptionCode::REQUEST_TRANSFER_FILE => {
-                        let fileName = communicate_json.content;
+                        debug!("SessionServer # handle # SessionMessage # REQUEST_TRANSFER_FILE");
+                        let file_name = communicate_json.content;
+
+                        let content_id = communicate_models::generateUUID();
                         let file_name_dto = communicate_models::MessageBinaryDTO {
-                            content_id:  communicate_models::generateUUID(),
+                            content_id: content_id.clone(),
                             seq: 0,
-                            payload: fileName.as_bytes().to_vec(),
+                            payload: file_name.as_bytes().to_vec(),
                         };
                         let file_name_dto_bytes = file_name_dto.to_bytes();
-                        self.send_binary(file_name_dto_bytes, session_id)
+                        self.send_binary(file_name_dto_bytes, session_id);
+
+                        let file_path = format!("{}{}{}", PARENT_PATH, "swithun/transfer/", file_name.as_str());
+                        debug!("file_path: {}", file_path);
+
+                        // buffer 为 60 * 1024 bytes，防止oom，每次读取60kB，组装发送, 都用match，不用unwrap
+                        let mut buffer = [0; 60 * 1024];
+                        match std::fs::File::open(file_path) {
+                            Ok(mut file) => {
+                                let mut seq = 1;
+                                loop {
+                                    match file.read(&mut buffer) {
+                                        Ok(size) => {
+                                            if size == 0 {
+                                                break;
+                                            }
+                                            let file_dto = communicate_models::MessageBinaryDTO {
+                                                content_id: content_id.clone(),
+                                                seq,
+                                                payload: buffer[0..size].to_vec(),
+                                            };
+                                            let file_dto_bytes = file_dto.to_bytes();
+                                            self.send_binary(file_dto_bytes, session_id);
+                                            seq += 1;
+                                        }
+                                        Err(e) => {
+                                            debug!("read file error: {}", e);
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                let file_name_dto = communicate_models::MessageBinaryDTO {
+                                    content_id: content_id.clone(),
+                                    seq: -1,
+                                    payload: vec![],
+                                };
+                            }
+                            Err(e) => {
+                                debug!("open file error: {}", e);
+                            }
+                        }
                     }
                     // 其他未知命令，直接转发给所有client
-                    _ => self.send_message((msg_clone.to_owned() + "1!!!").as_str()),
+                    _ => {
+                        debug!("SessionServer # handle # SessionMessage # unknown command");
+                        self.send_message((msg_clone.to_owned() + "1!!!").as_str())
+                    },
                 }
             }
             // client未按照定义格式发送数据包，直接将原数据转发给所有客client
-            Err(_) => self.send_message((msg_clone.to_owned() + "2!!!").as_str()),
+            Err(_) => {
+                debug!("SessionServer # handle # SessionMessage # json parse error");
+                self.send_message((msg_clone.to_owned() + "2!!!").as_str())
+            },
         }
     }
 }
@@ -171,9 +226,9 @@ impl Handler<Disconnect> for SessionServer {
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct SessionHolder {
+pub struct ServerMessage {
     pub text: Option<String>,
-    pub binary: Option<Vec<u8>>
+    pub binary: Option<Vec<u8>>,
 }
 
 #[derive(Message)]
@@ -192,6 +247,6 @@ pub struct Disconnect {
 #[derive(Message)]
 #[rtype(usize)]
 pub struct Connect {
-    pub addr: Recipient<SessionHolder>,
+    pub addr: Recipient<ServerMessage>,
 }
 

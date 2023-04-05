@@ -167,8 +167,8 @@ fun TransferPage(activityVar: ActivityVar) {
 @Preview
 @Composable
 fun TransferText(
-    text: String = "haha",
-    contentType: MessageTextDTO.ContentType = MessageTextDTO.ContentType.TEXT,
+    text: String = "haha是的发送到发送到发送到发送sdfssdfsdf哈哈hahasdf是的发送到发送地方",
+    contentType: MessageTextDTO.ContentType = MessageTextDTO.ContentType.IMAGE,
     onDataClick: (text: String, contentType: MessageTextDTO.ContentType) -> Unit = { _, _ -> },
 ) {
     Surface(
@@ -178,22 +178,27 @@ fun TransferText(
         shape = RoundedCornerShape(10.dp)
     ) {
         Row {
-            Text(text = text, modifier = Modifier.padding(5.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            when (contentType) {
-                MessageTextDTO.ContentType.TEXT ->
-                    Icon(Icons.Outlined.AddCircle,
-                        contentDescription = "Download",
-                        modifier = Modifier
-                            .size(50.dp)
-                            .clickable {
-                            })
-                MessageTextDTO.ContentType.IMAGE ->
-                    Icon(Icons.Outlined.Email, contentDescription = "Download", modifier = Modifier
-                        .size(50.dp)
-                        .clickable {
-                            onDataClick(text, contentType)
-                        })
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = text, modifier = Modifier.padding(5.dp))
+            }
+            Box(modifier = Modifier.width(50.dp)) {
+                when (contentType) {
+                    MessageTextDTO.ContentType.TEXT ->
+                        Icon(Icons.Outlined.AddCircle,
+                            contentDescription = "Download",
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clickable {
+                                })
+                    MessageTextDTO.ContentType.IMAGE ->
+                        Icon(Icons.Outlined.Email,
+                            contentDescription = "Download",
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clickable {
+                                    onDataClick(text, contentType)
+                                })
+                }
             }
         }
     }

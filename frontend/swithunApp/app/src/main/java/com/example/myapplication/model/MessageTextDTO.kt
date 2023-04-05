@@ -67,4 +67,15 @@ data class MessageBinaryDTO(
         System.arraycopy(payloadBytes, 0, result, contentIdBytes.size + seqBytes.size, payloadBytes.size)
         return result
     }
+
+    companion object {
+        fun parseFrom(bytes: ByteString): MessageBinaryDTO {
+            val contentIdBytes = bytes.substring(0, 36).toByteArray()
+            val contentId = String(contentIdBytes, Charsets.UTF_8)
+            val seqBytes = bytes.substring(36, 40).toByteArray()
+            val seq = ByteBuffer.wrap(seqBytes).int
+            val payload = bytes.substring(40)
+            return MessageBinaryDTO(contentId, seq, payload)
+        }
+    }
 }

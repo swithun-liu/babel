@@ -15,6 +15,7 @@ impl From<i32> for CommonOptionCode {
             3 => CommonOptionCode::GET_CHILDREN_PATH_LIST_REQUEST,
             4 => CommonOptionCode::GET_CHILDREN_PATH_LIST_RESPONSE,
             5 => CommonOptionCode::TRANSFER_DATA,
+            6 => CommonOptionCode::REQUEST_TRANSFER_FILE,
             _ => panic!("eerr"),
         }
     }
