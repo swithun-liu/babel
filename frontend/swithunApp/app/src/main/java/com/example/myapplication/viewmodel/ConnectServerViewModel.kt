@@ -68,25 +68,40 @@ class ConnectServerViewModel : ViewModel() {
                             SwithunLog.d("remoteWordFlow collect RawByteData")
                         }
                         is RawTextData -> {
-                            SwithunLog.d("remoteWordFlow collect ${it.json}")
+                            SwithunLog.d("remoteWordFlow collect RawTextData ${it.json}")
                             val gson = Gson()
                             try {
-                                val message = gson.fromJson(it.json, MessageDTO::class.java)
-                                when (MessageDTO.OptionCode.fromValue(message.code)) {
-                                    MessageDTO.OptionCode.TRANSFER_DATA -> {
-                                        val list = receivedData
-                                        SwithunLog.d("old list: $list")
-                                        val newList = mutableListOf<TransferData>(
-                                            TransferData.TextData(message.content)
-                                        )
-                                        var i = 0
-                                        for (item in list) {
-                                            i++
-                                            if (i == 5) break
-                                            newList.add(item)
+                                val message = gson.fromJson(it.json, MessageTextDTO::class.java)
+                                when (MessageTextDTO.OptionCode.fromValue(message.code)) {
+                                    // 其他client发送到会话数据(文本/图片/文件)
+                                    MessageTextDTO.OptionCode.TRANSFER_DATA -> {
+                                        val oodList = receivedData
+                                        SwithunLog.d("oodList: $oodList")
+                                        when (MessageTextDTO.ContentType.fromValue(message.content_type)) {
+                                            null -> {
+                                                activityVar?.scaffoldState?.showSnackbar(message = "未知 内容类型")
+                                                SwithunLog.d("unknown content_type")
+                                            }
+                                            MessageTextDTO.ContentType.TEXT -> {
+                                                SwithunLog.d("content_type: Text")
+                                                val uodList = mutableListOf<TransferData>(
+                                                    TransferData.TextData(message.content)
+                                                )
+                                                uodList.addAll(oodList.subList(0, 5))
+                                                SwithunLog.d("uodList: $uodList")
+                                                receivedData = uodList
+                                            }
+                                            MessageTextDTO.ContentType.IMAGE -> {
+                                                SwithunLog.d("content_type: Image")
+                                                val uodList = mutableListOf<TransferData>(
+                                                    TransferData.ImageData(message.content)
+                                                )
+                                                uodList.addAll(oodList.subList(0, 5))
+                                                SwithunLog.d("uodList: $uodList")
+                                                receivedData = uodList
+                                            }
                                         }
-                                        SwithunLog.d("new list: $newList")
-                                        receivedData = newList
+
                                     }
                                     null -> {
                                         activityVar?.scaffoldState?.showSnackbar(message = "无code")
@@ -191,11 +206,20 @@ class ConnectServerViewModel : ViewModel() {
         return if (len <= 20) q else q.substring(0, 10) + len + q.substring(len - 10, len)
     }
 
-    fun transferData(data: String): Boolean {
+    /** 发送文本到会话 */
+    fun transferText(data: String): Boolean {
         return repository.webSocketSend(RawTextData(TransferBiz.buildTransferData(data).toJsonStr()))
     }
 
-    fun transferData(uri: Uri, context: Context) {
+    /** 请求下载会话中的文件 */
+    fun requestTransferFile(fileName: String): Boolean {
+        return repository.webSocketSend(
+            RawTextData(TransferBiz.buildRequestTransferData(fileName).toJsonStr())
+        )
+    }
+
+    /** 发送文件到会话 */
+    fun transferFile(uri: Uri, context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 context.contentResolver.openInputStream(uri)?.use { inputStream ->

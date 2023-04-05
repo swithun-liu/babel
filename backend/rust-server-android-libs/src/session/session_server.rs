@@ -5,11 +5,13 @@ use std::{
         Arc,
     },
 };
+use std::fmt::Binary;
 
 use crate::model::option_code;
 use actix::{Actor, Addr, Context, Handler, Message, Recipient};
 use log::debug;
 use rand::{rngs::ThreadRng, Rng};
+use crate::kernel_send_message_to_front_end;
 
 
 use crate::model::communicate_models;
@@ -41,14 +43,32 @@ impl SessionServer {
         println!("[ChatServer] [send_message] {}", message);
 
         for (id, rcp) in &self.sessions {
-            rcp.do_send(SessionHolder(message.to_owned()))
+            rcp.do_send(SessionHolder { text: Some(message.to_owned()), binary: None })
+        }
+    }
+
+    pub fn send_binary(&self, bytes: Vec<u8>, session_id: usize) {
+        println!("[ChatServer] [send_bytes]");
+        let session_holder = &self.sessions.get(&session_id);
+        match session_holder {
+            None => {
+
+            }
+            Some(session_holder) => {
+                session_holder.do_send(
+                    SessionHolder {
+                        text: None,
+                        binary: Some(bytes)
+                    }
+                )
+            }
         }
     }
 
     pub fn send_message_to_specific_recipient(&self, recipient_id: usize, message: &str) {
         for (id, rcp) in &self.sessions {
             if *id == recipient_id {
-                rcp.do_send(SessionHolder(message.to_owned()))
+                rcp.do_send(SessionHolder { text: Some(message.to_owned()), binary: None })
             }
         }
     }
@@ -82,12 +102,13 @@ impl Handler<SessionMessage> for SessionServer {
 
     // 处理client发来的数据数据
     fn handle(&mut self, msg: SessionMessage, ctx: &mut Self::Context) -> Self::Result {
+        let session_id = msg.session_id;
         let msg = msg.json_msg.as_str();
         let msg_clone = msg.clone();
         debug!("ChatServer # handle #ClientMessage {}", msg_clone);
 
         let json_struct_result =
-            serde_json::from_str::<communicate_models::CommonCommunicateJsonStruct>(msg);
+            serde_json::from_str::<communicate_models::MessageTextDTO>(msg);
 
         match json_struct_result {
             Ok(communicate_json) => {
@@ -98,9 +119,20 @@ impl Handler<SessionMessage> for SessionServer {
                     option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST => {
                         crate::kernel_send_message_to_front_end(communicate_json)
                     }
-                    // client给其他client发送消息/文件
+                    // client发送文件/文件到会话
                     option_code::OptionCode::CommonOptionCode::TRANSFER_DATA => {
                         self.send_message((msg_clone.to_owned()).as_str())
+                    }
+                    // client请求下载会话中的文件
+                    option_code::OptionCode::CommonOptionCode::REQUEST_TRANSFER_FILE => {
+                        let fileName = communicate_json.content;
+                        let file_name_dto = communicate_models::MessageBinaryDTO {
+                            content_id:  communicate_models::generateUUID(),
+                            seq: 0,
+                            payload: fileName.as_bytes().to_vec(),
+                        };
+                        let file_name_dto_bytes = file_name_dto.to_bytes();
+                        self.send_binary(file_name_dto_bytes, session_id)
                     }
                     // 其他未知命令，直接转发给所有client
                     _ => self.send_message((msg_clone.to_owned() + "1!!!").as_str()),
@@ -139,7 +171,10 @@ impl Handler<Disconnect> for SessionServer {
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct SessionHolder(pub String);
+pub struct SessionHolder {
+    pub text: Option<String>,
+    pub binary: Option<Vec<u8>>
+}
 
 #[derive(Message)]
 #[rtype(result = "()")]

@@ -1,5 +1,6 @@
 package com.example.myapplication.viewmodel
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,7 +10,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.MainActivity
 import com.example.myapplication.SwithunLog
+import com.example.myapplication.model.MessageTextDTO
 import com.example.myapplication.nullCheck
+import com.example.myapplication.util.SystemUtil
 import com.koushikdutta.async.AsyncServer
 import com.koushikdutta.async.callback.CompletedCallback
 import com.koushikdutta.async.http.body.FilePart
@@ -163,6 +166,20 @@ class NasViewModel(activity: () -> MainActivity) : ViewModel() {
             }
 
         })
+    }
+
+    fun getTransferFile(text: String, contentType: MessageTextDTO.ContentType, context: Context) {
+        when (contentType) {
+            MessageTextDTO.ContentType.TEXT -> {
+                SystemUtil.pushText2Clipboard(context, text)
+                viewModelScope.launch(Dispatchers.IO) {
+                    activityVar?.scaffoldState?.showSnackbar(message = "已复制")
+                }
+            }
+            MessageTextDTO.ContentType.IMAGE -> {
+                activityVar?.connectServerVM?.requestTransferFile(text)
+            }
+        }
     }
 
 }

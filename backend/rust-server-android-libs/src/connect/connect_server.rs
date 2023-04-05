@@ -79,7 +79,7 @@ impl Handler<FrontEndMessage> for ConnectServer {
     fn handle(&mut self, msg: FrontEndMessage, ctx: &mut Self::Context) -> Self::Result {
         debug!("kernel receive: {:?}", msg);
         let front_end_msg_json_str = msg.msg.as_str();
-        let front_end_msg_json_struct = serde_json::from_str::<crate::communicate_models::CommonCommunicateJsonStruct>(front_end_msg_json_str);
+        let front_end_msg_json_struct = serde_json::from_str::<crate::communicate_models::MessageTextDTO>(front_end_msg_json_str);
 
         match front_end_msg_json_struct {
             Ok(kernel_and_front_end_json) => {

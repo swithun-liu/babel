@@ -394,7 +394,7 @@ async fn get_path_list(query: web::Query<HashMap<String, String>>) -> impl Respo
                     .lock()
                     .unwrap()
                     .insert(new_uuid.clone(), tx);
-                let json_struct = communicate_models::CommonCommunicateJsonStruct {
+                let json_struct = communicate_models::MessageTextDTO {
                     uuid: new_uuid,
                     code: option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST
                         as i32,
@@ -423,7 +423,7 @@ async fn get_path_list(query: web::Query<HashMap<String, String>>) -> impl Respo
                     .lock()
                     .unwrap()
                     .insert(new_uuid.clone(), tx);
-                let json_struct = communicate_models::CommonCommunicateJsonStruct {
+                let json_struct = communicate_models::MessageTextDTO {
                     uuid: new_uuid,
                     code: option_code::OptionCode::CommonOptionCode::GET_CHILDREN_PATH_LIST_REQUEST
                         as i32,
@@ -477,7 +477,7 @@ async fn connect(
 }
 
 pub fn kernel_send_message_to_front_end(
-    json_struct: communicate_models::CommonCommunicateJsonStruct,
+    json_struct: communicate_models::MessageTextDTO,
 ) {
     let json_struct_str = serde_json::to_string(&json_struct).unwrap();
 
@@ -487,7 +487,7 @@ pub fn kernel_send_message_to_front_end(
 }
 
 pub fn handle_android_front_end_response(
-    kernel_and_front_end_json: communicate_models::CommonCommunicateJsonStruct,
+    kernel_and_front_end_json: communicate_models::MessageTextDTO,
 ) {
     let uuid = kernel_and_front_end_json.uuid;
     let result = kernel_and_front_end_json.content;

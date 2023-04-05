@@ -1,13 +1,14 @@
 use std::any::Any;
 use std::collections::HashMap;
+use std::fmt::Binary;
 use std::fs::{File, OpenOptions};
 use std::io::{Seek, SeekFrom, Write};
 use std::path::Path;
 use std::string::ToString;
-use std::time::{Instant, Duration};
+use std::time::{Duration, Instant};
 use std::usize;
 
-use actix::{Addr, Actor, StreamHandler, ActorContext, AsyncContext, Handler, WrapFuture, ActorFutureExt, fut, ContextFutureSpawner};
+use actix::{Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, ContextFutureSpawner, fut, Handler, StreamHandler, WrapFuture};
 use actix_web_actors::ws;
 use log::debug;
 use uuid::Uuid;
@@ -91,7 +92,23 @@ impl Handler<session::session_server::SessionHolder> for Session {
     type Result = ();
 
     fn handle(&mut self, msg: session::session_server::SessionHolder, ctx: &mut Self::Context) -> Self::Result {
-        ctx.text(msg.0)
+        match msg.text {
+            None => {
+                match msg.binary {
+                    None => {
+                        debug!("Session # Handle # Session Holder: send nothing")
+                    }
+                    Some(binary) => {
+                        debug!("Session # Handle # Session Holder: send binary");
+                        ctx.binary(binary)
+                    }
+                }
+            }
+            Some(text) => {
+                debug!("Session # Handle # Session Holder: send text: {}", text);
+                ctx.text(text)
+            }
+        }
     }
 }
 
@@ -129,7 +146,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
 
                 let temp_file_path = format!("{}{}", PARENT_PATH, "swithun/temp");
 
-                let dto = MessageBinaryDTO::from_bytes(&byte);
+                let dto = crate::model::communicate_models::MessageBinaryDTO::from_bytes(&byte);
                 match dto {
                     Some(dto) => {
                         debug!("{} # parse dto suc: seq: {}", tag, dto.seq);
@@ -179,7 +196,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
                                         debug!("file name: {}", file_name);
 
                                         let new_uuid: String = format!("{}", Uuid::new_v4());
-                                        let model = crate::model::communicate_models::CommonCommunicateJsonStruct {
+                                        let model = crate::model::communicate_models::MessageTextDTO {
                                             uuid: new_uuid,
                                             code: crate::model::option_code::OptionCode::CommonOptionCode::TRANSFER_DATA as i32,
                                             content: file_name.to_string(),
@@ -256,31 +273,5 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
                 debug!("WsChatSession - StreamHandler - handle - Nop");
             }
         }
-    }
-}
-
-pub struct MessageBinaryDTO {
-    content_id: String,
-    // 36 bytes
-    seq: i32,
-    // 4 bytes
-    payload: Vec<u8>,
-}
-
-impl MessageBinaryDTO {
-    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
-        if bytes.len() < 40 {
-            return None;
-        }
-        let content_id = String::from_utf8_lossy(&bytes[..36]).trim_end_matches(char::from(0)).to_string();
-        debug!("MessageDTO # from_bytes # content_id: {}", content_id);
-        let seq = i32::from_be_bytes([bytes[36], bytes[37], bytes[38], bytes[39]]);
-        debug!("MessageDTO # from_bytes # seq: {}", seq);
-        let payload = bytes[40..].to_vec();
-        Some(Self {
-            content_id,
-            seq,
-            payload,
-        })
     }
 }

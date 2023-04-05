@@ -13,6 +13,7 @@ import okhttp3.*
 import okio.ByteString
 
 
+/** 封装给websocket发送的数据 */
 sealed class RawDataBase {
     data class RawTextData(val json: String): RawDataBase()
     data class RawByteData(val bytes: ByteString): RawDataBase()

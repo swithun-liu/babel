@@ -3,7 +3,8 @@ pub enum CommonOptionCode {
     GET_BASE_PATH_LIST_RESPONSE = 2,
     GET_CHILDREN_PATH_LIST_REQUEST = 3,
     GET_CHILDREN_PATH_LIST_RESPONSE = 4,
-    TRANSFER_DATA = 5
+    TRANSFER_DATA = 5,
+    REQUEST_TRANSFER_FILE = 6,
 }
 
 impl From<i32> for CommonOptionCode {
