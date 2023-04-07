@@ -50,8 +50,8 @@ data class MessageTextDTO(
 }
 
 data class MessageBinaryDTO(
-    val contentId: String,
-    val seq: Int,
+    val contentId: String, // 36bytes
+    val seq: Int, // 4byte
     val payload: ByteString
 ): MessageDTO() {
     fun toByteArray(): ByteArray {

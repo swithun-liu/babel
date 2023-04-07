@@ -141,8 +141,9 @@ impl Handler<SessionMessage> for SessionServer {
                         };
                         let file_name_dto_bytes = file_name_dto.to_bytes();
                         self.send_binary(file_name_dto_bytes, session_id);
+                        debug!("contentId {}", content_id);
 
-                        let file_path = format!("{}{}{}", PARENT_PATH, "swithun/transfer/", file_name.as_str());
+                        let file_path = format!("{}{}{}", PARENT_PATH, "babel/transfer/", file_name.as_str());
                         debug!("file_path: {}", file_path);
 
                         // buffer 为 60 * 1024 bytes，防止oom，每次读取60kB，组装发送, 都用match，不用unwrap
@@ -161,6 +162,7 @@ impl Handler<SessionMessage> for SessionServer {
                                                 seq,
                                                 payload: buffer[0..size].to_vec(),
                                             };
+                                            debug!("buffer - {} - {:?}", seq, buffer);
                                             let file_dto_bytes = file_dto.to_bytes();
                                             self.send_binary(file_dto_bytes, session_id);
                                             seq += 1;
@@ -172,11 +174,12 @@ impl Handler<SessionMessage> for SessionServer {
                                     }
                                 }
 
-                                let file_name_dto = communicate_models::MessageBinaryDTO {
+                                let file_finish_dto = communicate_models::MessageBinaryDTO {
                                     content_id: content_id.clone(),
                                     seq: -1,
                                     payload: vec![],
                                 };
+                                self.send_binary(file_finish_dto.to_bytes(), session_id);
                             }
                             Err(e) => {
                                 debug!("open file error: {}", e);

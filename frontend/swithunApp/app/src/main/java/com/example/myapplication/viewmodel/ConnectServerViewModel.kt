@@ -234,22 +234,17 @@ class ConnectServerViewModel : ViewModel() {
         val contentId = messageBinaryDTO.contentId
         SwithunLog.d("handleByteData contentId: $contentId")
         // when seq == 0, means payload is filename, and we should create a file, seq == -1, means file has finished
-        when (messageBinaryDTO.seq) {
+        when (val seq = messageBinaryDTO.seq) {
             0 -> {
                 try {
+                    SwithunLog.d("handle 0")
                     val fileName = messageBinaryDTO.payload.utf8()
-                    SwithunLog.d("handleByteData error 0 - 1")
                     val file = File(activityVar?.fileVM?.fileBasePath, "/babel/cache/transfer/$fileName")
-                    SwithunLog.d("handleByteData error 0 - 2")
                     if (file.exists()) {
-                        SwithunLog.d("handleByteData error 0 - 3")
                         file.delete()
-                        SwithunLog.d("handleByteData error 0 - 4")
                     }
                     file.parentFile?.mkdirs()
-                    SwithunLog.d("handleByteData error 0 - 5")
                     file.createNewFile()
-                    SwithunLog.d("handleByteData error 0 - 6")
                     receivingFileMap[contentId] = fileName
                 } catch (e: java.lang.Exception) {
                     SwithunLog.d("handleByteData error: ${e.message}")
@@ -257,26 +252,21 @@ class ConnectServerViewModel : ViewModel() {
             }
             -1 -> {
                 viewModelScope.launch {
+                    SwithunLog.d("handle -1")
                     activityVar?.scaffoldState?.showSnackbar(message = "文件接收完成")
                 }
             }
             else -> {
                 try {
-                    SwithunLog.d("handleByteData error 1 - 1")
+                    SwithunLog.d("handle $seq")
                     val fileName = receivingFileMap[contentId] ?: return
-                    SwithunLog.d("handleByteData error 1 - 2")
                     val file = File(activityVar?.fileVM?.fileBasePath, "/babel/cache/transfer/$fileName")
-                    SwithunLog.d("handleByteData error 1 - 3")
                     // 根据seq计算写入位置（seq * 60kB）
                     val offset = (messageBinaryDTO.seq - 1) * 60 * 1024
 
-                    SwithunLog.d("handleByteData error 1 - 4")
                     val raf = RandomAccessFile(file, "rw")
-                    SwithunLog.d("handleByteData error 1 - 5")
                     raf.seek(offset.toLong())
-                    SwithunLog.d("handleByteData error 1 - 6")
                     raf.write(messageBinaryDTO.payload.toByteArray())
-                    SwithunLog.d("handleByteData error 1 - 7")
                     raf.close()
                 } catch (e: java.lang.Exception) {
                     SwithunLog.d("handleByteData error 1: ${e.message}")
