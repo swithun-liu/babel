@@ -162,7 +162,6 @@ impl Handler<SessionMessage> for SessionServer {
                                                 seq,
                                                 payload: buffer[0..size].to_vec(),
                                             };
-                                            debug!("buffer - {} - {:?}", seq, buffer);
                                             let file_dto_bytes = file_dto.to_bytes();
                                             self.send_binary(file_dto_bytes, session_id);
                                             seq += 1;

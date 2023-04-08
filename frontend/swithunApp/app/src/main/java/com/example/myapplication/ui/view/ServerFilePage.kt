@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.*
 import com.example.myapplication.model.ActivityVar
+import com.example.myapplication.viewmodel.FileManagerViewModel
 import com.example.myapplication.viewmodel.PathItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -46,14 +47,16 @@ fun FileManagerView(activityVar: ActivityVar) {
         items(activityVar.fileVM.pathList) { path: PathItem ->
             when (path) {
                 is PathItem.FileItem -> {
-                    FileItemView(file = path, activityVar.fileVM::clickFile)
+                    FileItemView(file = path) {
+                        activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFile(it))
+                    }
                 }
                 is PathItem.FolderItem -> {
-                    FolderItemView(path, activityVar.fileVM::clickFile) {
-                        activityVar.fileVM.viewModelScope?.launch(Dispatchers.IO) {
-                            activityVar.fileVM.clickFolder(it)
-                        }
-                    }
+                    FolderItemView(
+                        path,
+                        { activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFile(it)) },
+                        { activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFolder(it)) }
+                    )
                 }
             }
         }

@@ -22,14 +22,11 @@ class ActivityVar constructor(
     val videoVM: VideoViewModel = ViewModelProvider(activity,
         ViewModelProviderFactories(VideoViewModel::class.java).getFactory { activity }
     )[VideoViewModel::class.java],
-    val ftpVM: FTPViewModel = ViewModelProvider(activity,
-        ViewModelProviderFactories(FTPViewModel::class.java).getFactory { activity }
-    )[FTPViewModel::class.java],
     val nasVM: NasViewModel = ViewModelProvider(activity,
         ViewModelProviderFactories(NasViewModel::class.java).getFactory { activity }
     )[NasViewModel::class.java],
     val fileVM: FileManagerViewModel = ViewModelProvider(activity,
-        ViewModelProviderFactories(NasViewModel::class.java).getFactory { activity }
+        ViewModelProviderFactories(FileManagerViewModel ::class.java).getFactory { activity }
     )[FileManagerViewModel::class.java],
     var scaffoldState: SnackbarHostState? = null,
 ) {

@@ -4,19 +4,19 @@ import com.example.myapplication.model.MessageTextDTO
 import java.util.*
 
 object TransferBiz {
-    fun buildTransferData(text: String): MessageTextDTO {
+    fun buildPostDTO(text: String): MessageTextDTO {
         return MessageTextDTO(
             getUUID(),
-            MessageTextDTO.OptionCode.TRANSFER_DATA.code,
+            MessageTextDTO.OptionCode.POST_SESSION_TEXT.code,
             text,
             MessageTextDTO.ContentType.TEXT.type
         )
     }
 
-    fun buildRequestTransferData(fileName: String): MessageTextDTO {
+    fun buildGetDTO(fileName: String): MessageTextDTO {
         return MessageTextDTO(
             getUUID(),
-            MessageTextDTO.OptionCode.REQUEST_TRANSFER_DATA.code,
+            MessageTextDTO.OptionCode.POST_SESSOIN_FILE.code,
             fileName,
             MessageTextDTO.ContentType.TEXT.type
         )

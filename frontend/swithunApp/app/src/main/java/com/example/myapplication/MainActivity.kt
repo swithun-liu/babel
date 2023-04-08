@@ -15,7 +15,6 @@ import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.util.AuthChecker
 import com.example.myapplication.util.HeaderParams
 import com.example.myapplication.viewmodel.*
-import com.swithun.liu.ServerSDK
 import kotlinx.coroutines.launch
 
 
@@ -48,20 +47,3 @@ class MainActivity : ComponentActivity() {
         AuthChecker.checkWriteExternalStorage(this)
     }
 }
-
-
-fun playNextConan(
-    videoViewModel: VideoViewModel,
-    surfaceView: SurfaceView,
-    headerParams: HeaderParams
-) {
-    videoViewModel.viewModelScope.launch {
-        val nextConanUrl =
-            videoViewModel.getNextConan().nullCheck("get nextConanUrl") ?: return@launch
-        videoViewModel.play(nextConanUrl, headerParams) {
-            playNextConan(videoViewModel, surfaceView, headerParams)
-        }
-    }
-}
-
-

@@ -47,9 +47,9 @@ fun ConanVideoView(activityVar: ActivityVar) {
         val headerParams = HeaderParams().apply { setBilibiliReferer() }
         try {
             // 循环播放
-            videoViewModel.play(conanUrl, headerParams) {
-                // playNextConan(videoViewModel, surfaceView, headerParams)
-            }
+            videoViewModel.reduce(VideoViewModel.Action.PlayVideoAction(
+                conanUrl, headerParams, { }
+            ))
             // 播放进度计算
             videoViewModel.viewModelScope.launch {
                 while (true) {
@@ -58,8 +58,9 @@ fun ConanVideoView(activityVar: ActivityVar) {
                         0L -> 1F
                         else -> duration.toFloat()
                     }
-                    videoViewModel.currentProcess =
+                    videoViewModel.reduce(VideoViewModel.Action.UpdateCurrentVideoProcess(
                         videoViewModel.player.currentPosition.toFloat() / duration
+                    ))
                 }
             }
         } catch (e: Error) {

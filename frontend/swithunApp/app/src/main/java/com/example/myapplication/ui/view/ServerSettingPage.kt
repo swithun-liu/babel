@@ -10,13 +10,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.model.ActivityVar
+import com.example.myapplication.viewmodel.NasViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -27,26 +28,28 @@ fun ServerSettingPage(activityVar: ActivityVar) {
             .fillMaxHeight()
             .fillMaxWidth()
     ) {
-        ServerOther(myIp = activityVar.ftpVM.myIPStr,
+        ServerOther(myIp = activityVar.kernelConfig.kernelIP,
             {
                 activityVar.activity.lifecycle
                 activityVar.activity.lifecycleScope.launch(Dispatchers.IO) {
                     SwithunLog.d("begin get ips")
-                    val ips = activityVar.nasVM.searchAllServer()
-                    SwithunLog.d(ips)
+                    val ips = activityVar.nasVM.reduce(NasViewModel.Action.SearchAllServer)
                 }
             },
             activityVar.nasVM.getAllServerBtnText,
             activityVar.nasVM.allServersInLan,
             { serverIp ->
-                activityVar.connectServerVM.connectServer(serverIp)
+                activityVar.connectServerVM.reduce(
+                    ConnectServerViewModel.Action.ConnectServer(
+                        serverIp
+                    )
+                )
             }
         )
 
         ServerMine(
-            {
-                activityVar.nasVM.startMeAsServer()
-            },
+            { activityVar.nasVM.reduce(NasViewModel.Action.StartMeAsServer) },
+            { activityVar.nasVM.reduce(NasViewModel.Action.ConnectMyServer) },
             activityVar.nasVM.startMeAsServerBtnText
         )
     }
@@ -54,7 +57,10 @@ fun ServerSettingPage(activityVar: ActivityVar) {
 
 @Preview(widthDp = 500, heightDp = 500)
 @Composable
-fun ServerMine(startServerCL: () -> Unit = {}, startServerBtnText: String = "bbbb") {
+fun ServerMine(
+    actStartServer: () -> Unit = {},
+    actConnectMyServer: () -> Unit = { },
+    startServerBtnText: String = "启动server") {
     Surface(
         modifier = Modifier
             .fillMaxHeight()
@@ -64,8 +70,11 @@ fun ServerMine(startServerCL: () -> Unit = {}, startServerBtnText: String = "bbb
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
-            Button(onClick = startServerCL) {
+            Button(onClick = actStartServer) {
                 Text(text = startServerBtnText)
+            }
+            Button(onClick = actConnectMyServer) {
+                Text(text = "连接我的server")
             }
         }
     }

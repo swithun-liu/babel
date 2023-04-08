@@ -4,16 +4,18 @@ import android.os.Environment
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.model.VideoExtension
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.File
 
 // Babel / 蓝田
 
-class FileManagerViewModel : ViewModel() {
+class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action>() {
 
     val fileBasePath: String = Environment.getExternalStorageDirectory().absolutePath
     var pathList: List<PathItem> by mutableStateOf(listOf())
@@ -27,31 +29,46 @@ class FileManagerViewModel : ViewModel() {
         SwithunLog.d("fileBasePath: $fileBasePath")
     }
 
-    suspend fun clickFolder(folder: PathItem.FolderItem) {
-        when {
-            // 【折叠动作】
-            folder.isOpening -> {
-                folder.isOpening = false
-            }
-            // 【展开动作】
-            else -> {
-                folder.isOpening = true
-                refreshChildrenPathListFromRemote(folder)
-            }
-        }
-        // todo 看看怎么做不用这样赋值
-        val oldList = pathList
-        pathList = mutableListOf()
-        pathList = addMainToFirst(oldList.toMutableList())
+    sealed class Action: BaseViewModel.Action() {
+        class ClickFolder(val folder: PathItem.FolderItem): Action()
+        class ClickFile(val file: PathItem.FileItem): Action()
     }
 
-    fun clickFile(file: PathItem.FileItem) {
+    override fun reduce(action: Action) {
+        when (action) {
+            is Action.ClickFile -> clickFile(action.file)
+            is Action.ClickFolder -> clickFolder(action.folder)
+        }
+    }
+
+    private fun clickFolder(folder: PathItem.FolderItem) {
+        viewModelScope.launch(Dispatchers.IO) {
+            when {
+                // 【折叠动作】
+                folder.isOpening -> {
+                    folder.isOpening = false
+                }
+                // 【展开动作】
+                else -> {
+                    folder.isOpening = true
+                    refreshChildrenPathListFromRemote(folder)
+                }
+            }
+            // todo 看看怎么做不用这样赋值
+            val oldList = pathList
+            pathList = mutableListOf()
+            pathList = addMainToFirst(oldList.toMutableList())
+        }
+    }
+
+    private fun clickFile(file: PathItem.FileItem) {
         activityVar?.let {
             val fileObj = File(file.path)
             if (VideoExtension.isOneOf(fileObj.extension)) {
-                val surfaceView = it.mySurfaceView ?: return
-                it.videoVM.play(
-                    "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.GetVideoPath.path}?${ServerConfig.ServerPath.GetVideoPath.paramPath}=${file.path}"
+                it.videoVM.reduce(
+                    VideoViewModel.Action.PlayVideoAction(
+                        "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.GetVideoPath.path}?${ServerConfig.ServerPath.GetVideoPath.paramPath}=${file.path}"
+                    )
                 )
             } else {
                 SwithunLog.e("不是视频")
@@ -86,7 +103,7 @@ class FileManagerViewModel : ViewModel() {
         return basePathList
     }
 
-    suspend fun getChildrenPathListFromRemote(parentPath: String): List<PathItem> {
+    private suspend fun getChildrenPathListFromRemote(parentPath: String): List<PathItem> {
         return remoteRepository.getChildrenPathList(parentPath)
     }
 

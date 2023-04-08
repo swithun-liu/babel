@@ -17,13 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.lifecycleScope
+import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.model.MessageTextDTO
 import com.example.myapplication.model.TransferData
 import com.example.myapplication.util.SystemUtil
-import kotlinx.coroutines.launch
+import com.example.myapplication.viewmodel.NasViewModel
 
 
 @Preview(widthDp = 1000, heightDp = 500)
@@ -119,16 +119,7 @@ fun TransferPage(activityVar: ActivityVar) {
     var clipboardContent: String by remember { mutableStateOf("") }
 
     val onSendInputText: () -> Unit = {
-        val suc = activityVar.connectServerVM.transferText(clipboardContent)
-        activityVar.activity.lifecycleScope.launch {
-            activityVar.scaffoldState?.showSnackbar(
-                message = if (suc) {
-                    "成功发送"
-                } else {
-                    "发送失败"
-                }
-            )
-        }
+        activityVar.connectServerVM.reduce(ConnectServerViewModel.Action.PostSessionText(clipboardContent))
     }
     val onGetClipboardContent: () -> Unit = {
         clipboardContent = SystemUtil.getTextFromClipboard(context)
@@ -141,7 +132,7 @@ fun TransferPage(activityVar: ActivityVar) {
         onResult = {
             SwithunLog.d(it, "file");
             it?.let { uri ->
-                activityVar.connectServerVM.transferFile(uri, context)
+                activityVar.connectServerVM.reduce(ConnectServerViewModel.Action.PostSessionFile(uri, context))
             }
         })
 
@@ -149,9 +140,12 @@ fun TransferPage(activityVar: ActivityVar) {
         launcher.launch("*/*")
     }
 
-    val onReceivedDataClick = { text: String, contentType: MessageTextDTO.ContentType ->
-        activityVar.nasVM.getTransferFile(text, contentType, context)
-    }
+    val onReceivedDataClick: (text: String, contentType: MessageTextDTO.ContentType) -> Unit =
+        { text, contentType ->
+            activityVar.nasVM.reduce(
+                NasViewModel.Action.DownloadTransferFile(text, contentType, context)
+            )
+        }
 
     TransferPagePreviewer(
         onSendInputText,

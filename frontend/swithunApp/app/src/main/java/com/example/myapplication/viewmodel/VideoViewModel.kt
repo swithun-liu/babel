@@ -9,7 +9,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.errcode.LogInErrCode
@@ -26,7 +25,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
 
-class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel() {
+class VideoViewModel(private val activity: () -> ComponentActivity) : BaseViewModel<VideoViewModel.Action>() {
 
     var qrCodeImage: ImageBitmap by mutableStateOf(ImageBitmap(100, 100))
     var loginStatus by mutableStateOf("未登陆")
@@ -43,10 +42,26 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
         this.activityVar = activityVar
     }
 
-    fun getNewPlayer() = IjkMediaPlayer().also {
-        this.player = it
+    sealed class Action: BaseViewModel.Action() {
+        data class PlayVideoAction(
+            val videoUrl: String,
+            val headerParams: HeaderParams? = null,
+            val onComplete: (() -> Unit)? = null
+        ): Action()
+
+        data class UpdateCurrentVideoProcess(val process: Float): Action()
     }
 
+    override fun reduce(action: Action) {
+        when (action) {
+            is Action.PlayVideoAction -> playVideo(action)
+            is Action.UpdateCurrentVideoProcess -> updateCurrentVideoProcess(action.process)
+        }
+    }
+
+    private fun getNewPlayer() = IjkMediaPlayer().also {
+        this.player = it
+    }
 
     private val BILIBILI_LOGIN_QR_CODE_URL =
         "http://passport.bilibili.com/x/passport-login/web/qrcode/generate"
@@ -59,11 +74,19 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
         beginJob = begin()
     }
 
-    fun play(
-        conanUrl: String,
-        headerParams: HeaderParams? = null,
-        onComplete: (() -> Unit)? = null
+    private fun updateCurrentVideoProcess(process: Float) {
+        currentProcess = process
+    }
+
+    private fun playVideo(
+        action: Action.PlayVideoAction
     ) {
+
+        val conanUrl: String = action.videoUrl
+        val headerParams: HeaderParams? = action.headerParams
+        val onComplete: (() -> Unit)? = action.onComplete
+
+
         playJob?.cancel()
         playJob = viewModelScope.launch(Dispatchers.IO) {
             SwithunLog.d("运行playe")
@@ -135,12 +158,13 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
                 qrCodeLogin()
                 getCheckMyProfile()
             }
+            delay(1000)
             getConanList()
         }
     }
 
     @SuppressLint("LongLogTag")
-    suspend fun qrCodeLogin() {
+    private suspend fun qrCodeLogin() {
         SwithunLog.d("try qrCodeLogin")
         val qrCodeResponse = getRequest(BILIBILI_LOGIN_QR_CODE_URL) ?: return
         Log.d(TAG, "${qrCodeResponse.safeGetJSONObject("data")}")
@@ -204,7 +228,7 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
     }
 
     @SuppressLint("LongLogTag")
-     suspend fun getCheckMyProfile(): Boolean {
+     private suspend fun getCheckMyProfile(): Boolean {
         val headerParams = HeaderParams().apply {
             setBilibiliCookie(activity.invoke())
         }
@@ -273,7 +297,7 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
         return getConan(nextCursor)
     }
 
-    suspend fun getConanList() {
+    private suspend fun getConanList() {
         val urlEncodeParams = UrlEncodeParams().apply {
             put("season_id", GetEpisodeList.EPISODE.CONAN.season_id.toString())
         }
@@ -302,16 +326,6 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : ViewModel(
 
         itemList = items
         SwithunLog.d("haha - 2")
-    }
-
-
-    fun testGetHttpMp4(): String {
-        //return "http://${ftpVM.myIPStr}:54321/files"
-        return "http://192.168.31.15:54321/files"
-    }
-
-    fun playVideo(path: String): String {
-        return "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.GetVideoPath.path}?${ServerConfig.ServerPath.GetVideoPath.paramPath}=$path"
     }
 
 }

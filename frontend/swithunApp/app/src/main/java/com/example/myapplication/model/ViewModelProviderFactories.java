@@ -3,7 +3,6 @@ package com.example.myapplication.model;
 
 import android.os.Build;
 
-import androidx.activity.ComponentActivity;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.lifecycle.ViewModel;
@@ -16,9 +15,7 @@ import com.example.myapplication.viewmodel.FTPViewModel;
 import com.example.myapplication.viewmodel.NasViewModel;
 import com.example.myapplication.viewmodel.FileManagerViewModel;
 
-import java.util.function.Supplier;
 
-import kotlin.Function;
 import kotlin.jvm.functions.Function0;
 
 public class ViewModelProviderFactories<T extends ViewModel> {
