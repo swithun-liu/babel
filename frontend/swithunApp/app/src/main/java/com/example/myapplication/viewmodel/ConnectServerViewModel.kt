@@ -2,6 +2,7 @@ package com.example.myapplication
 
 import android.content.Context
 import android.net.Uri
+import android.os.Environment
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -110,7 +111,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
                                                 val uodList = mutableListOf<TransferData>(
                                                     TransferData.TextData(message.content)
                                                 )
-                                                uodList.addAll(oodList.subList(0, 5))
+                                                uodList.addAll(oodList.take(4))
                                                 SwithunLog.d("uodList: $uodList")
                                                 receivedData = uodList
                                             }
@@ -165,34 +166,57 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
         val messageBinaryDTO = MessageBinaryDTO.parseFrom(binary.bytes)
         val contentId = messageBinaryDTO.contentId
         SwithunLog.d("handleByteData contentId: $contentId")
-        // when seq == 0, means payload is filename, and we should create a file, seq == -1, means file has finished
+
         when (val seq = messageBinaryDTO.seq) {
-            0 -> {
+            0 -> { // seq为0，payload为文件名
                 try {
                     SwithunLog.d("handle 0")
+                    val appExternalPath =
+                        activityVar?.pathConfig?.appExternalPath.nullCheck("appExternalPath")
+                            ?: return
+                    val postFileClientDownloadPath =
+                        activityVar?.pathConfig?.postFileClientDownloadPath.nullCheck("postFileClientDownloadPath")
+                            ?: return
+                    // 获取文件名
                     val fileName = messageBinaryDTO.payload.utf8()
-                    val file = File(activityVar?.fileVM?.fileBasePath, "/babel/cache/transfer/$fileName")
+                    val file = File(
+                        "$appExternalPath$postFileClientDownloadPath",
+                        fileName
+                    )
+                    SwithunLog.d("handleByteData file: ${file.absolutePath}")
+
+                    // 递归创建父文件夹(如果不存在的话)
                     file.parentFile?.mkdirs()
+
+                    // 检查文件是否存在，存在则删除
                     if (file.exists()) {
-                        file.delete()
+                        file.delete().nullCheck("delete old file", true)
                     }
-                    file.createNewFile()
+                    // 创建新文件
+                    file.createNewFile().nullCheck("create new file", true)
                     receivingFileMap[contentId] = fileName
                 } catch (e: java.lang.Exception) {
-                    SwithunLog.d("handleByteData error: ${e.message}")
+                    SwithunLog.e("handleByteData error: ${e.message}")
                 }
             }
-            -1 -> {
+            -1 -> { // seq为-1，表示文件接收完成
                 viewModelScope.launch {
                     SwithunLog.d("handle -1")
                     activityVar?.scaffoldState?.showSnackbar(message = "文件接收完成")
                 }
             }
-            else -> {
+            else -> { // seq为其他值，payload为文件内容
                 try {
                     SwithunLog.d("handle $seq")
+                    val appExternalPath =
+                        activityVar?.pathConfig?.appExternalPath.nullCheck("appExternalPath")
+                            ?: return
+                    val postFileClientDownloadPath =
+                        activityVar?.pathConfig?.postFileClientDownloadPath.nullCheck("postFileClientDownloadPath")
+                            ?: return
+
                     val fileName = receivingFileMap[contentId] ?: return
-                    val file = File(activityVar?.fileVM?.fileBasePath, "/babel/cache/transfer/$fileName")
+                    val file = File("$appExternalPath$postFileClientDownloadPath", fileName)
                     // 根据seq计算写入位置（seq * 60kB）
                     val offset = (messageBinaryDTO.seq - 1) * 60 * 1024
 
@@ -201,7 +225,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
                     raf.write(messageBinaryDTO.payload.toByteArray())
                     raf.close()
                 } catch (e: java.lang.Exception) {
-                    SwithunLog.d("handleByteData error 1: ${e.message}")
+                    SwithunLog.e("handleByteData error 1: ${e.message}")
                 }
             }
         }
@@ -212,7 +236,11 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
         val uri = action.uri
         val context = action.context
 
+        val appExternalPath = activityVar?.pathConfig?.appExternalPath.nullCheck("appExternalPath") ?: return
+        val postFileServerCachePath = activityVar?.pathConfig?.postFileServerCachePath.nullCheck("postFileServerCachePath") ?: return
+
         viewModelScope.launch(Dispatchers.IO) {
+
             try {
                 context.contentResolver.openInputStream(uri)?.use { inputStream ->
                     val bufferSize = 60 * 1024
@@ -225,7 +253,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
                         uri, null, null, null, null
                     )?.use { cursor ->
                         cursor.moveToFirst()
-                        cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)?.let {
+                        cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME).let {
                             if (it >= 0) {
                                 cursor.getString(it)
                             } else {
@@ -234,9 +262,10 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
                         }
                     } ?: "unknown"
 
-                    val fileNameBytes = fileName.encodeToByteArray()
-                    val fileNameMessage = MessageBinaryDTO(contentId, seq, ByteString.of(*fileNameBytes))
-                    repository.webSocketSuspendSend(RawDataBase.RawByteData(ByteString.of(*fileNameMessage.toByteArray())))
+                    val filePath = "$appExternalPath$postFileServerCachePath/$fileName".nullCheck("filePath", true)
+                    val filePathBytes = filePath.encodeToByteArray()
+                    val filePathDTO = MessageBinaryDTO(contentId, seq, ByteString.of(*filePathBytes))
+                    repository.webSocketSuspendSend(RawDataBase.RawByteData(ByteString.of(*filePathDTO.toByteArray())))
 
                     seq++
 
@@ -264,10 +293,14 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
     }
 
     /** 请求下载会话中的文件 */
-    private fun getSessionFile(action: ConnectServerViewModel.Action.GetSessionFile): Boolean {
+    private fun getSessionFile(action: ConnectServerViewModel.Action.GetSessionFile) {
+        val appExternalPath = activityVar?.pathConfig?.appExternalPath.nullCheck("appExternalPath") ?: return
+        val postFileServerCachePath = activityVar?.pathConfig?.postFileServerCachePath.nullCheck("postFileServerCachePath") ?: return
+
         val fileName = action.fileName
-        return repository.webSocketSend(
-            RawTextData(TransferBiz.buildGetDTO(fileName).toJsonStr())
+        val filePath = "$appExternalPath$postFileServerCachePath/$fileName".nullCheck("filePath", true)
+        repository.webSocketSend(
+            RawTextData(TransferBiz.buildGetDTO(filePath).toJsonStr())
         )
     }
 

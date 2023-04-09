@@ -7,6 +7,7 @@ use std::{
 };
 use std::fmt::Binary;
 use std::io::Read;
+use std::path::PathBuf;
 
 use crate::model::option_code;
 use actix::{Actor, Addr, Context, Handler, Message, Recipient};
@@ -131,7 +132,9 @@ impl Handler<SessionMessage> for SessionServer {
                     // client请求下载会话中的文件
                     option_code::OptionCode::CommonOptionCode::REQUEST_TRANSFER_FILE => {
                         debug!("SessionServer # handle # SessionMessage # REQUEST_TRANSFER_FILE");
-                        let file_name = communicate_json.content;
+                        let file_path_str = communicate_json.content;
+                        let file_path = PathBuf::from(file_path_str.clone().as_str());
+                        let file_name = file_path.file_name().unwrap_or("".as_ref()).to_str().unwrap_or("");
 
                         let content_id = communicate_models::generateUUID();
                         let file_name_dto = communicate_models::MessageBinaryDTO {
@@ -140,18 +143,19 @@ impl Handler<SessionMessage> for SessionServer {
                             payload: file_name.as_bytes().to_vec(),
                         };
                         let file_name_dto_bytes = file_name_dto.to_bytes();
+                        // 发送文件名
                         self.send_binary(file_name_dto_bytes, session_id);
                         debug!("contentId {}", content_id);
 
-                        let file_path = format!("{}{}{}", PARENT_PATH, "babel/transfer/", file_name.as_str());
-                        debug!("file_path: {}", file_path);
+                        debug!("file_path: {}", file_path_str);
 
-                        // buffer 为 60 * 1024 bytes，防止oom，每次读取60kB，组装发送, 都用match，不用unwrap
+                        // 发送文件内容
                         let mut buffer = [0; 60 * 1024];
-                        match std::fs::File::open(file_path) {
+                        match std::fs::File::open(file_path_str) {
                             Ok(mut file) => {
                                 let mut seq = 1;
                                 loop {
+                                    // 读取文件内容
                                     match file.read(&mut buffer) {
                                         Ok(size) => {
                                             if size == 0 {
@@ -163,6 +167,7 @@ impl Handler<SessionMessage> for SessionServer {
                                                 payload: buffer[0..size].to_vec(),
                                             };
                                             let file_dto_bytes = file_dto.to_bytes();
+                                            // 发送文件内容
                                             self.send_binary(file_dto_bytes, session_id);
                                             seq += 1;
                                         }
@@ -178,6 +183,7 @@ impl Handler<SessionMessage> for SessionServer {
                                     seq: -1,
                                     payload: vec![],
                                 };
+                                // 发送文件结束标志
                                 self.send_binary(file_finish_dto.to_bytes(), session_id);
                             }
                             Err(e) => {

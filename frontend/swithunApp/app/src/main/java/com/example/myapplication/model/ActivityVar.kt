@@ -11,6 +11,7 @@ import com.example.myapplication.viewmodel.*
 class ActivityVar constructor(
     var activity: MainActivity,
     val kernelConfig: KernelConfig = KernelConfig({ activity }),
+    val pathConfig: PathConfig = PathConfig(activity),
     val serverConfig: ServerConfig = ServerConfig,
     var mySurfaceView: SurfaceView? = null,
     var textureView: SurfaceTexture? = null,

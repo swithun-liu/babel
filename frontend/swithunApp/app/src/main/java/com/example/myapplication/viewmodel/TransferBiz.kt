@@ -13,11 +13,11 @@ object TransferBiz {
         )
     }
 
-    fun buildGetDTO(fileName: String): MessageTextDTO {
+    fun buildGetDTO(filePath: String): MessageTextDTO {
         return MessageTextDTO(
             getUUID(),
             MessageTextDTO.OptionCode.POST_SESSOIN_FILE.code,
-            fileName,
+            filePath,
             MessageTextDTO.ContentType.TEXT.type
         )
     }
