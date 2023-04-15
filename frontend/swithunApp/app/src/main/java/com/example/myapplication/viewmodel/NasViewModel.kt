@@ -9,6 +9,7 @@ import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.MainActivity
 import com.example.myapplication.model.MessageTextDTO
+import com.example.myapplication.util.SPUtil
 import com.example.myapplication.util.SystemUtil
 import com.swithun.liu.ServerSDK
 import kotlinx.coroutines.Dispatchers
@@ -16,7 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
-class NasViewModel(activity: () -> MainActivity) : BaseViewModel<NasViewModel.Action>() {
+class NasViewModel(val activity: () -> MainActivity) : BaseViewModel<NasViewModel.Action>() {
 
     // https://juejin.cn/post/6844903551408291848
     // https://github.com/koush/AndroidAsync
@@ -24,11 +25,15 @@ class NasViewModel(activity: () -> MainActivity) : BaseViewModel<NasViewModel.Ac
 
     var getAllServerBtnText: String by mutableStateOf("搜寻其他可用server")
     var allServersInLan: List<String> by mutableStateOf(mutableListOf())
+    var lastTimeConnectServerIp by mutableStateOf("")
 
     var startMeAsServerBtnText: String by mutableStateOf("启动server：未启动")
 
     fun init(activityVar: ActivityVar) {
         this.activityVar = activityVar
+        SPUtil.ServerSetting.getLastTimeConnectServer(activityVar.activity)?.let {
+            lastTimeConnectServerIp = it
+        }
     }
 
     override fun reduce(action: Action) {
@@ -37,6 +42,7 @@ class NasViewModel(activity: () -> MainActivity) : BaseViewModel<NasViewModel.Ac
             Action.StartMeAsServer -> startMeAsServer()
             is Action.DownloadTransferFile -> downloadTransferFile(action)
             Action.SearchAllServer -> searchAllServer()
+            is Action.ChangeLastTimeConnectServer -> changerLastTimeConnectServer(action)
         }
     }
 
@@ -44,9 +50,15 @@ class NasViewModel(activity: () -> MainActivity) : BaseViewModel<NasViewModel.Ac
         object StartMeAsServer : Action()
         object ConnectMyServer : Action()
         object SearchAllServer : Action()
+        class ChangeLastTimeConnectServer(val serverIP: String): Action()
         class DownloadTransferFile(
             val text: String, val contentType: MessageTextDTO.ContentType, val context: Context,
         ) : Action()
+    }
+
+    private fun changerLastTimeConnectServer(action: Action.ChangeLastTimeConnectServer) {
+        lastTimeConnectServerIp = action.serverIP
+        SPUtil.ServerSetting.putLastTimeConnectServer(activityVar?.activity ?: return, action.serverIP)
     }
 
     private fun startMeAsServer() {

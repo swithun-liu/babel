@@ -57,4 +57,16 @@ object SPUtil {
 
     }
 
+    object ServerSetting {
+        private const val LastTimeConnectServer = "LastTimeConnectServer"
+
+        fun getLastTimeConnectServer(activity: Activity): String? {
+            return SPUtil.getString(activity, LastTimeConnectServer)
+        }
+
+        fun putLastTimeConnectServer(activity: Activity, lastTimeConnectServer: String) {
+            SPUtil.putString(activity, LastTimeConnectServer, lastTimeConnectServer)
+        }
+    }
+
 }

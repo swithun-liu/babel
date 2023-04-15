@@ -13,6 +13,7 @@ import com.example.myapplication.model.*
 import com.example.myapplication.util.postRequest
 import com.example.myapplication.util.safeGetString
 import com.example.myapplication.viewmodel.BaseViewModel
+import com.example.myapplication.viewmodel.NasViewModel
 import com.example.myapplication.viewmodel.TransferBiz
 import com.example.myapplication.websocket.RawDataBase
 import com.example.myapplication.websocket.RawDataBase.RawTextData
@@ -46,6 +47,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
     var activityVar: ActivityVar? = null
 
     var receivedData by mutableStateOf(listOf<TransferData>())
+
     // contentId - 文件名
     private var receivingFileMap = mutableMapOf<String, String>()
 
@@ -54,10 +56,10 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
     }
 
     open class Action : BaseViewModel.Action() {
-        class ConnectServer(val serverIp: String): Action()
-        class PostSessionText(val text: String): Action()
-        class PostSessionFile(val uri: Uri, val context: Context): Action()
-        class GetSessionFile(val fileName: String): Action()
+        class ConnectServer(val serverIp: String) : Action()
+        class PostSessionText(val text: String) : Action()
+        class PostSessionFile(val uri: Uri, val context: Context) : Action()
+        class GetSessionFile(val fileName: String) : Action()
     }
 
     override fun reduce(action: Action) {
@@ -72,71 +74,74 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
     private fun connectServer(action: Action.ConnectServer) {
 
         val serverIp = action.serverIp
-        this.activityVar?.let { nonNollActivityVar ->
 
-            nonNollActivityVar.serverConfig.serverIP = serverIp
+        val activityVar = this.activityVar ?: return
 
-            remoteWordFlow = repository.webSocketCreate(
-                "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.WebSocketPath.path}",
-                viewModelScope,
-                "Client"
-            )
+        activityVar.serverConfig.serverIP = serverIp
 
-            viewModelScope.launch(Dispatchers.IO) {
-                remoteWordFlow?.collect {
-                    when (it) {
-                        is RawDataBase.RawByteData -> {
-                            SwithunLog.d("remoteWordFlow collect RawByteData")
-                            viewModelScope.launch(Dispatchers.IO) {
-                                handleByteData(it)
-                            }
+        remoteWordFlow = repository.webSocketCreate(
+            "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.WebSocketPath.path}",
+            viewModelScope,
+            "Client"
+        )
+
+        // 保存最后一次连接的服务器ip
+        activityVar.nasVM.reduce(NasViewModel.Action.ChangeLastTimeConnectServer(serverIp))
+
+        viewModelScope.launch(Dispatchers.IO) {
+            remoteWordFlow?.collect {
+                when (it) {
+                    is RawDataBase.RawByteData -> {
+                        SwithunLog.d("remoteWordFlow collect RawByteData")
+                        viewModelScope.launch(Dispatchers.IO) {
+                            handleByteData(it)
                         }
-                        is RawTextData -> {
-                            SwithunLog.d("remoteWordFlow collect RawTextData ${it.json}")
-                            val gson = Gson()
-                            try {
-                                val message = gson.fromJson(it.json, MessageTextDTO::class.java)
-                                when (MessageTextDTO.OptionCode.fromValue(message.code)) {
-                                    // 其他client发送到会话数据(文本/图片/文件)
-                                    MessageTextDTO.OptionCode.POST_SESSION_TEXT -> {
-                                        val oodList = receivedData
-                                        SwithunLog.d("oodList: $oodList")
-                                        when (MessageTextDTO.ContentType.fromValue(message.content_type)) {
-                                            null -> {
-                                                activityVar?.scaffoldState?.showSnackbar(message = "未知 内容类型")
-                                                SwithunLog.d("unknown content_type")
-                                            }
-                                            MessageTextDTO.ContentType.TEXT -> {
-                                                SwithunLog.d("content_type: Text")
-                                                val uodList = mutableListOf<TransferData>(
-                                                    TransferData.TextData(message.content)
-                                                )
-                                                uodList.addAll(oodList.take(4))
-                                                SwithunLog.d("uodList: $uodList")
-                                                receivedData = uodList
-                                            }
-                                            MessageTextDTO.ContentType.IMAGE -> {
-                                                SwithunLog.d("content_type: Image")
-                                                val uodList = mutableListOf<TransferData>(
-                                                    TransferData.ImageData(message.content)
-                                                )
-                                                uodList.addAll(oodList.take(4))
-                                                SwithunLog.d("uodList: $uodList")
-                                                receivedData = uodList
-                                            }
+                    }
+                    is RawTextData -> {
+                        SwithunLog.d("remoteWordFlow collect RawTextData ${it.json}")
+                        val gson = Gson()
+                        try {
+                            val message = gson.fromJson(it.json, MessageTextDTO::class.java)
+                            when (MessageTextDTO.OptionCode.fromValue(message.code)) {
+                                // 其他client发送到会话数据(文本/图片/文件)
+                                MessageTextDTO.OptionCode.POST_SESSION_TEXT -> {
+                                    val oodList = receivedData
+                                    SwithunLog.d("oodList: $oodList")
+                                    when (MessageTextDTO.ContentType.fromValue(message.content_type)) {
+                                        null -> {
+                                            activityVar.scaffoldState?.showSnackbar(message = "未知 内容类型")
+                                            SwithunLog.d("unknown content_type")
                                         }
+                                        MessageTextDTO.ContentType.TEXT -> {
+                                            SwithunLog.d("content_type: Text")
+                                            val uodList = mutableListOf<TransferData>(
+                                                TransferData.TextData(message.content)
+                                            )
+                                            uodList.addAll(oodList.take(4))
+                                            SwithunLog.d("uodList: $uodList")
+                                            receivedData = uodList
+                                        }
+                                        MessageTextDTO.ContentType.IMAGE -> {
+                                            SwithunLog.d("content_type: Image")
+                                            val uodList = mutableListOf<TransferData>(
+                                                TransferData.ImageData(message.content)
+                                            )
+                                            uodList.addAll(oodList.take(4))
+                                            SwithunLog.d("uodList: $uodList")
+                                            receivedData = uodList
+                                        }
+                                    }
 
-                                    }
-                                    null -> {
-                                        activityVar?.scaffoldState?.showSnackbar(message = "无code")
-                                    }
-                                    else -> {
-                                        activityVar?.scaffoldState?.showSnackbar(message = "other code 不处理")
-                                    }
                                 }
-                            } catch (e: Exception) {
-                                activityVar?.scaffoldState?.showSnackbar(message = "解析失败")
+                                null -> {
+                                    activityVar.scaffoldState?.showSnackbar(message = "无code")
+                                }
+                                else -> {
+                                    activityVar.scaffoldState?.showSnackbar(message = "other code 不处理")
+                                }
                             }
+                        } catch (e: Exception) {
+                            activityVar.scaffoldState?.showSnackbar(message = "解析失败")
                         }
                     }
                 }
@@ -148,7 +153,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
     private fun postText(action: Action.PostSessionText) {
         val data = action.text
 
-        val suc =  repository.webSocketSend(RawTextData(TransferBiz.buildPostDTO(data).toJsonStr()))
+        val suc = repository.webSocketSend(RawTextData(TransferBiz.buildPostDTO(data).toJsonStr()))
         viewModelScope.launch {
             activityVar?.scaffoldState?.showSnackbar(
                 message = if (suc) {
@@ -236,8 +241,11 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
         val uri = action.uri
         val context = action.context
 
-        val appExternalPath = activityVar?.pathConfig?.appExternalPath.nullCheck("appExternalPath") ?: return
-        val postFileServerCachePath = activityVar?.pathConfig?.postFileServerCachePath.nullCheck("postFileServerCachePath") ?: return
+        val appExternalPath =
+            activityVar?.pathConfig?.appExternalPath.nullCheck("appExternalPath") ?: return
+        val postFileServerCachePath =
+            activityVar?.pathConfig?.postFileServerCachePath.nullCheck("postFileServerCachePath")
+                ?: return
 
         viewModelScope.launch(Dispatchers.IO) {
 
@@ -262,9 +270,13 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
                         }
                     } ?: "unknown"
 
-                    val filePath = "$appExternalPath$postFileServerCachePath/$fileName".nullCheck("filePath", true)
+                    val filePath = "$appExternalPath$postFileServerCachePath/$fileName".nullCheck(
+                        "filePath",
+                        true
+                    )
                     val filePathBytes = filePath.encodeToByteArray()
-                    val filePathDTO = MessageBinaryDTO(contentId, seq, ByteString.of(*filePathBytes))
+                    val filePathDTO =
+                        MessageBinaryDTO(contentId, seq, ByteString.of(*filePathBytes))
                     repository.webSocketSuspendSend(RawDataBase.RawByteData(ByteString.of(*filePathDTO.toByteArray())))
 
                     seq++
@@ -294,11 +306,15 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
 
     /** 请求下载会话中的文件 */
     private fun getSessionFile(action: ConnectServerViewModel.Action.GetSessionFile) {
-        val appExternalPath = activityVar?.pathConfig?.appExternalPath.nullCheck("appExternalPath") ?: return
-        val postFileServerCachePath = activityVar?.pathConfig?.postFileServerCachePath.nullCheck("postFileServerCachePath") ?: return
+        val appExternalPath =
+            activityVar?.pathConfig?.appExternalPath.nullCheck("appExternalPath") ?: return
+        val postFileServerCachePath =
+            activityVar?.pathConfig?.postFileServerCachePath.nullCheck("postFileServerCachePath")
+                ?: return
 
         val fileName = action.fileName
-        val filePath = "$appExternalPath$postFileServerCachePath/$fileName".nullCheck("filePath", true)
+        val filePath =
+            "$appExternalPath$postFileServerCachePath/$fileName".nullCheck("filePath", true)
         repository.webSocketSend(
             RawTextData(TransferBiz.buildGetDTO(filePath).toJsonStr())
         )
@@ -362,7 +378,24 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
         if (string == null) {
             return null
         }
-        val hexDigits = charArrayOf( '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' )
+        val hexDigits = charArrayOf(
+            '0',
+            '1',
+            '2',
+            '3',
+            '4',
+            '5',
+            '6',
+            '7',
+            '8',
+            '9',
+            'A',
+            'B',
+            'C',
+            'D',
+            'E',
+            'F'
+        )
         val btInput: ByteArray = string.toByteArray(StandardCharsets.UTF_8)
         return try {
             val mdInst: MessageDigest = MessageDigest.getInstance("SHA-256")
