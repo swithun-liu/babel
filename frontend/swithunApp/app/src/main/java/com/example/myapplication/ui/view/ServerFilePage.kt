@@ -25,6 +25,13 @@ import kotlinx.coroutines.launch
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun ServerFilePage(activityVar: ActivityVar) {
+    val actFileClick = { it: PathItem.FileItem ->
+        activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFile(it))
+    }
+    val actFolderClick = { it: PathItem.FolderItem ->
+        activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFolder(it))
+    }
+
     Row {
         Button(onClick = {
             activityVar.fileVM.viewModelScope.launch(Dispatchers.IO) {
@@ -33,29 +40,40 @@ fun ServerFilePage(activityVar: ActivityVar) {
         }) {
             Text(text = "获取服务器文件列表")
         }
-        FileManagerView(activityVar)
+        FileManagerView(
+            actFileClick,
+            actFolderClick,
+            activityVar.fileVM.pathList
+        )
     }
 }
 
+@Preview
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun FileManagerView(activityVar: ActivityVar) {
+fun FileManagerView(
+    actFileClick: (file: PathItem.FileItem) -> Unit = {},
+    actFolderClick: (folder: PathItem.FolderItem) -> Unit = {},
+    dataPathItemList: List<PathItem> = listOf(
+        PathItem.FolderItem("hahah", listOf(PathItem.FileItem("1"), PathItem.FileItem("1"))),
+        PathItem.FileItem("1"),
+        PathItem.FileItem("2"),
+    ),
+) {
     LazyColumn(
         modifier = Modifier
             .width(Dp(600f))
     ) {
-        items(activityVar.fileVM.pathList) { path: PathItem ->
+        items(dataPathItemList) { path: PathItem ->
             when (path) {
                 is PathItem.FileItem -> {
-                    FileItemView(file = path) {
-                        activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFile(it))
-                    }
+                    FileItemView(file = path, itemCL = actFileClick)
                 }
                 is PathItem.FolderItem -> {
                     FolderItemView(
                         path,
-                        { activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFile(it)) },
-                        { activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFolder(it)) }
+                        actFileClick,
+                        actFolderClick
                     )
                 }
             }
@@ -92,17 +110,17 @@ fun FileItemView(
 @Preview(widthDp = 200, heightDp = 100)
 @Composable
 fun FolderItemView(
-    folder: PathItem.FolderItem = PathItem.FolderItem("haha", emptyList()),
-    fileItemCL: (PathItem.FileItem) -> Unit = {},
-    folderItemCL: (folder: PathItem.FolderItem) -> Unit = {},
+    data4Folder: PathItem.FolderItem = PathItem.FolderItem("haha", emptyList()),
+    actFileClick: (PathItem.FileItem) -> Unit = {},
+    actFolderClick: (folder: PathItem.FolderItem) -> Unit = {},
 ) {
     Surface(
         modifier = Modifier
             .fillMaxSize()
             .wrapContentHeight()
             .clickable {
-                SwithunLog.d("click folder: ${folder.name}")
-                folderItemCL(folder)
+                SwithunLog.d("click folder: ${data4Folder.name}")
+                actFolderClick(data4Folder)
             },
         shape = RoundedCornerShape(10),
         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -113,10 +131,10 @@ fun FolderItemView(
         ) {
             Row {
                 Text(text = "Folder: ")
-                Text(text = folder.name)
+                Text(text = data4Folder.name)
             }
-            if (folder.isOpening) {
-                SimplePathListView(folder.children, fileItemCL, folderItemCL)
+            if (data4Folder.isOpening) {
+                NestedPathListView(data4Folder.children, actFileClick, actFolderClick)
             }
         }
     }
@@ -125,21 +143,21 @@ fun FolderItemView(
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 @Preview(widthDp = 200, heightDp = 100)
-fun SimplePathListView(
-    pathList: List<PathItem> = listOf(
+fun NestedPathListView(
+    data4PathList: List<PathItem> = listOf(
         PathItem.FolderItem("haha", emptyList()),
         PathItem.FileItem("sdfsdf")
     ),
-    fileItemCL: (PathItem.FileItem) -> Unit = {},
-    folderItemCL: (folder: PathItem.FolderItem) -> Unit = {},
+    actFileClick: (PathItem.FileItem) -> Unit = {},
+    actFolderClick: (folder: PathItem.FolderItem) -> Unit = {},
 ) {
-    pathList.forEach { path ->
+    data4PathList.forEach { path ->
         when (path) {
             is PathItem.FileItem -> {
-                FileItemView(path, fileItemCL)
+                FileItemView(path, actFileClick)
             }
             is PathItem.FolderItem -> {
-                FolderItemView(path, fileItemCL, folderItemCL)
+                FolderItemView(path, actFileClick, actFolderClick)
             }
         }
     }

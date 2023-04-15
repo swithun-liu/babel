@@ -43,6 +43,7 @@ class NasViewModel(val activity: () -> MainActivity) : BaseViewModel<NasViewMode
             is Action.DownloadTransferFile -> downloadTransferFile(action)
             Action.SearchAllServer -> searchAllServer()
             is Action.ChangeLastTimeConnectServer -> changerLastTimeConnectServer(action)
+            Action.ChooseUploadFileRootDir -> TODO()
         }
     }
 
@@ -54,6 +55,7 @@ class NasViewModel(val activity: () -> MainActivity) : BaseViewModel<NasViewMode
         class DownloadTransferFile(
             val text: String, val contentType: MessageTextDTO.ContentType, val context: Context,
         ) : Action()
+        object ChooseUploadFileRootDir: Action()
     }
 
     private fun changerLastTimeConnectServer(action: Action.ChangeLastTimeConnectServer) {

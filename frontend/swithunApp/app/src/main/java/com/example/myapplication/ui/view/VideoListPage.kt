@@ -43,7 +43,6 @@ fun ConanVideoView(activityVar: ActivityVar) {
     val videoViewModel = activityVar.videoVM
 
     val onGetConanUrl = handler@{ conanUrl: String ->
-        val surfaceView = activityVar.mySurfaceView
         val headerParams = HeaderParams().apply { setBilibiliReferer() }
         try {
             // 循环播放

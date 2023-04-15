@@ -38,7 +38,14 @@ fun Myapp(activityVar: ActivityVar) {
 
     val (selectedItem: Int, setSelectedItem: (Int) -> Unit) = remember { mutableStateOf(0) }
     val items: List<String> = PageIndex.values().map { it.text }
-    val icons: List<ImageVector> = listOf(Icons.Filled.Home, Icons.Filled.Search, Icons.Filled.Settings, Icons.Filled.Settings, Icons.Filled.Settings)
+    val icons: List<ImageVector> = listOf(
+        Icons.Filled.Home,
+        Icons.Filled.Search,
+        Icons.Filled.Settings,
+        Icons.Filled.Settings,
+        Icons.Filled.Settings,
+        Icons.Filled.Settings
+    )
 
     val snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
     activityVar.scaffoldState = snackbarHostState
@@ -68,6 +75,7 @@ fun Myapp(activityVar: ActivityVar) {
                     PageIndex.TRANSFER_PAGE -> TransferPage(activityVar)
                     PageIndex.SERVER_SETTING_PAGE -> ServerSettingPage(activityVar)
                     PageIndex.SERVER_FILE_PAGE -> ServerFilePage(activityVar)
+                    PageIndex.FILE_UPLOAD_PAGE -> FileUploadPage(activityVar)
                     null -> {}
                 }
             }
@@ -79,7 +87,9 @@ enum class PageIndex(val text: String) {
     VIDEO_LIST_PAGE("video list"),
     TRANSFER_PAGE("transfer"),
     SERVER_SETTING_PAGE("server setting"),
-    SERVER_FILE_PAGE("server file");
+    SERVER_FILE_PAGE("server file"),
+    FILE_UPLOAD_PAGE("file upload page")
+    ;
 
     companion object {
         fun fromValue(ordinal: Int) = values().find { it.ordinal == ordinal }
