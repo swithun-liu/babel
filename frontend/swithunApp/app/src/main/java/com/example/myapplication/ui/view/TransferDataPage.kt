@@ -132,7 +132,16 @@ fun TransferPage(activityVar: ActivityVar) {
         onResult = {
             SwithunLog.d(it, "file");
             it?.let { uri ->
-                activityVar.connectServerVM.reduce(ConnectServerViewModel.Action.PostSessionFile(uri, context))
+                val appExternalPath = activityVar.pathConfig.appExternalPath
+                val postFileServerCachePath = activityVar.pathConfig.postFileServerCachePath
+
+                activityVar.connectServerVM.reduce(
+                    ConnectServerViewModel.Action.PostSessionFile(
+                        uri,
+                        context,
+                        "$appExternalPath$postFileServerCachePath"
+                    )
+                )
             }
         })
 

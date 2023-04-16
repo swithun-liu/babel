@@ -9,6 +9,7 @@ import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.model.VideoExtension
+import com.example.myapplication.nullCheck
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -19,6 +20,7 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action>() {
 
     val fileBasePath: String = Environment.getExternalStorageDirectory().absolutePath
     var pathList: List<PathItem> by mutableStateOf(listOf())
+    var uploadRootPathList: List<PathItem> by mutableStateOf(listOf())
     var activityVar: ActivityVar? = null
 
     private val remoteRepository = FileManagerHTTPRepository { activityVar }
@@ -27,17 +29,25 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action>() {
     fun init(activityVar: ActivityVar) {
         this.activityVar = activityVar
         SwithunLog.d("fileBasePath: $fileBasePath")
+
+        val appExternalPath = activityVar.pathConfig.appExternalPath.nullCheck("获取上传文件根路径", true) ?: return
+
+        uploadRootPathList = listOf(
+            PathItem.FolderItem(appExternalPath, emptyList())
+        )
     }
 
     sealed class Action: BaseViewModel.Action() {
         class ClickFolder(val folder: PathItem.FolderItem): Action()
         class ClickFile(val file: PathItem.FileItem): Action()
+        object RefreshBasePathListFromRemote: Action()
     }
 
     override fun reduce(action: Action) {
         when (action) {
             is Action.ClickFile -> clickFile(action.file)
             is Action.ClickFolder -> clickFolder(action.folder)
+            Action.RefreshBasePathListFromRemote -> refreshBasePathListFromRemote()
         }
     }
 
@@ -58,6 +68,10 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action>() {
             val oldList = pathList
             pathList = mutableListOf()
             pathList = addMainToFirst(oldList.toMutableList())
+
+            val oldUploadList = uploadRootPathList
+            uploadRootPathList = mutableListOf()
+            uploadRootPathList = oldUploadList.toMutableList()
         }
     }
 
@@ -88,8 +102,10 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action>() {
         return localRepository.getChildrenPathList(parentPath)
     }
 
-    suspend fun refreshBasePathListFromRemote() {
-        pathList = addMainToFirst(remoteRepository.getBasePathList().toMutableList())
+    private fun refreshBasePathListFromRemote() {
+        viewModelScope.launch(Dispatchers.IO) {
+            pathList = addMainToFirst(remoteRepository.getBasePathList().toMutableList())
+        }
     }
 
     private fun addMainToFirst(basePathList: MutableList<PathItem>): MutableList<PathItem> {

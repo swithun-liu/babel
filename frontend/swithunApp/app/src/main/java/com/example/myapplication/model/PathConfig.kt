@@ -17,4 +17,5 @@ class PathConfig(val activity: MainActivity) {
 
     val postFileClientDownloadPath = "/babel/transfer/download"
     val postFileServerCachePath = "/babel/transfer/cache"
+    val postUploadFileCachePath = "/babel/upload"
 }

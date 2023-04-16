@@ -2,10 +2,12 @@ package com.example.myapplication.websocket
 
 import android.util.Log
 import com.example.myapplication.SwithunLog
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.launch
@@ -54,16 +56,22 @@ class WebSocketChannel(url: String, private val scope: CoroutineScope, private v
                 outgoing.consumeEach {
                     when(it) {
                         is RawDataBase.RawByteData -> {
+                            SwithunLog.d("ws send # raw bytes")
                             socket?.send(it.bytes)
                         }
                         is RawDataBase.RawTextData -> {
+                            SwithunLog.d("ws send # raw text")
                             socket?.send(it.json)
                         }
                     }
+                    SwithunLog.d("ws send # end")
+                    delay(20L)
                 }
+            } catch (e: Exception) {
+                val eJson = Gson().toJson(e)
+                SwithunLog.e("ws socket channel: cache: $eJson")
             } finally {
                 SwithunLog.e("ws socket channel: finally")
-                close()
             }
         }
     }

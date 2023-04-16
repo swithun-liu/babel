@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.MainActivity
+import com.example.myapplication.SwithunLog
 import com.example.myapplication.model.MessageTextDTO
 import com.example.myapplication.util.SPUtil
 import com.example.myapplication.util.SystemUtil
@@ -27,12 +28,20 @@ class NasViewModel(val activity: () -> MainActivity) : BaseViewModel<NasViewMode
     var allServersInLan: List<String> by mutableStateOf(mutableListOf())
     var lastTimeConnectServerIp by mutableStateOf("")
 
+    var uploadFileRootPathList: List<PathItem> by mutableStateOf(listOf())
+
     var startMeAsServerBtnText: String by mutableStateOf("启动server：未启动")
+    var uploadFileRootDir: String by mutableStateOf("")
 
     fun init(activityVar: ActivityVar) {
         this.activityVar = activityVar
         SPUtil.ServerSetting.getLastTimeConnectServer(activityVar.activity)?.let {
+            SwithunLog.d("lastTimeConnectServerIp from SP: $it")
             lastTimeConnectServerIp = it
+        }
+        SPUtil.PathSetting.getUploadFileRootDir(activityVar.activity)?.let {
+            SwithunLog.d("uploadFileRootDir from SP: $it")
+            uploadFileRootDir = it
         }
     }
 
@@ -43,7 +52,7 @@ class NasViewModel(val activity: () -> MainActivity) : BaseViewModel<NasViewMode
             is Action.DownloadTransferFile -> downloadTransferFile(action)
             Action.SearchAllServer -> searchAllServer()
             is Action.ChangeLastTimeConnectServer -> changerLastTimeConnectServer(action)
-            Action.ChooseUploadFileRootDir -> TODO()
+            is Action.ChooseUploadFileRootDir -> chooseUploadFileRootDir(action)
         }
     }
 
@@ -55,7 +64,12 @@ class NasViewModel(val activity: () -> MainActivity) : BaseViewModel<NasViewMode
         class DownloadTransferFile(
             val text: String, val contentType: MessageTextDTO.ContentType, val context: Context,
         ) : Action()
-        object ChooseUploadFileRootDir: Action()
+        class ChooseUploadFileRootDir(val uploadPath: String): Action()
+    }
+
+    private fun chooseUploadFileRootDir(action: Action.ChooseUploadFileRootDir) {
+        this.uploadFileRootDir = action.uploadPath
+        SPUtil.PathSetting.putUploadFileRootDir(activityVar?.activity ?: return, action.uploadPath)
     }
 
     private fun changerLastTimeConnectServer(action: Action.ChangeLastTimeConnectServer) {

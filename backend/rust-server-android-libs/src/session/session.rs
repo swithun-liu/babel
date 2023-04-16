@@ -298,7 +298,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
                 ctx.stop();
             }
             ws::Message::Close(reason) => {
-                debug!("WsChatSession - StreamHandler - handle - Close");
+                debug!("WsChatSession - StreamHandler - handle - Close {:?}", reason);
+
                 ctx.close(reason);
                 ctx.stop();
             }

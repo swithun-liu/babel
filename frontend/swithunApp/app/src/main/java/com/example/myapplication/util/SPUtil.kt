@@ -61,11 +61,23 @@ object SPUtil {
         private const val LastTimeConnectServer = "LastTimeConnectServer"
 
         fun getLastTimeConnectServer(activity: Activity): String? {
-            return SPUtil.getString(activity, LastTimeConnectServer)
+            return getString(activity, LastTimeConnectServer)
         }
 
         fun putLastTimeConnectServer(activity: Activity, lastTimeConnectServer: String) {
-            SPUtil.putString(activity, LastTimeConnectServer, lastTimeConnectServer)
+            putString(activity, LastTimeConnectServer, lastTimeConnectServer)
+        }
+    }
+
+    object PathSetting {
+        private const val uploadFileRootDir = "uploadFileRootDir"
+
+        fun getUploadFileRootDir(activity: Activity): String? {
+            return getString(activity, uploadFileRootDir)
+        }
+
+        fun putUploadFileRootDir(activity: Activity, uploadFileRootDir: String) {
+            putString(activity, uploadFileRootDir, uploadFileRootDir)
         }
     }
 

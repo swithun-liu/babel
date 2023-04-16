@@ -8,9 +8,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -31,16 +37,17 @@ fun ServerFilePage(activityVar: ActivityVar) {
     val actFolderClick = { it: PathItem.FolderItem ->
         activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFolder(it))
     }
+    val funGeneratePathMoreAction: (PathItem) -> List<Pair<Pair<String, ImageVector>, (pathItem: PathItem) -> Unit>> =
+        { emptyList() }
 
     Row {
         Button(onClick = {
-            activityVar.fileVM.viewModelScope.launch(Dispatchers.IO) {
-                activityVar.fileVM.refreshBasePathListFromRemote()
-            }
+            activityVar.fileVM.reduce(FileManagerViewModel.Action.RefreshBasePathListFromRemote)
         }) {
             Text(text = "获取服务器文件列表")
         }
         FileManagerView(
+            funGeneratePathMoreAction,
             actFileClick,
             actFolderClick,
             activityVar.fileVM.pathList
@@ -52,6 +59,7 @@ fun ServerFilePage(activityVar: ActivityVar) {
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun FileManagerView(
+    funGeneratePathMoreAction: (PathItem) -> List<Pair<Pair<String, ImageVector>, (pathItem: PathItem) -> Unit>> = { emptyList() },
     actFileClick: (file: PathItem.FileItem) -> Unit = {},
     actFolderClick: (folder: PathItem.FolderItem) -> Unit = {},
     dataPathItemList: List<PathItem> = listOf(
@@ -72,6 +80,7 @@ fun FileManagerView(
                 is PathItem.FolderItem -> {
                     FolderItemView(
                         path,
+                        funGeneratePathMoreAction,
                         actFileClick,
                         actFolderClick
                     )
@@ -107,16 +116,19 @@ fun FileItemView(
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
-@Preview(widthDp = 200, heightDp = 100)
 @Composable
 fun FolderItemView(
     data4Folder: PathItem.FolderItem = PathItem.FolderItem("haha", emptyList()),
+    funGeneratePathMoreAction: (PathItem) -> List<Pair<Pair<String, ImageVector>, (pathItem: PathItem) -> Unit>> = { emptyList() },
     actFileClick: (PathItem.FileItem) -> Unit = {},
     actFolderClick: (folder: PathItem.FolderItem) -> Unit = {},
 ) {
+    var expanded by remember { mutableStateOf(false) }
+
     Surface(
         modifier = Modifier
             .fillMaxSize()
+            .fillMaxWidth()
             .wrapContentHeight()
             .clickable {
                 SwithunLog.d("click folder: ${data4Folder.name}")
@@ -126,15 +138,59 @@ fun FolderItemView(
         color = MaterialTheme.colorScheme.surfaceVariant,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceTint)
     ) {
-        Column(
-            Modifier.padding(10.dp)
-        ) {
-            Row {
-                Text(text = "Folder: ")
-                Text(text = data4Folder.name)
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .padding(10.dp)
+                    .weight(1f)
+            ) {
+                Row {
+                    Icon(Icons.Filled.List, contentDescription = "Folder Icon")
+                    Text(
+                        text = data4Folder.name,
+                        modifier = Modifier.padding(10.dp, 0.dp)
+                    )
+                }
+                if (data4Folder.isOpening) {
+                    NestedPathListView(
+                        data4Folder.children,
+                        funGeneratePathMoreAction,
+                        actFileClick,
+                        actFolderClick
+                    )
+                }
             }
-            if (data4Folder.isOpening) {
-                NestedPathListView(data4Folder.children, actFileClick, actFolderClick)
+            Box(
+                modifier = Modifier
+                    .wrapContentSize()
+                    .wrapContentSize(Alignment.TopStart)
+            ) {
+
+                IconButton(onClick = {
+                    expanded = true
+                }) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = "Folder Icon",
+                        modifier = Modifier
+                            .width(30.dp)
+                            .height(30.dp)
+                    )
+                }
+                val list: List<Pair<Pair<String, ImageVector>, (pathItem: PathItem) -> Unit>> =
+                    funGeneratePathMoreAction(data4Folder)
+
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    for (l in list) {
+                        DropdownMenuItem(
+                            text = { Text(text = "haha") },
+                            onClick = { },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Edit, contentDescription = null)
+                            }
+                        )
+                    }
+                }
             }
         }
     }
@@ -142,12 +198,12 @@ fun FolderItemView(
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-@Preview(widthDp = 200, heightDp = 100)
 fun NestedPathListView(
     data4PathList: List<PathItem> = listOf(
         PathItem.FolderItem("haha", emptyList()),
         PathItem.FileItem("sdfsdf")
     ),
+    funGeneratePathMoreAction: (PathItem) -> List<Pair<Pair<String, ImageVector>, (pathItem: PathItem) -> Unit>> = { emptyList() },
     actFileClick: (PathItem.FileItem) -> Unit = {},
     actFolderClick: (folder: PathItem.FolderItem) -> Unit = {},
 ) {
@@ -157,7 +213,7 @@ fun NestedPathListView(
                 FileItemView(path, actFileClick)
             }
             is PathItem.FolderItem -> {
-                FolderItemView(path, actFileClick, actFolderClick)
+                FolderItemView(path, funGeneratePathMoreAction, actFileClick, actFolderClick)
             }
         }
     }

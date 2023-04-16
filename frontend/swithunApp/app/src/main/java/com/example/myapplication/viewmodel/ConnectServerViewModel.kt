@@ -2,7 +2,6 @@ package com.example.myapplication
 
 import android.content.Context
 import android.net.Uri
-import android.os.Environment
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -58,7 +57,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
     open class Action : BaseViewModel.Action() {
         class ConnectServer(val serverIp: String) : Action()
         class PostSessionText(val text: String) : Action()
-        class PostSessionFile(val uri: Uri, val context: Context) : Action()
+        class PostSessionFile(val uri: Uri, val context: Context, val parentPath: String) : Action()
         class GetSessionFile(val fileName: String) : Action()
     }
 
@@ -66,7 +65,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
         when (action) {
             is Action.ConnectServer -> connectServer(action)
             is Action.PostSessionText -> postText(action)
-            is Action.PostSessionFile -> transferFile(action)
+            is Action.PostSessionFile -> postSessionFile(action)
             is Action.GetSessionFile -> getSessionFile(action)
         }
     }
@@ -237,15 +236,9 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
     }
 
     /** 发送文件到会话 */
-    private fun transferFile(action: Action.PostSessionFile) {
+    private fun postSessionFile(action: Action.PostSessionFile) {
         val uri = action.uri
         val context = action.context
-
-        val appExternalPath =
-            activityVar?.pathConfig?.appExternalPath.nullCheck("appExternalPath") ?: return
-        val postFileServerCachePath =
-            activityVar?.pathConfig?.postFileServerCachePath.nullCheck("postFileServerCachePath")
-                ?: return
 
         viewModelScope.launch(Dispatchers.IO) {
 
@@ -270,7 +263,8 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
                         }
                     } ?: "unknown"
 
-                    val filePath = "$appExternalPath$postFileServerCachePath/$fileName".nullCheck(
+                    // 文件存储路径
+                    val filePath = "${action.parentPath}/$fileName".nullCheck(
                         "filePath",
                         true
                     )
