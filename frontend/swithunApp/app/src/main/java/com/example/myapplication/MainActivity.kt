@@ -1,5 +1,9 @@
 package com.example.myapplication
 
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.hardware.usb.UsbManager
 import android.os.Build
 import android.os.Bundle
 import android.view.SurfaceView
@@ -16,6 +20,7 @@ import com.example.myapplication.util.AuthChecker
 import com.example.myapplication.util.HeaderParams
 import com.example.myapplication.viewmodel.*
 import kotlinx.coroutines.launch
+import me.jahnen.libaums.core.UsbMassStorageDevice
 
 
 /**
@@ -45,5 +50,48 @@ class MainActivity : ComponentActivity() {
             }
         }
         AuthChecker.checkWriteExternalStorage(this)
+
+        val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+        val devices = UsbMassStorageDevice.getMassStorageDevices(this)
+        for (device in devices) {
+
+            val permissionIntent = PendingIntent.getBroadcast(this, 0, Intent(
+                ACTION_USB_PERMISSION), 0)
+            usbManager.requestPermission(device.usbDevice, permissionIntent)
+            usbManager.hasPermission(device.usbDevice).nullCheck("usb haspermission", true)
+
+            try {
+                SwithunLog.d("usb 1")
+                val init = device.init()
+                SwithunLog.d("usb 2 : init : $init")
+                SwithunLog.d("usb device.partitions: ${device?.partitions?.size}")
+                val currentFs = device.partitions?.getOrNull(1)?.fileSystem
+                if (currentFs == null) {
+                    SwithunLog.d("usb currentFs null")
+                    return
+                }
+
+                SwithunLog.d("usb Capacity: " + currentFs.capacity)
+                SwithunLog.d("usb Occupied Space: " + currentFs.occupiedSpace)
+                SwithunLog.d("usb 3")
+                SwithunLog.d("usb Free Space: " + currentFs.freeSpace)
+                SwithunLog.d("usb Chunk size: " + currentFs.chunkSize)
+                SwithunLog.d("usb 4")
+                val root = currentFs.rootDirectory
+                SwithunLog.d("usb 5")
+                val files = root.listFiles()
+                for (file in files) {
+                    SwithunLog.d("usb file: " + file.name)
+                }
+
+            } catch (e: java.lang.Exception) {
+                SwithunLog.d("usb exception: $e")
+            }
+        }
+
+    }
+
+    companion object {
+        const val ACTION_USB_PERMISSION = "com.example.myapp.USB_PERMISSION"
     }
 }

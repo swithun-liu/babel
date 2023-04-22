@@ -4,6 +4,7 @@
     package="com.example.myapplication">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.hardware.usb.host" android:required="false" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.PACKET_KEEPALIVE_OFFLOAD"
         tools:ignore="ProtectedPermissions" />

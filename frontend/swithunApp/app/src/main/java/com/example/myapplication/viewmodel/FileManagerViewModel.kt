@@ -1,5 +1,6 @@
 package com.example.myapplication.viewmodel
 
+import android.hardware.usb.UsbManager
 import android.os.Environment
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
