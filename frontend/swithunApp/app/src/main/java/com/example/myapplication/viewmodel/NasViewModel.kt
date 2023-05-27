@@ -9,6 +9,7 @@ import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.MainActivity
 import com.example.myapplication.SwithunLog
+import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.MessageTextDTO
 import com.example.myapplication.util.SPUtil
 import com.example.myapplication.util.SystemUtil

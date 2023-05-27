@@ -44,7 +44,7 @@ object SwithunLog {
 }
 
 
-fun<T> T.nullCheck(msg: String, needLogOriginalResult: Boolean = false): T {
+fun<T> T?.nullCheck(msg: String, needLogOriginalResult: Boolean = false): T? {
     if (this == null) {
         SwithunLog.e("#(null check) $msg: err !!")
     }

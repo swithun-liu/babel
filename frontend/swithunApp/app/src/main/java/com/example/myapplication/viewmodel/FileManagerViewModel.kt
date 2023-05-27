@@ -1,6 +1,5 @@
 package com.example.myapplication.viewmodel
 
-import android.hardware.usb.UsbManager
 import android.os.Environment
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -8,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.SwithunLog
+import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.model.VideoExtension
 import com.example.myapplication.nullCheck

@@ -2,6 +2,7 @@ package com.example.myapplication.viewmodel
 
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.SwithunLog
+import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.*
 import com.example.myapplication.model.MessageTextDTO.OptionCode
 import com.example.myapplication.websocket.RawDataBase

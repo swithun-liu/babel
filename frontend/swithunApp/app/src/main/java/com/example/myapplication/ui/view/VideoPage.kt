@@ -31,7 +31,7 @@ fun IjkPlayer(player: IjkMediaPlayer, activityVar: ActivityVar) {
         modifier = Modifier
             .defaultMinSize(100.dp)
             .fillMaxHeight()
-            .aspectRatio(ratio = activityVar.videoVM.aspectRatio)
+            .aspectRatio(ratio = activityVar.videoVM.uiState.aspectRatio)
             .background(MaterialTheme.colorScheme.surfaceVariant),
         factory = { context ->
             val textureView = TextureView(context)

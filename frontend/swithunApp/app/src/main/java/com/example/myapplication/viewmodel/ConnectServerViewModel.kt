@@ -11,7 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.model.*
 import com.example.myapplication.util.postRequest
 import com.example.myapplication.util.safeGetString
-import com.example.myapplication.viewmodel.BaseViewModel
+import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.viewmodel.NasViewModel
 import com.example.myapplication.viewmodel.TransferBiz
 import com.example.myapplication.websocket.RawDataBase
@@ -264,10 +264,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
                     } ?: "unknown"
 
                     // 文件存储路径
-                    val filePath = "${action.parentPath}/$fileName".nullCheck(
-                        "filePath",
-                        true
-                    )
+                    val filePath = "${action.parentPath}/$fileName"
                     val filePathBytes = filePath.encodeToByteArray()
                     val filePathDTO =
                         MessageBinaryDTO(contentId, seq, ByteString.of(*filePathBytes))
@@ -308,7 +305,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
 
         val fileName = action.fileName
         val filePath =
-            "$appExternalPath$postFileServerCachePath/$fileName".nullCheck("filePath", true)
+            "$appExternalPath$postFileServerCachePath/$fileName"
         repository.webSocketSend(
             RawTextData(TransferBiz.buildGetDTO(filePath).toJsonStr())
         )

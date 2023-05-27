@@ -18,8 +18,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.R
 import com.example.myapplication.SwithunLog
+import com.example.myapplication.framework.Async
 import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.model.SectionItem
 import com.example.myapplication.util.HeaderParams
@@ -32,16 +34,16 @@ import kotlinx.coroutines.launch
 @Composable
 fun VideoListPage(activityVar: ActivityVar) {
     Row {
-        ConanVideoView(activityVar)
+        ConanVideoView()
         QRCode(activityVar.videoVM)
     }
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun ConanVideoView(activityVar: ActivityVar) {
-    val videoViewModel = activityVar.videoVM
-
+fun ConanVideoView(
+    videoViewModel: VideoViewModel = viewModel(),
+) {
     val onGetConanUrl = handler@{ conanUrl: String ->
         val headerParams = HeaderParams().apply { setBilibiliReferer() }
         try {
@@ -78,7 +80,7 @@ fun ConanVideoView(activityVar: ActivityVar) {
             }) {
                 Text(text = "stop")
             }
-            Text(text = videoViewModel.currentProcess.toString())
+            Text(text = videoViewModel.uiState.currentProcess.toString())
         }
 
         LazyColumn(
@@ -86,7 +88,7 @@ fun ConanVideoView(activityVar: ActivityVar) {
                 .background(Color(R.color.purple_200))
                 .width(Dp(100f))
         ) {
-            items(videoViewModel.itemList) { sectionItem: SectionItem ->
+            items(videoViewModel.uiState.itemList) { sectionItem: SectionItem ->
                 Button(onClick = {
                     videoViewModel.viewModelScope.launch(Dispatchers.IO) {
                         videoViewModel.getConanByEpId(sectionItem.id)?.let { newConanUrl ->
@@ -106,7 +108,7 @@ fun QRCode(
     videoVM: VideoViewModel,
 ) {
     Column(verticalArrangement = Arrangement.Top) {
-        Text(text = videoVM.loginStatus)
-        Image(painter = BitmapPainter(videoVM.qrCodeImage), contentDescription = "qrCode")
+        Text(text = videoVM.uiState.loginStatus)
+        Image(painter = BitmapPainter(videoVM.uiState.qrCodeImage), contentDescription = "qrCode")
     }
 }

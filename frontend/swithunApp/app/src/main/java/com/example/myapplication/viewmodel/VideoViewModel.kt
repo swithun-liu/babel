@@ -3,7 +3,7 @@ package com.example.myapplication.viewmodel
 import android.annotation.SuppressLint
 import android.util.Log
 import android.view.Surface
-import androidx.activity.ComponentActivity
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -12,6 +12,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.errcode.LogInErrCode
+import com.example.myapplication.framework.Async
+import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.*
 import com.example.myapplication.nullCheck
 import com.example.myapplication.util.*
@@ -25,18 +27,34 @@ import org.json.JSONArray
 import org.json.JSONObject
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
 
-class VideoViewModel(private val activity: () -> ComponentActivity) : BaseViewModel<VideoViewModel.Action>() {
+class VideoViewModel : BaseViewModel<VideoViewModel.Action>() {
 
-    var qrCodeImage: ImageBitmap by mutableStateOf(ImageBitmap(100, 100))
-    var loginStatus by mutableStateOf("未登陆")
-    var currentProcess  by mutableStateOf(0F)
-    var itemList by mutableStateOf(mutableListOf<SectionItem>())
-    var itemCursor = 0
     var player = IjkMediaPlayer()
-    var beginJob: Job? = null
-    var playJob: Job? = null
     var activityVar: ActivityVar? = null
-    var aspectRatio: Float by mutableStateOf(1.toFloat())
+
+    private var itemCursor = 0
+    private var beginJob: Job? = null
+    private var playJob: Job? = null
+
+    private var innerUISate: MutableVideoUIState = MutableVideoUIState()
+    val uiState: VideoUIState = innerUISate
+
+    @Stable
+    interface VideoUIState {
+        val currentProcess: Float
+        var itemList: MutableList<SectionItem>
+        var loginStatus: String
+        var aspectRatio: Float
+        var qrCodeImage: ImageBitmap
+    }
+
+    class MutableVideoUIState: VideoUIState {
+        override var currentProcess: Float by mutableStateOf(0F)
+        override var itemList: MutableList<SectionItem> by mutableStateOf(mutableListOf())
+        override var loginStatus by mutableStateOf("未登陆")
+        override var aspectRatio: Float by mutableStateOf(1.toFloat())
+        override var qrCodeImage: ImageBitmap by mutableStateOf(ImageBitmap(100, 100))
+    }
 
     fun init(activityVar: ActivityVar) {
         this.activityVar = activityVar
@@ -75,7 +93,7 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : BaseViewMo
     }
 
     private fun updateCurrentVideoProcess(process: Float) {
-        currentProcess = process
+        innerUISate.currentProcess = process
     }
 
     private fun playVideo(
@@ -132,8 +150,8 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : BaseViewMo
             player.setOnPreparedListener {
                 val w = player.videoWidth.takeIf { it != 0 } ?: 1
                 val h = player.videoHeight.takeIf { it != 0 } ?: 1
-                aspectRatio = w.toFloat()/h
-                SwithunLog.d("player ready w: $w h: $h aspectRatio: $aspectRatio")
+                innerUISate.aspectRatio = w.toFloat()/h
+                SwithunLog.d("player ready w: $w h: $h aspectRatio: ${uiState.aspectRatio}")
                 player.seekTo(0)
             }
 
@@ -174,7 +192,7 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : BaseViewMo
                 SwithunLog.d("loginEnsureQrCodeUrl $it")
                 val bitmap = BarcodeEncoder().encodeBitmap(it, BarcodeFormat.QR_CODE, 400, 400)
                     .asImageBitmap()
-                qrCodeImage = bitmap
+                uiState.qrCodeImage = bitmap
             }
             data.safeGetString("qrcode_key")?.let {
                 qrcodeKey = it
@@ -217,7 +235,7 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : BaseViewMo
                             val value = cookieKeyValue[1]
 
                             Log.i(TAG, "")
-                            SPUtil.putString(activity.invoke(), key, value)
+                            SPUtil.putString(activityVar?.activity, key, value)
                         }
                     }
 
@@ -229,8 +247,10 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : BaseViewMo
 
     @SuppressLint("LongLogTag")
      private suspend fun getCheckMyProfile(): Boolean {
+        val activityVar = activityVar ?: return false
+
         val headerParams = HeaderParams().apply {
-            setBilibiliCookie(activity.invoke())
+            setBilibiliCookie(activityVar.activity)
         }
         val response = getRequest(BILIBILI_MY_INFO_URL, headerParams = headerParams).nullCheck("get my profile") ?: return false
 
@@ -238,12 +258,12 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : BaseViewMo
             return when (code) {
                 "0" -> {
                     SwithunLog.d("登陆成功")
-                    loginStatus = "已登陆"
+                    innerUISate.loginStatus = "已登陆"
                     true
                 }
                 else -> {
                     SwithunLog.d("登陆失败 - errCode: $code: ${LogInErrCode.fromValue(code.toInt())}")
-                    loginStatus = "登陆失败"
+                    innerUISate.loginStatus = "登陆失败"
                     false
                 }
             }
@@ -255,38 +275,41 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : BaseViewMo
     suspend fun getConanByEpId(epId: Long): String? {
         beginJob?.join()
 
-        for (i in 0 until itemList.size) {
-            if (itemList[i].id == epId) {
+        for (i in 0 until innerUISate.itemList.size) {
+            if (innerUISate.itemList[i].id == epId) {
                 return getConan(i)
             }
         }
+
         return null
     }
 
     suspend fun getConan(chosePos: Int? = null): String? {
-
-        val pos =
-            chosePos
-                ?: SPUtil.Conan.getCurrentConan(activity()).nullCheck("get current conan pos")
-                ?: 0
-
+        val pos = chosePos ?: SPUtil.Conan.getCurrentConan(activityVar?.activity)
+            .nullCheck("get current conan pos") ?: 0
         itemCursor = pos
 
-        val item = itemList.getOrNull(pos)
+        val item = innerUISate.itemList.getOrNull(pos)
         val epId = item?.id ?: GetEpisode.EPISODE.CONAN.id
 
         val urlEncodeParams = UrlEncodeParams().apply { put("ep_id", epId.toString()) }
 
-        val headerParams = HeaderParams().apply { setBilibiliCookie(activity()) }
+        val headerParams = HeaderParams().apply { setBilibiliCookie(activityVar?.activity) }
 
         val videoInfo = getRequest(
             GetEpisode.URL,
             urlEncodeParams = urlEncodeParams,
             headerParams = headerParams
         ).nullCheck("get videoInfo", true) ?: return null
-        val result = videoInfo.safeGetJSONObject("result").nullCheck("get result", true) ?: return null
-        val durl: JSONArray = result.safeGetJsonArray("durl").nullCheck("get durl", true) ?: return null
-        val durl_0 = (if (durl.length() > 0) { durl.get(0) } else { null } as? JSONObject).nullCheck("get durl_0") ?: return null
+        val result =
+            videoInfo.safeGetJSONObject("result").nullCheck("get result", true) ?: return null
+        val durl: JSONArray =
+            result.safeGetJsonArray("durl").nullCheck("get durl", true) ?: return null
+        val durl_0 = (if (durl.length() > 0) {
+            durl.get(0)
+        } else {
+            null
+        } as? JSONObject).nullCheck("get durl_0") ?: return null
         val durl_url = durl_0.safeGetString("url").nullCheck("get durl_url", true) ?: return null
 
         return durl_url
@@ -324,7 +347,8 @@ class VideoViewModel(private val activity: () -> ComponentActivity) : BaseViewMo
             items.add(item)
         }
 
-        itemList = items
+
+        innerUISate.itemList = items
         SwithunLog.d("haha - 2")
     }
 
