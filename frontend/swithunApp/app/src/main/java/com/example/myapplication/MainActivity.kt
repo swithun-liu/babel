@@ -6,6 +6,7 @@ import android.content.Intent
 import android.hardware.usb.UsbManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.SurfaceView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -53,6 +54,7 @@ class MainActivity : ComponentActivity() {
 
         val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
         val devices = UsbMassStorageDevice.getMassStorageDevices(this)
+        Log.d("swithun-xxxx", "devices: ${devices.size}")
         for (device in devices) {
 
             val permissionIntent = PendingIntent.getBroadcast(this, 0, Intent(
