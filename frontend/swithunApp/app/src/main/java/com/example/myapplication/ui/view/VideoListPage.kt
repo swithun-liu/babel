@@ -44,31 +44,6 @@ fun VideoListPage(activityVar: ActivityVar) {
 fun ConanVideoView(
     videoViewModel: VideoViewModel = viewModel(),
 ) {
-    val onGetConanUrl = handler@{ conanUrl: String ->
-        val headerParams = HeaderParams().apply { setBilibiliReferer() }
-        try {
-            // 循环播放
-            videoViewModel.reduce(VideoViewModel.Action.PlayVideoAction(
-                conanUrl, headerParams, { }
-            ))
-            // 播放进度计算
-            videoViewModel.viewModelScope.launch {
-                while (true) {
-                    delay(500)
-                    val duration = when (val duration = videoViewModel.player.duration) {
-                        0L -> 1F
-                        else -> duration.toFloat()
-                    }
-                    videoViewModel.reduce(VideoViewModel.Action.UpdateCurrentVideoProcess(
-                        videoViewModel.player.currentPosition.toFloat() / duration
-                    ))
-                }
-            }
-        } catch (e: Error) {
-            SwithunLog.e("player err")
-        }
-    }
-
     Row {
         Column {
             Button(onClick = {
@@ -90,11 +65,7 @@ fun ConanVideoView(
         ) {
             items(videoViewModel.uiState.itemList) { sectionItem: SectionItem ->
                 Button(onClick = {
-                    videoViewModel.viewModelScope.launch(Dispatchers.IO) {
-                        videoViewModel.getConanByEpId(sectionItem.id)?.let { newConanUrl ->
-                            onGetConanUrl(newConanUrl)
-                        }
-                    }
+                    videoViewModel.reduce(VideoViewModel.Action.CyclePlayEpisode(sectionItem.id))
                 }) {
                     Text(text = "${sectionItem.shortTitle}: ${sectionItem.longTitle}")
                 }

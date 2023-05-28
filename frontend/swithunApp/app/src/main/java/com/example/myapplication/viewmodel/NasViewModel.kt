@@ -19,7 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
-class NasViewModel(val activity: () -> MainActivity) : BaseViewModel<NasViewModel.Action>() {
+class NasViewModel() : BaseViewModel<NasViewModel.Action>() {
 
     // https://juejin.cn/post/6844903551408291848
     // https://github.com/koush/AndroidAsync
@@ -28,8 +28,6 @@ class NasViewModel(val activity: () -> MainActivity) : BaseViewModel<NasViewMode
     var getAllServerBtnText: String by mutableStateOf("搜寻其他可用server")
     var allServersInLan: List<String> by mutableStateOf(mutableListOf())
     var lastTimeConnectServerIp by mutableStateOf("")
-
-    var uploadFileRootPathList: List<PathItem> by mutableStateOf(listOf())
 
     var startMeAsServerBtnText: String by mutableStateOf("启动server：未启动")
     var uploadFileRootDir: String by mutableStateOf("")

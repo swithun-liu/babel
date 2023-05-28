@@ -106,7 +106,7 @@ class NasViewModelFactory implements ViewModelProvider.Factory {
     @NonNull
     @Override
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
-        return (T) new NasViewModel(mActivitySupplier);
+        return (T) new NasViewModel();
     }
 }
 

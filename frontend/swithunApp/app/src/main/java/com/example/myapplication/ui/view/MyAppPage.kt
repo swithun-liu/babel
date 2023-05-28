@@ -19,8 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.ui.view.*
+import com.example.myapplication.viewmodel.ShareViewModel
 
 
 @RequiresApi(Build.VERSION_CODES.M)
@@ -34,7 +36,10 @@ fun PreviewMyApp() {
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun Myapp(activityVar: ActivityVar) {
+fun Myapp(
+    activityVar: ActivityVar,
+    shareViewModel: ShareViewModel = viewModel(),
+) {
 
     val (selectedItem: Int, setSelectedItem: (Int) -> Unit) = remember { mutableStateOf(0) }
     val items: List<String> = PageIndex.values().map { it.text }
@@ -47,11 +52,10 @@ fun Myapp(activityVar: ActivityVar) {
         Icons.Filled.Settings
     )
 
-    val snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
-    activityVar.scaffoldState = snackbarHostState
+    activityVar.scaffoldState = shareViewModel.snackbarHostState
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        snackbarHost = { SnackbarHost(hostState = shareViewModel.snackbarHostState) },
         content = {
             Row(modifier = Modifier
                 .fillMaxWidth()

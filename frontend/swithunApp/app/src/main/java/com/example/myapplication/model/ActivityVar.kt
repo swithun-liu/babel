@@ -13,7 +13,6 @@ class ActivityVar constructor(
     val kernelConfig: KernelConfig = KernelConfig({ activity }),
     val pathConfig: PathConfig = PathConfig(activity),
     val serverConfig: ServerConfig = ServerConfig,
-    var mySurfaceView: SurfaceView? = null,
     var textureView: SurfaceTexture? = null,
     val connectKernelVM: ConnectKernelViewModel = ViewModelProvider(activity,
         ViewModelProviderFactories(ConnectKernelViewModel::class.java).getFactory { activity })[ConnectKernelViewModel::class.java],

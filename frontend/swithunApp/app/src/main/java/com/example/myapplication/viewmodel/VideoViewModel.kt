@@ -12,8 +12,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.errcode.LogInErrCode
-import com.example.myapplication.framework.Async
-import com.example.myapplication.framework.BaseViewModel
+import com.example.myapplication.framework.BaseViewModel2
 import com.example.myapplication.model.*
 import com.example.myapplication.nullCheck
 import com.example.myapplication.util.*
@@ -27,22 +26,23 @@ import org.json.JSONArray
 import org.json.JSONObject
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
 
-class VideoViewModel : BaseViewModel<VideoViewModel.Action>() {
+class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.VideoUIState, VideoViewModel.MutableVideoUIState>() {
 
-    var player = IjkMediaPlayer()
+    var player by mutableStateOf(IjkMediaPlayer())
     var activityVar: ActivityVar? = null
 
     private var itemCursor = 0
     private var beginJob: Job? = null
     private var playJob: Job? = null
 
-    private var innerUISate: MutableVideoUIState = MutableVideoUIState()
-    val uiState: VideoUIState = innerUISate
+    override fun getInitialUIState(): MutableVideoUIState {
+        return MutableVideoUIState()
+    }
 
     @Stable
     interface VideoUIState {
         val currentProcess: Float
-        var itemList: MutableList<SectionItem>
+        var itemList: List<SectionItem>
         var loginStatus: String
         var aspectRatio: Float
         var qrCodeImage: ImageBitmap
@@ -50,30 +50,36 @@ class VideoViewModel : BaseViewModel<VideoViewModel.Action>() {
 
     class MutableVideoUIState: VideoUIState {
         override var currentProcess: Float by mutableStateOf(0F)
-        override var itemList: MutableList<SectionItem> by mutableStateOf(mutableListOf())
+        override var itemList: List<SectionItem> by mutableStateOf(listOf())
         override var loginStatus by mutableStateOf("未登陆")
         override var aspectRatio: Float by mutableStateOf(1.toFloat())
         override var qrCodeImage: ImageBitmap by mutableStateOf(ImageBitmap(100, 100))
+    }
+
+    sealed class UIEvent {
+        class SetSurfaceTexture2Player(val player: IjkMediaPlayer): UIEvent()
     }
 
     fun init(activityVar: ActivityVar) {
         this.activityVar = activityVar
     }
 
-    sealed class Action: BaseViewModel.Action() {
+    sealed class Action: BaseViewModel2.Action() {
         data class PlayVideoAction(
             val videoUrl: String,
             val headerParams: HeaderParams? = null,
             val onComplete: (() -> Unit)? = null
         ): Action()
 
-        data class UpdateCurrentVideoProcess(val process: Float): Action()
+        data class CyclePlayEpisode(
+            val epId: Long
+        ) : Action()
     }
 
     override fun reduce(action: Action) {
         when (action) {
             is Action.PlayVideoAction -> playVideo(action)
-            is Action.UpdateCurrentVideoProcess -> updateCurrentVideoProcess(action.process)
+            is Action.CyclePlayEpisode -> cyclePlayEpisodeByEpId(action.epId)
         }
     }
 
@@ -155,6 +161,7 @@ class VideoViewModel : BaseViewModel<VideoViewModel.Action>() {
                 player.seekTo(0)
             }
 
+
             onComplete?.let { nonNullOnComplete ->
                 player.setOnCompletionListener {
                     nonNullOnComplete.invoke()
@@ -164,6 +171,15 @@ class VideoViewModel : BaseViewModel<VideoViewModel.Action>() {
 
             player.prepareAsync()
             player.start()
+
+            while (true) {
+                delay(500)
+                val duration = when (val duration = player.duration) {
+                    0L -> 1F
+                    else -> duration.toFloat()
+                }
+                updateCurrentVideoProcess(player.currentPosition.toFloat() / duration)
+            }
         }
     }
 
@@ -245,7 +261,6 @@ class VideoViewModel : BaseViewModel<VideoViewModel.Action>() {
         }
     }
 
-    @SuppressLint("LongLogTag")
      private suspend fun getCheckMyProfile(): Boolean {
         val activityVar = activityVar ?: return false
 
@@ -272,19 +287,42 @@ class VideoViewModel : BaseViewModel<VideoViewModel.Action>() {
 
     }
 
-    suspend fun getConanByEpId(epId: Long): String? {
-        beginJob?.join()
-
+    private fun cyclePlayEpisodeByEpId(epId: Long) {
+        var itemPos = 0
         for (i in 0 until innerUISate.itemList.size) {
             if (innerUISate.itemList[i].id == epId) {
-                return getConan(i)
+                itemPos = i
+                break
             }
         }
 
-        return null
+        cyclePlayEpisode(itemPos)
     }
 
-    suspend fun getConan(chosePos: Int? = null): String? {
+    private fun cyclePlayEpisode(epPos: Int) {
+         viewModelScope.launch(Dispatchers.IO) {
+
+            itemCursor = epPos
+
+            val epUrl =
+                getConan(epPos).nullCheck("cyclePlayEpisode getConan", true) ?: return@launch
+
+            val headerParams = HeaderParams().apply { setBilibiliReferer() }
+
+            playVideo(Action.PlayVideoAction(
+                epUrl,
+                headerParams
+            ) {
+                viewModelScope.launch {
+                    val nextEpPos = getNextEpisodePos()
+                    cyclePlayEpisode(nextEpPos)
+                }
+            })
+        }
+    }
+
+
+    private suspend fun getConan(chosePos: Int? = null): String? {
         val pos = chosePos ?: SPUtil.Conan.getCurrentConan(activityVar?.activity)
             .nullCheck("get current conan pos") ?: 0
         itemCursor = pos
@@ -315,9 +353,9 @@ class VideoViewModel : BaseViewModel<VideoViewModel.Action>() {
         return durl_url
     }
 
-    suspend fun getNextConan(): String? {
-        val nextCursor = (itemCursor + 1) % 500
-        return getConan(nextCursor)
+
+    private fun getNextEpisodePos(): Int {
+        return (itemCursor + 1) % 500
     }
 
     private suspend fun getConanList() {
