@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import com.example.myapplication.model.KernelConfig
 import com.example.myapplication.model.PathConfig
 import com.example.myapplication.model.ServerConfig
-import com.example.myapplication.model.VMDependency
+import com.example.myapplication.model.VMCollection
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.ui.view.Myapp
 import com.example.myapplication.util.AuthChecker
@@ -37,8 +37,8 @@ class MainActivity : ComponentActivity() {
     private val nasViewModel: NasViewModel by viewModels()
     private val fileViewModel: FileManagerViewModel by viewModels()
 
-    private val vmDependency by lazy {
-        VMDependency(
+    private val vmCollection by lazy {
+        VMCollection(
             this,
             connectKernelViewModel,
             connectServerViewModel,
@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
         Config.pathConfig.init(this)
         Config.kernelConfig.init(this)
 
-        vmDependency
+        vmCollection
 
         super.onCreate(savedInstanceState)
 

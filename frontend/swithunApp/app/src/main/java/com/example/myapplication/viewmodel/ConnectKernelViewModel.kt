@@ -19,10 +19,10 @@ class ConnectKernelViewModel : BaseViewModel<ConnectKernelViewModel.Action>() {
 
     private var remoteWordFlow: Flow<RawDataBase>? = null
     private val repository = WebSocketRepository()
-    private var VMDependency: VMDependency? = null
+    private var vmCollection: VMCollection? = null
 
-    fun init(VMDependency: VMDependency) {
-        this.VMDependency = VMDependency
+    fun init(vmCollection: VMCollection) {
+        this.vmCollection = vmCollection
     }
 
     sealed class Action : BaseViewModel.Action() {
@@ -88,7 +88,7 @@ class ConnectKernelViewModel : BaseViewModel<ConnectKernelViewModel.Action>() {
     private fun handleResponse(data: MessageTextDTO) {
         when (OptionCode.fromValue(data.code)) {
             OptionCode.GET_BASE_PATH_LIST_REQUEST -> {
-                VMDependency?.let {
+                vmCollection?.let {
                     it.fileVM.viewModelScope.launch(Dispatchers.IO) {
                         val basePathList = it.fileVM.getBasePathListFromLocal()
                         val gson = Gson()
@@ -104,7 +104,7 @@ class ConnectKernelViewModel : BaseViewModel<ConnectKernelViewModel.Action>() {
                 }
             }
             OptionCode.GET_CHILDREN_PATH_LIST_REQUEST -> {
-                VMDependency?.let {
+                vmCollection?.let {
                     it.fileVM.viewModelScope.launch(Dispatchers.IO) {
                         val childrenPathList = it.fileVM.getChildrenPathListFromLocal(data.content)
                         val gson = Gson()

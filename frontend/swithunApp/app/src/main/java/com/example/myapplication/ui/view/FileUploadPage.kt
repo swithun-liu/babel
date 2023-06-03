@@ -24,7 +24,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.Config
 import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.SwithunLog
-import com.example.myapplication.model.VMDependency
 import com.example.myapplication.viewmodel.FileManagerViewModel
 import com.example.myapplication.viewmodel.NasViewModel
 import com.example.myapplication.viewmodel.PathItem
@@ -75,7 +74,7 @@ fun FileUploadPage(
                     funGeneratePathMoreAction,
                     actFileClick,
                     actFolderClick,
-                    fileManagerViewModel.uploadRootPathList
+                    fileManagerViewModel.uiState.uploadRootPathList
                 )
             }
         }
@@ -118,7 +117,7 @@ fun FileUploadPage(
         actFileClick,
         actFolderClick,
         actChooseFile,
-        fileManagerViewModel.uploadRootPathList
+        fileManagerViewModel.uiState.uploadRootPathList
     )
 }
 

@@ -1,7 +1,6 @@
 package com.example.myapplication.viewmodel
 
 import com.example.myapplication.Config
-import com.example.myapplication.model.VMDependency
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.nullCheck

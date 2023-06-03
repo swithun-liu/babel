@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.*
-import com.example.myapplication.model.VMDependency
 import com.example.myapplication.viewmodel.FileManagerViewModel
 import com.example.myapplication.viewmodel.PathItem
 
@@ -50,7 +49,7 @@ fun ServerFilePage(
             funGeneratePathMoreAction,
             actFileClick,
             actFolderClick,
-            fileManagerViewModel.pathList
+            fileManagerViewModel.uiState.pathList
         )
     }
 }

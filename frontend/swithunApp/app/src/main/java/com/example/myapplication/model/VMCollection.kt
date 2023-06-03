@@ -1,12 +1,11 @@
 package com.example.myapplication.model
 
 import androidx.compose.material3.SnackbarHostState
-import androidx.lifecycle.ViewModelProvider
 import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.MainActivity
 import com.example.myapplication.viewmodel.*
 
-class VMDependency constructor(
+class VMCollection constructor(
     var activity: MainActivity,
     val connectKernelVM: ConnectKernelViewModel,
     val connectServerVM: ConnectServerViewModel,

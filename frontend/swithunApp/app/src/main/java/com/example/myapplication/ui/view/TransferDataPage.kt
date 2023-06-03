@@ -21,7 +21,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.Config
 import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.SwithunLog
-import com.example.myapplication.model.VMDependency
 import com.example.myapplication.model.MessageTextDTO
 import com.example.myapplication.model.TransferData
 import com.example.myapplication.util.SystemUtil

@@ -7,7 +7,8 @@ object KernelConfig {
     var kernelIP: String = ""
         private set
     private const val kernelPort: Int = 8088
-    val kernelHost: String = "$kernelIP:$kernelPort"
+    val kernelHost: String
+        get() ="$kernelIP:$kernelPort"
 
 
     fun init(activity: Activity) {

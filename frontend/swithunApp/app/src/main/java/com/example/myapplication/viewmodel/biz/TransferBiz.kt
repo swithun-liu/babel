@@ -1,4 +1,4 @@
-package com.example.myapplication.viewmodel
+package com.example.myapplication.viewmodel.biz
 
 import com.example.myapplication.model.MessageTextDTO
 import java.util.*

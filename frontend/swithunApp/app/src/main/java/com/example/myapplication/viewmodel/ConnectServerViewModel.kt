@@ -13,7 +13,7 @@ import com.example.myapplication.util.postRequest
 import com.example.myapplication.util.safeGetString
 import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.viewmodel.NasViewModel
-import com.example.myapplication.viewmodel.TransferBiz
+import com.example.myapplication.viewmodel.biz.TransferBiz
 import com.example.myapplication.websocket.RawDataBase
 import com.example.myapplication.websocket.RawDataBase.RawTextData
 import com.example.myapplication.websocket.WebSocketRepository
@@ -43,15 +43,15 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
 
     private val TAG = "swithun{WordsViewModel"
 
-    var VMDependency: VMDependency? = null
+    var vmCollection: VMCollection? = null
 
     var receivedData by mutableStateOf(listOf<TransferData>())
 
     // contentId - 文件名
     private var receivingFileMap = mutableMapOf<String, String>()
 
-    fun init(VMDependency: VMDependency) {
-        this.VMDependency = VMDependency
+    fun init(vmCollection: VMCollection) {
+        this.vmCollection = vmCollection
     }
 
     open class Action : BaseViewModel.Action() {
@@ -74,7 +74,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
 
         val serverIp = action.serverIp
 
-        val activityVar = this.VMDependency ?: return
+        val activityVar = this.vmCollection ?: return
 
         Config.serverConfig.serverIP = serverIp
 
@@ -154,7 +154,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
 
         val suc = repository.webSocketSend(RawTextData(TransferBiz.buildPostDTO(data).toJsonStr()))
         viewModelScope.launch {
-            VMDependency?.scaffoldState?.showSnackbar(
+            vmCollection?.scaffoldState?.showSnackbar(
                 message = if (suc) {
                     "成功发送"
                 } else {
@@ -202,7 +202,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
             -1 -> { // seq为-1，表示文件接收完成
                 viewModelScope.launch {
                     SwithunLog.d("handle -1")
-                    VMDependency?.scaffoldState?.showSnackbar(message = "文件接收完成")
+                    vmCollection?.scaffoldState?.showSnackbar(message = "文件接收完成")
                 }
             }
             else -> { // seq为其他值，payload为文件内容

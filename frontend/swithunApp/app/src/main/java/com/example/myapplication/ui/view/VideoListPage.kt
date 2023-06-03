@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.R
-import com.example.myapplication.model.VMDependency
 import com.example.myapplication.model.SectionItem
 import com.example.myapplication.viewmodel.VideoViewModel
 

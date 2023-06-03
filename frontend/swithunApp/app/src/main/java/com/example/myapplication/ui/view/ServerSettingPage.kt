@@ -16,15 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.Config
 import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.SwithunLog
-import com.example.myapplication.model.VMDependency
 import com.example.myapplication.viewmodel.NasViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @Composable
 fun ServerSettingPage(
@@ -50,22 +46,22 @@ fun ServerSettingPage(
         }
 
         val actChangeLastTimeServerIp = { newSeverIp: String ->
-            nasViewModel.lastTimeConnectServerIp = newSeverIp
+            nasViewModel.uiState.lastTimeConnectServerIp = newSeverIp
         }
 
         val actConnectLastTimeServer = {
             connectServerViewModel.reduce(
                 ConnectServerViewModel.Action.ConnectServer(
-                    nasViewModel.lastTimeConnectServerIp
+                    nasViewModel.uiState.lastTimeConnectServerIp
                 )
             )
         }
 
         ServerOther(
             Config.kernelConfig.kernelIP /* 当前IP */,
-            nasViewModel.allServersInLan /* 所有服务器IP */,
-            nasViewModel.lastTimeConnectServerIp /* 上次连接的服务器IP */,
-            nasViewModel.getAllServerBtnText /* 搜索服务器按钮文字 */,
+            nasViewModel.uiState.allServersInLan /* 所有服务器IP */,
+            nasViewModel.uiState.lastTimeConnectServerIp /* 上次连接的服务器IP */,
+            nasViewModel.uiState.getAllServerBtnText /* 搜索服务器按钮文字 */,
             actConnectSearchedServerIp /* 连接搜索到的服务器 */,
             actSearchServerInLan /* 搜索服务器 */,
             actChangeLastTimeServerIp /* 修改上次连接的服务器IP */,
@@ -78,7 +74,7 @@ fun ServerSettingPage(
         ServerMine(
             actStartServer,
             actConnectMyServer,
-            nasViewModel.startMeAsServerBtnText /* startServerBtnText */
+            nasViewModel.uiState.startMeAsServerBtnText /* startServerBtnText */
         )
     }
 }

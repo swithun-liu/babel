@@ -27,7 +27,7 @@ import tv.danmaku.ijk.media.player.IjkMediaPlayer
 
 class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.VideoUIState, VideoViewModel.MutableVideoUIState>() {
 
-    var VMDependency: VMDependency? = null
+    private var vmCollection: VMCollection? = null
 
     private var itemCursor = 0
     private var beginJob: Job? = null
@@ -56,8 +56,8 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
         override var player: IjkMediaPlayer by mutableStateOf(IjkMediaPlayer())
     }
 
-    fun init(VMDependency: VMDependency) {
-        this.VMDependency = VMDependency
+    fun init(vmCollection: VMCollection) {
+        this.vmCollection = vmCollection
     }
 
     sealed class Action: BaseViewModel2.Action() {
@@ -241,7 +241,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
                             val value = cookieKeyValue[1]
 
                             Log.i(TAG, "")
-                            SPUtil.putString(VMDependency?.activity, key, value)
+                            SPUtil.putString(vmCollection?.activity, key, value)
                         }
                     }
 
@@ -252,7 +252,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
     }
 
      private suspend fun getCheckMyProfile(): Boolean {
-        val activityVar = VMDependency ?: return false
+        val activityVar = vmCollection ?: return false
 
         val headerParams = HeaderParams().apply {
             setBilibiliCookie(activityVar.activity)
@@ -313,7 +313,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
 
 
     private suspend fun getConan(chosePos: Int? = null): String? {
-        val pos = chosePos ?: SPUtil.Conan.getCurrentConan(VMDependency?.activity)
+        val pos = chosePos ?: SPUtil.Conan.getCurrentConan(vmCollection?.activity)
             .nullCheck("get current conan pos") ?: 0
         itemCursor = pos
 
@@ -322,7 +322,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
 
         val urlEncodeParams = UrlEncodeParams().apply { put("ep_id", epId.toString()) }
 
-        val headerParams = HeaderParams().apply { setBilibiliCookie(VMDependency?.activity) }
+        val headerParams = HeaderParams().apply { setBilibiliCookie(vmCollection?.activity) }
 
         val videoInfo = getRequest(
             GetEpisode.URL,

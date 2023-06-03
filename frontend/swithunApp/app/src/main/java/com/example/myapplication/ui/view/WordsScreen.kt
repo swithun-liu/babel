@@ -14,10 +14,10 @@ import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.model.VMDependency
+import com.example.myapplication.model.VMCollection
 
 @Composable
-fun WordsScreen(VMDependency: VMDependency) {
+fun WordsScreen(vmCollection: VMCollection) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.width(400.dp)
@@ -39,13 +39,13 @@ fun WordsScreen(VMDependency: VMDependency) {
 
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = "单词：")
-            Text(text = VMDependency.connectServerVM.wordsResult.word)
+            Text(text = vmCollection.connectServerVM.wordsResult.word)
         }
         val bullet = "\u2022"
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = "解释：")
             Text(text = buildAnnotatedString {
-                VMDependency.connectServerVM.wordsResult.explains.forEach {
+                vmCollection.connectServerVM.wordsResult.explains.forEach {
                     withStyle(ParagraphStyle(textIndent = TextIndent(restLine = 12.sp))) {
                         append(bullet)
                         append("\t\t")
@@ -57,7 +57,7 @@ fun WordsScreen(VMDependency: VMDependency) {
 
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = "翻译：")
-            Text(text = VMDependency.connectServerVM.wordsResult.translation)
+            Text(text = vmCollection.connectServerVM.wordsResult.translation)
         }
 
     }
