@@ -8,7 +8,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.model.*
 import com.example.myapplication.util.postRequest
 import com.example.myapplication.util.safeGetString
@@ -44,15 +43,15 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
 
     private val TAG = "swithun{WordsViewModel"
 
-    var activityVar: ActivityVar? = null
+    var VMDependency: VMDependency? = null
 
     var receivedData by mutableStateOf(listOf<TransferData>())
 
     // contentId - 文件名
     private var receivingFileMap = mutableMapOf<String, String>()
 
-    fun init(activityVar: ActivityVar) {
-        this.activityVar = activityVar
+    fun init(VMDependency: VMDependency) {
+        this.VMDependency = VMDependency
     }
 
     open class Action : BaseViewModel.Action() {
@@ -75,9 +74,9 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
 
         val serverIp = action.serverIp
 
-        val activityVar = this.activityVar ?: return
+        val activityVar = this.VMDependency ?: return
 
-        activityVar.serverConfig.serverIP = serverIp
+        Config.serverConfig.serverIP = serverIp
 
         remoteWordFlow = repository.webSocketCreate(
             "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.WebSocketPath.path}",
@@ -155,7 +154,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
 
         val suc = repository.webSocketSend(RawTextData(TransferBiz.buildPostDTO(data).toJsonStr()))
         viewModelScope.launch {
-            activityVar?.scaffoldState?.showSnackbar(
+            VMDependency?.scaffoldState?.showSnackbar(
                 message = if (suc) {
                     "成功发送"
                 } else {
@@ -176,12 +175,8 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
             0 -> { // seq为0，payload为文件名
                 try {
                     SwithunLog.d("handle 0")
-                    val appExternalPath =
-                        activityVar?.pathConfig?.appExternalPath.nullCheck("appExternalPath")
-                            ?: return
-                    val postFileClientDownloadPath =
-                        activityVar?.pathConfig?.postFileClientDownloadPath.nullCheck("postFileClientDownloadPath")
-                            ?: return
+                    val appExternalPath = Config.pathConfig.appExternalPath
+                    val postFileClientDownloadPath = Config.pathConfig.postFileClientDownloadPath
                     // 获取文件名
                     val fileName = messageBinaryDTO.payload.utf8()
                     val file = File(
@@ -207,18 +202,14 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
             -1 -> { // seq为-1，表示文件接收完成
                 viewModelScope.launch {
                     SwithunLog.d("handle -1")
-                    activityVar?.scaffoldState?.showSnackbar(message = "文件接收完成")
+                    VMDependency?.scaffoldState?.showSnackbar(message = "文件接收完成")
                 }
             }
             else -> { // seq为其他值，payload为文件内容
                 try {
                     SwithunLog.d("handle $seq")
-                    val appExternalPath =
-                        activityVar?.pathConfig?.appExternalPath.nullCheck("appExternalPath")
-                            ?: return
-                    val postFileClientDownloadPath =
-                        activityVar?.pathConfig?.postFileClientDownloadPath.nullCheck("postFileClientDownloadPath")
-                            ?: return
+                    val appExternalPath = Config.pathConfig.appExternalPath
+                    val postFileClientDownloadPath = Config.pathConfig.postFileClientDownloadPath
 
                     val fileName = receivingFileMap[contentId] ?: return
                     val file = File("$appExternalPath$postFileClientDownloadPath", fileName)
@@ -298,11 +289,8 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
 
     /** 请求下载会话中的文件 */
     private fun getSessionFile(action: ConnectServerViewModel.Action.GetSessionFile) {
-        val appExternalPath =
-            activityVar?.pathConfig?.appExternalPath.nullCheck("appExternalPath") ?: return
-        val postFileServerCachePath =
-            activityVar?.pathConfig?.postFileServerCachePath.nullCheck("postFileServerCachePath")
-                ?: return
+        val appExternalPath = Config.pathConfig.appExternalPath
+        val postFileServerCachePath = Config.pathConfig.postFileServerCachePath
 
         val fileName = action.fileName
         val filePath =

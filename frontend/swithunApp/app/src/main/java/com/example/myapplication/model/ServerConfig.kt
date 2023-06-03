@@ -5,6 +5,7 @@ object ServerConfig {
     var serverIP = "192.168.0.108"
     var serverPort = "8088"
     val serverHost get() = "$serverIP:$serverPort"
+    val serverPath = ServerPath
 
     object ServerPath {
         object GetPathList {

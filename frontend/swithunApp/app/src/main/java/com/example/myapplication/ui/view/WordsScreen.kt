@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,10 +14,10 @@ import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.myapplication.model.ActivityVar
+import com.example.myapplication.model.VMDependency
 
 @Composable
-fun WordsScreen(activityVar: ActivityVar) {
+fun WordsScreen(VMDependency: VMDependency) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.width(400.dp)
@@ -40,13 +39,13 @@ fun WordsScreen(activityVar: ActivityVar) {
 
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = "单词：")
-            Text(text = activityVar.connectServerVM.wordsResult.word)
+            Text(text = VMDependency.connectServerVM.wordsResult.word)
         }
         val bullet = "\u2022"
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = "解释：")
             Text(text = buildAnnotatedString {
-                activityVar.connectServerVM.wordsResult.explains.forEach {
+                VMDependency.connectServerVM.wordsResult.explains.forEach {
                     withStyle(ParagraphStyle(textIndent = TextIndent(restLine = 12.sp))) {
                         append(bullet)
                         append("\t\t")
@@ -58,7 +57,7 @@ fun WordsScreen(activityVar: ActivityVar) {
 
         Row(modifier = Modifier.fillMaxWidth()) {
             Text(text = "翻译：")
-            Text(text = activityVar.connectServerVM.wordsResult.translation)
+            Text(text = VMDependency.connectServerVM.wordsResult.translation)
         }
 
     }

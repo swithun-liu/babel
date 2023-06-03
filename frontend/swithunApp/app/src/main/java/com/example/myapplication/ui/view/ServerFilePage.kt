@@ -20,29 +20,29 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.*
-import com.example.myapplication.model.ActivityVar
+import com.example.myapplication.model.VMDependency
 import com.example.myapplication.viewmodel.FileManagerViewModel
 import com.example.myapplication.viewmodel.PathItem
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun ServerFilePage(activityVar: ActivityVar) {
+fun ServerFilePage(
+    fileManagerViewModel: FileManagerViewModel = viewModel(),
+) {
     val actFileClick = { it: PathItem.FileItem ->
-        activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFile(it))
+        fileManagerViewModel.reduce(FileManagerViewModel.Action.ClickFile(it))
     }
     val actFolderClick = { it: PathItem.FolderItem ->
-        activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFolder(it))
+        fileManagerViewModel.reduce(FileManagerViewModel.Action.ClickFolder(it))
     }
     val funGeneratePathMoreAction: (PathItem) -> List<Pair<Pair<String, ImageVector>, (pathItem: PathItem) -> Unit>> =
         { emptyList() }
 
     Row {
         Button(onClick = {
-            activityVar.fileVM.reduce(FileManagerViewModel.Action.RefreshBasePathListFromRemote)
+            fileManagerViewModel.reduce(FileManagerViewModel.Action.RefreshBasePathListFromRemote)
         }) {
             Text(text = "获取服务器文件列表")
         }
@@ -50,7 +50,7 @@ fun ServerFilePage(activityVar: ActivityVar) {
             funGeneratePathMoreAction,
             actFileClick,
             actFolderClick,
-            activityVar.fileVM.pathList
+            fileManagerViewModel.pathList
         )
     }
 }

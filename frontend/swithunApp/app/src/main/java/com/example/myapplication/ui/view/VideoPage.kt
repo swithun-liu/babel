@@ -13,43 +13,45 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.SwithunLog
-import com.example.myapplication.model.ActivityVar
-import tv.danmaku.ijk.media.player.IjkMediaPlayer
+import com.example.myapplication.viewmodel.VideoViewModel
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun VideoPage(activityVar: ActivityVar) {
-    IjkPlayer(player = activityVar.videoVM.player, activityVar)
+fun VideoPage() {
+    IjkPlayer()
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun IjkPlayer(player: IjkMediaPlayer, activityVar: ActivityVar) {
+fun IjkPlayer(
+    videoViewModel: VideoViewModel = viewModel(),
+) {
     // https://juejin.cn/post/7034363130121551903
     AndroidView(
         modifier = Modifier
             .defaultMinSize(100.dp)
             .fillMaxHeight()
-            .aspectRatio(ratio = activityVar.videoVM.uiState.aspectRatio)
+            .aspectRatio(ratio = videoViewModel.uiState.aspectRatio)
             .background(MaterialTheme.colorScheme.surfaceVariant),
         factory = { context ->
+            SwithunLog.d("重建TextureView")
             val textureView = TextureView(context)
             textureView.surfaceTextureListener = object : SurfaceTextureListener {
                 override fun onSurfaceTextureAvailable(p0: SurfaceTexture, p1: Int, p2: Int) {
                     SwithunLog.d("surface av")
-                    activityVar.videoVM.player.setSurface(Surface(p0))
-                    activityVar.textureView = p0
+                    videoViewModel.uiState.player.start()
+                    videoViewModel.uiState.player.setSurface(Surface(p0))
                 }
 
                 override fun onSurfaceTextureSizeChanged(p0: SurfaceTexture, p1: Int, p2: Int) {
                     SwithunLog.d("surface sc")
-                    activityVar.textureView = p0
                 }
 
                 override fun onSurfaceTextureDestroyed(p0: SurfaceTexture): Boolean {
                     SwithunLog.d("surface des")
-                    player.pause()
+                    videoViewModel.uiState.player.pause()
                     return true
                 }
 

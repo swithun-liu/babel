@@ -2,7 +2,6 @@ package com.example.myapplication.viewmodel
 
 import android.annotation.SuppressLint
 import android.util.Log
-import android.view.Surface
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,8 +27,7 @@ import tv.danmaku.ijk.media.player.IjkMediaPlayer
 
 class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.VideoUIState, VideoViewModel.MutableVideoUIState>() {
 
-    var player by mutableStateOf(IjkMediaPlayer())
-    var activityVar: ActivityVar? = null
+    var VMDependency: VMDependency? = null
 
     private var itemCursor = 0
     private var beginJob: Job? = null
@@ -46,6 +44,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
         var loginStatus: String
         var aspectRatio: Float
         var qrCodeImage: ImageBitmap
+        var player: IjkMediaPlayer
     }
 
     class MutableVideoUIState: VideoUIState {
@@ -54,14 +53,11 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
         override var loginStatus by mutableStateOf("未登陆")
         override var aspectRatio: Float by mutableStateOf(1.toFloat())
         override var qrCodeImage: ImageBitmap by mutableStateOf(ImageBitmap(100, 100))
+        override var player: IjkMediaPlayer by mutableStateOf(IjkMediaPlayer())
     }
 
-    sealed class UIEvent {
-        class SetSurfaceTexture2Player(val player: IjkMediaPlayer): UIEvent()
-    }
-
-    fun init(activityVar: ActivityVar) {
-        this.activityVar = activityVar
+    fun init(VMDependency: VMDependency) {
+        this.VMDependency = VMDependency
     }
 
     sealed class Action: BaseViewModel2.Action() {
@@ -84,7 +80,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
     }
 
     private fun getNewPlayer() = IjkMediaPlayer().also {
-        this.player = it
+        this.uiState.player = it
     }
 
     private val BILIBILI_LOGIN_QR_CODE_URL =
@@ -145,12 +141,6 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
                 player.dataSource = conanUrl
             } else {
                 player.setDataSource(conanUrl, headerParams.params)
-            }
-            // 设置surface
-            // player.setSurface(surfaceView.holder.surface)
-            activityVar?.textureView?.let {
-                it.release()
-                player.setSurface(Surface(it))
             }
 
             player.setOnPreparedListener {
@@ -251,7 +241,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
                             val value = cookieKeyValue[1]
 
                             Log.i(TAG, "")
-                            SPUtil.putString(activityVar?.activity, key, value)
+                            SPUtil.putString(VMDependency?.activity, key, value)
                         }
                     }
 
@@ -262,7 +252,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
     }
 
      private suspend fun getCheckMyProfile(): Boolean {
-        val activityVar = activityVar ?: return false
+        val activityVar = VMDependency ?: return false
 
         val headerParams = HeaderParams().apply {
             setBilibiliCookie(activityVar.activity)
@@ -323,7 +313,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
 
 
     private suspend fun getConan(chosePos: Int? = null): String? {
-        val pos = chosePos ?: SPUtil.Conan.getCurrentConan(activityVar?.activity)
+        val pos = chosePos ?: SPUtil.Conan.getCurrentConan(VMDependency?.activity)
             .nullCheck("get current conan pos") ?: 0
         itemCursor = pos
 
@@ -332,7 +322,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
 
         val urlEncodeParams = UrlEncodeParams().apply { put("ep_id", epId.toString()) }
 
-        val headerParams = HeaderParams().apply { setBilibiliCookie(activityVar?.activity) }
+        val headerParams = HeaderParams().apply { setBilibiliCookie(VMDependency?.activity) }
 
         val videoInfo = getRequest(
             GetEpisode.URL,

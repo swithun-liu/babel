@@ -1,6 +1,7 @@
 package com.example.myapplication.viewmodel
 
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.Config
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.*
@@ -18,10 +19,10 @@ class ConnectKernelViewModel : BaseViewModel<ConnectKernelViewModel.Action>() {
 
     private var remoteWordFlow: Flow<RawDataBase>? = null
     private val repository = WebSocketRepository()
-    private var activityVar: ActivityVar? = null
+    private var VMDependency: VMDependency? = null
 
-    fun init(activityVar: ActivityVar) {
-        this.activityVar = activityVar
+    fun init(VMDependency: VMDependency) {
+        this.VMDependency = VMDependency
     }
 
     sealed class Action : BaseViewModel.Action() {
@@ -37,7 +38,7 @@ class ConnectKernelViewModel : BaseViewModel<ConnectKernelViewModel.Action>() {
     }
 
     private fun connectKernel() {
-        val kernelConfig = activityVar?.kernelConfig ?: return
+        val kernelConfig = Config.kernelConfig
 
         remoteWordFlow = repository.webSocketCreate(
             "http://${kernelConfig.kernelHost}/${KernelConfig.KernelPath.ConnectPath.connect}",
@@ -87,7 +88,7 @@ class ConnectKernelViewModel : BaseViewModel<ConnectKernelViewModel.Action>() {
     private fun handleResponse(data: MessageTextDTO) {
         when (OptionCode.fromValue(data.code)) {
             OptionCode.GET_BASE_PATH_LIST_REQUEST -> {
-                activityVar?.let {
+                VMDependency?.let {
                     it.fileVM.viewModelScope.launch(Dispatchers.IO) {
                         val basePathList = it.fileVM.getBasePathListFromLocal()
                         val gson = Gson()
@@ -103,7 +104,7 @@ class ConnectKernelViewModel : BaseViewModel<ConnectKernelViewModel.Action>() {
                 }
             }
             OptionCode.GET_CHILDREN_PATH_LIST_REQUEST -> {
-                activityVar?.let {
+                VMDependency?.let {
                     it.fileVM.viewModelScope.launch(Dispatchers.IO) {
                         val childrenPathList = it.fileVM.getChildrenPathListFromLocal(data.content)
                         val gson = Gson()

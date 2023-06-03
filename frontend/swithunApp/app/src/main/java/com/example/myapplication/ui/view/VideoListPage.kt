@@ -17,25 +17,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.unit.Dp
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.R
-import com.example.myapplication.SwithunLog
-import com.example.myapplication.framework.Async
-import com.example.myapplication.model.ActivityVar
+import com.example.myapplication.model.VMDependency
 import com.example.myapplication.model.SectionItem
-import com.example.myapplication.util.HeaderParams
 import com.example.myapplication.viewmodel.VideoViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun VideoListPage(activityVar: ActivityVar) {
+fun VideoListPage(
+    videoVM: VideoViewModel = viewModel(),
+) {
     Row {
         ConanVideoView()
-        QRCode(activityVar.videoVM)
+        QRCode(videoVM)
     }
 }
 
@@ -47,10 +42,10 @@ fun ConanVideoView(
     Row {
         Column {
             Button(onClick = {
-                if (videoViewModel.player.isPlaying) {
-                    videoViewModel.player.pause()
+                if (videoViewModel.uiState.player.isPlaying) {
+                    videoViewModel.uiState.player.pause()
                 } else {
-                    videoViewModel.player.start()
+                    videoViewModel.uiState.player.start()
                 }
             }) {
                 Text(text = "stop")

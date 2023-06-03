@@ -17,9 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.Config
 import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.SwithunLog
-import com.example.myapplication.model.ActivityVar
+import com.example.myapplication.model.VMDependency
 import com.example.myapplication.model.MessageTextDTO
 import com.example.myapplication.model.TransferData
 import com.example.myapplication.util.SystemUtil
@@ -113,13 +115,16 @@ fun ReceivedList(
 }
 
 @Composable
-fun TransferPage(activityVar: ActivityVar) {
+fun TransferPage(
+    connectServerViewModel: ConnectServerViewModel = viewModel(),
+    nasViewModel: NasViewModel = viewModel()
+) {
 
     val context = LocalContext.current
     var clipboardContent: String by remember { mutableStateOf("") }
 
     val onSendInputText: () -> Unit = {
-        activityVar.connectServerVM.reduce(ConnectServerViewModel.Action.PostSessionText(clipboardContent))
+        connectServerViewModel.reduce(ConnectServerViewModel.Action.PostSessionText(clipboardContent))
     }
     val onGetClipboardContent: () -> Unit = {
         clipboardContent = SystemUtil.getTextFromClipboard(context)
@@ -132,10 +137,10 @@ fun TransferPage(activityVar: ActivityVar) {
         onResult = {
             SwithunLog.d(it, "file");
             it?.let { uri ->
-                val appExternalPath = activityVar.pathConfig.appExternalPath
-                val postFileServerCachePath = activityVar.pathConfig.postFileServerCachePath
+                val appExternalPath = Config.pathConfig.appExternalPath
+                val postFileServerCachePath = Config.pathConfig.postFileServerCachePath
 
-                activityVar.connectServerVM.reduce(
+                connectServerViewModel.reduce(
                     ConnectServerViewModel.Action.PostSessionFile(
                         uri,
                         context,
@@ -151,14 +156,14 @@ fun TransferPage(activityVar: ActivityVar) {
 
     val onReceivedDataClick: (text: String, contentType: MessageTextDTO.ContentType) -> Unit =
         { text, contentType ->
-            activityVar.nasVM.reduce(
+            nasViewModel.reduce(
                 NasViewModel.Action.DownloadTransferFile(text, contentType, context)
             )
         }
 
     TransferPagePreviewer(
         onSendInputText,
-        activityVar.connectServerVM.receivedData,
+        connectServerViewModel.receivedData,
         clipboardContent,
         onGetClipboardContent,
         onInputTextChange,

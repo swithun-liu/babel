@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.ui.view
 
 import android.annotation.SuppressLint
 import android.os.Build
@@ -20,7 +20,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.myapplication.model.ActivityVar
 import com.example.myapplication.ui.view.*
 import com.example.myapplication.viewmodel.ShareViewModel
 
@@ -29,7 +28,7 @@ import com.example.myapplication.viewmodel.ShareViewModel
 @Preview
 @Composable
 fun PreviewMyApp() {
-    Myapp(activityVar = ActivityVar(MainActivity()))
+    Myapp()
 }
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -37,10 +36,8 @@ fun PreviewMyApp() {
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun Myapp(
-    activityVar: ActivityVar,
     shareViewModel: ShareViewModel = viewModel(),
 ) {
-
     val (selectedItem: Int, setSelectedItem: (Int) -> Unit) = remember { mutableStateOf(0) }
     val items: List<String> = PageIndex.values().map { it.text }
     val icons: List<ImageVector> = listOf(
@@ -52,7 +49,7 @@ fun Myapp(
         Icons.Filled.Settings
     )
 
-    activityVar.scaffoldState = shareViewModel.snackbarHostState
+    shareViewModel.snackbarHostState
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = shareViewModel.snackbarHostState) },
@@ -74,12 +71,12 @@ fun Myapp(
                     }
                 }
                 when (PageIndex.fromValue(selectedItem)) {
-                    PageIndex.VIDEO_PAGE -> VideoPage(activityVar)
-                    PageIndex.VIDEO_LIST_PAGE -> VideoListPage(activityVar)
-                    PageIndex.TRANSFER_PAGE -> TransferPage(activityVar)
-                    PageIndex.SERVER_SETTING_PAGE -> ServerSettingPage(activityVar)
-                    PageIndex.SERVER_FILE_PAGE -> ServerFilePage(activityVar)
-                    PageIndex.FILE_UPLOAD_PAGE -> FileUploadPage(activityVar)
+                    PageIndex.VIDEO_PAGE -> VideoPage()
+                    PageIndex.VIDEO_LIST_PAGE -> VideoListPage()
+                    PageIndex.TRANSFER_PAGE -> TransferPage()
+                    PageIndex.SERVER_SETTING_PAGE -> ServerSettingPage()
+                    PageIndex.SERVER_FILE_PAGE -> ServerFilePage()
+                    PageIndex.FILE_UPLOAD_PAGE -> FileUploadPage()
                     null -> {}
                 }
             }

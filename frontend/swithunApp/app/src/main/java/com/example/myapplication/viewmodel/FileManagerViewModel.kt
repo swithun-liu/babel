@@ -5,12 +5,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
-import com.example.myapplication.model.ActivityVar
+import com.example.myapplication.Config
+import com.example.myapplication.model.VMDependency
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.model.VideoExtension
-import com.example.myapplication.nullCheck
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -19,19 +19,19 @@ import java.io.File
 
 class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action>() {
 
-    val fileBasePath: String = Environment.getExternalStorageDirectory().absolutePath
+    private val fileBasePath: String = Environment.getExternalStorageDirectory().absolutePath
     var pathList: List<PathItem> by mutableStateOf(listOf())
     var uploadRootPathList: List<PathItem> by mutableStateOf(listOf())
-    var activityVar: ActivityVar? = null
+    private var vmDependency: VMDependency? = null
 
-    private val remoteRepository = FileManagerHTTPRepository { activityVar }
+    private val remoteRepository = FileManagerHTTPRepository()
     private val localRepository = FileManagerLocalRepository(fileBasePath)
 
-    fun init(activityVar: ActivityVar) {
-        this.activityVar = activityVar
+    fun init(VMDependency: VMDependency) {
+        this.vmDependency = VMDependency
         SwithunLog.d("fileBasePath: $fileBasePath")
 
-        val appExternalPath = activityVar.pathConfig.appExternalPath.nullCheck("获取上传文件根路径", true) ?: return
+        val appExternalPath = Config.pathConfig.appExternalPath
 
         uploadRootPathList = listOf(
             PathItem.FolderItem(appExternalPath, emptyList())
@@ -77,7 +77,7 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action>() {
     }
 
     private fun clickFile(file: PathItem.FileItem) {
-        activityVar?.let {
+        vmDependency?.let {
             val fileObj = File(file.path)
             if (VideoExtension.isOneOf(fileObj.extension)) {
                 it.videoVM.reduce(

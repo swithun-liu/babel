@@ -5,9 +5,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.Config
 import com.example.myapplication.ConnectServerViewModel
-import com.example.myapplication.model.ActivityVar
-import com.example.myapplication.MainActivity
+import com.example.myapplication.model.VMDependency
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.MessageTextDTO
@@ -23,7 +23,7 @@ class NasViewModel() : BaseViewModel<NasViewModel.Action>() {
 
     // https://juejin.cn/post/6844903551408291848
     // https://github.com/koush/AndroidAsync
-    private var activityVar: ActivityVar? = null
+    private var VMDependency: VMDependency? = null
 
     var getAllServerBtnText: String by mutableStateOf("搜寻其他可用server")
     var allServersInLan: List<String> by mutableStateOf(mutableListOf())
@@ -32,13 +32,13 @@ class NasViewModel() : BaseViewModel<NasViewModel.Action>() {
     var startMeAsServerBtnText: String by mutableStateOf("启动server：未启动")
     var uploadFileRootDir: String by mutableStateOf("")
 
-    fun init(activityVar: ActivityVar) {
-        this.activityVar = activityVar
-        SPUtil.ServerSetting.getLastTimeConnectServer(activityVar.activity)?.let {
+    fun init(VMDependency: VMDependency) {
+        this.VMDependency = VMDependency
+        SPUtil.ServerSetting.getLastTimeConnectServer(VMDependency.activity)?.let {
             SwithunLog.d("lastTimeConnectServerIp from SP: $it")
             lastTimeConnectServerIp = it
         }
-        SPUtil.PathSetting.getUploadFileRootDir(activityVar.activity)?.let {
+        SPUtil.PathSetting.getUploadFileRootDir(VMDependency.activity)?.let {
             SwithunLog.d("uploadFileRootDir from SP: $it")
             uploadFileRootDir = it
         }
@@ -68,12 +68,12 @@ class NasViewModel() : BaseViewModel<NasViewModel.Action>() {
 
     private fun chooseUploadFileRootDir(action: Action.ChooseUploadFileRootDir) {
         this.uploadFileRootDir = action.uploadPath
-        SPUtil.PathSetting.putUploadFileRootDir(activityVar?.activity ?: return, action.uploadPath)
+        SPUtil.PathSetting.putUploadFileRootDir(VMDependency?.activity ?: return, action.uploadPath)
     }
 
     private fun changerLastTimeConnectServer(action: Action.ChangeLastTimeConnectServer) {
         lastTimeConnectServerIp = action.serverIP
-        SPUtil.ServerSetting.putLastTimeConnectServer(activityVar?.activity ?: return, action.serverIP)
+        SPUtil.ServerSetting.putLastTimeConnectServer(VMDependency?.activity ?: return, action.serverIP)
     }
 
     private fun startMeAsServer() {
@@ -82,8 +82,8 @@ class NasViewModel() : BaseViewModel<NasViewModel.Action>() {
             launch(Dispatchers.IO) {
                 delay(1000)
                 // 连接内核
-                startMeAsServerBtnText = "启动server：连接内核中..."
-                activityVar?.connectKernelVM?.reduce(ConnectKernelViewModel.Action.ConnectKernelAction)
+                startMeAsServerBtnText = "启动server：连接内核中...2"
+                VMDependency?.connectKernelVM?.reduce(ConnectKernelViewModel.Action.ConnectKernelAction)
                 startMeAsServerBtnText = "启动server：已连接内核"
             }
             // 启动内核
@@ -92,8 +92,8 @@ class NasViewModel() : BaseViewModel<NasViewModel.Action>() {
     }
 
     private fun connectMyServer() {
-        val connectServerM = activityVar?.connectServerVM ?: return
-        val myIP = activityVar?.kernelConfig?.kernelIP ?: return
+        val connectServerM = VMDependency?.connectServerVM ?: return
+        val myIP = Config.kernelConfig.kernelIP
         connectServerM.reduce(ConnectServerViewModel.Action.ConnectServer(myIP))
     }
 
@@ -113,11 +113,11 @@ class NasViewModel() : BaseViewModel<NasViewModel.Action>() {
             MessageTextDTO.ContentType.TEXT -> {
                 SystemUtil.pushText2Clipboard(action.context, action.text)
                 viewModelScope.launch(Dispatchers.IO) {
-                    activityVar?.scaffoldState?.showSnackbar(message = "已复制")
+                    VMDependency?.scaffoldState?.showSnackbar(message = "已复制")
                 }
             }
             MessageTextDTO.ContentType.IMAGE -> {
-                activityVar?.connectServerVM?.reduce(ConnectServerViewModel.Action.GetSessionFile(action.text))
+                VMDependency?.connectServerVM?.reduce(ConnectServerViewModel.Action.GetSessionFile(action.text))
             }
         }
     }

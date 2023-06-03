@@ -7,20 +7,21 @@ import android.hardware.usb.UsbManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.SurfaceView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewModelScope
-import com.example.myapplication.model.ActivityVar
+import com.example.myapplication.model.KernelConfig
+import com.example.myapplication.model.PathConfig
+import com.example.myapplication.model.ServerConfig
+import com.example.myapplication.model.VMDependency
 import com.example.myapplication.ui.theme.MyApplicationTheme
+import com.example.myapplication.ui.view.Myapp
 import com.example.myapplication.util.AuthChecker
-import com.example.myapplication.util.HeaderParams
 import com.example.myapplication.viewmodel.*
-import kotlinx.coroutines.launch
 import me.jahnen.libaums.core.UsbMassStorageDevice
 
 
@@ -30,12 +31,29 @@ import me.jahnen.libaums.core.UsbMassStorageDevice
 
 class MainActivity : ComponentActivity() {
 
-    private val activityVar by lazy {
-        ActivityVar(this)
+    private val connectKernelViewModel: ConnectKernelViewModel by viewModels()
+    private val connectServerViewModel: ConnectServerViewModel by viewModels()
+    private val videoViewModel: VideoViewModel by viewModels()
+    private val nasViewModel: NasViewModel by viewModels()
+    private val fileViewModel: FileManagerViewModel by viewModels()
+
+    private val vmDependency by lazy {
+        VMDependency(
+            this,
+            connectKernelViewModel,
+            connectServerViewModel,
+            videoViewModel,
+            nasViewModel,
+            fileViewModel
+        )
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
+        Config.pathConfig.init(this)
+        Config.kernelConfig.init(this)
+
+        vmDependency
 
         super.onCreate(savedInstanceState)
 
@@ -46,7 +64,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     // ScreenSetup(activityVar)
-                    Myapp(activityVar)
+                    Myapp()
                 }
             }
         }
@@ -96,4 +114,10 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val ACTION_USB_PERMISSION = "com.example.myapp.USB_PERMISSION"
     }
+}
+
+object Config {
+    val kernelConfig: KernelConfig = KernelConfig
+    val pathConfig: PathConfig = PathConfig
+    val serverConfig: ServerConfig = ServerConfig
 }

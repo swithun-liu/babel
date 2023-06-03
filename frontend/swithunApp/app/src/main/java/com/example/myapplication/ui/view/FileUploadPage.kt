@@ -20,16 +20,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.Config
 import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.SwithunLog
-import com.example.myapplication.model.ActivityVar
+import com.example.myapplication.model.VMDependency
 import com.example.myapplication.viewmodel.FileManagerViewModel
 import com.example.myapplication.viewmodel.NasViewModel
 import com.example.myapplication.viewmodel.PathItem
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
-fun FileUploadPage(activityVar: ActivityVar) {
+fun FileUploadPage(
+    fileManagerViewModel: FileManagerViewModel = viewModel(),
+    connectServerViewModel: ConnectServerViewModel = viewModel(),
+    nasViewModel: NasViewModel = viewModel(),
+) {
     if (false) {
         val openDialog = remember { mutableStateOf(false) }
 
@@ -38,10 +44,10 @@ fun FileUploadPage(activityVar: ActivityVar) {
             openDialog.value = true
         }
         val actFileClick = { it: PathItem.FileItem ->
-            activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFile(it))
+            fileManagerViewModel.reduce(FileManagerViewModel.Action.ClickFile(it))
         }
         val actFolderClick = { it: PathItem.FolderItem ->
-            activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFolder(it))
+            fileManagerViewModel.reduce(FileManagerViewModel.Action.ClickFolder(it))
         }
 
         val funGeneratePathMoreAction: (PathItem) -> List<Pair<Pair<String, ImageVector>, (pathItem: PathItem) -> Unit>> =
@@ -50,7 +56,7 @@ fun FileUploadPage(activityVar: ActivityVar) {
                     is PathItem.FileItem -> {
                         listOf(
                             "选择" to Icons.Outlined.Edit to {
-                                activityVar.nasVM.reduce(
+                                nasViewModel.reduce(
                                     NasViewModel.Action.ChooseUploadFileRootDir(
                                         it.path
                                     )
@@ -69,7 +75,7 @@ fun FileUploadPage(activityVar: ActivityVar) {
                     funGeneratePathMoreAction,
                     actFileClick,
                     actFolderClick,
-                    activityVar.fileVM.uploadRootPathList
+                    fileManagerViewModel.uploadRootPathList
                 )
             }
         }
@@ -78,10 +84,10 @@ fun FileUploadPage(activityVar: ActivityVar) {
     }
 
     val actFileClick = { it: PathItem.FileItem ->
-        activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFile(it))
+        fileManagerViewModel.reduce(FileManagerViewModel.Action.ClickFile(it))
     }
     val actFolderClick = { it: PathItem.FolderItem ->
-        activityVar.fileVM.reduce(FileManagerViewModel.Action.ClickFolder(it))
+        fileManagerViewModel.reduce(FileManagerViewModel.Action.ClickFolder(it))
     }
 
     val context = LocalContext.current
@@ -91,10 +97,10 @@ fun FileUploadPage(activityVar: ActivityVar) {
         onResult = {
             SwithunLog.d(it, "file");
             it?.let { uri ->
-                val appExternalPath = activityVar.pathConfig.appExternalPath
-                val postUploadFileCachePath =  activityVar.pathConfig.postUploadFileCachePath
+                val appExternalPath = Config.pathConfig.appExternalPath
+                val postUploadFileCachePath =  Config.pathConfig.postUploadFileCachePath
 
-                activityVar.connectServerVM.reduce(
+                connectServerViewModel.reduce(
                     ConnectServerViewModel.Action.PostSessionFile(
                         uri,
                         context,
@@ -112,7 +118,7 @@ fun FileUploadPage(activityVar: ActivityVar) {
         actFileClick,
         actFolderClick,
         actChooseFile,
-        activityVar.fileVM.uploadRootPathList
+        fileManagerViewModel.uploadRootPathList
     )
 }
 

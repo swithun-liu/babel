@@ -17,31 +17,32 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.myapplication.Config
 import com.example.myapplication.ConnectServerViewModel
 import com.example.myapplication.SwithunLog
-import com.example.myapplication.model.ActivityVar
+import com.example.myapplication.model.VMDependency
 import com.example.myapplication.viewmodel.NasViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Composable
-fun ServerSettingPage(activityVar: ActivityVar) {
+fun ServerSettingPage(
+    nasViewModel: NasViewModel = viewModel(),
+    connectServerViewModel: ConnectServerViewModel = viewModel(),
+) {
     Row(
         modifier = Modifier
             .fillMaxHeight()
             .fillMaxWidth()
     ) {
-
         val actSearchServerInLan: () -> Unit = {
-            activityVar.activity.lifecycle
-            activityVar.activity.lifecycleScope.launch(Dispatchers.IO) {
-                SwithunLog.d("begin get ips")
-                activityVar.nasVM.reduce(NasViewModel.Action.SearchAllServer)
-            }
+            SwithunLog.d("begin get ips")
+            nasViewModel.reduce(NasViewModel.Action.SearchAllServer)
         }
 
         val actConnectSearchedServerIp = { serverIp: String ->
-            activityVar.connectServerVM.reduce(
+            connectServerViewModel.reduce(
                 ConnectServerViewModel.Action.ConnectServer(
                     serverIp
                 )
@@ -49,35 +50,35 @@ fun ServerSettingPage(activityVar: ActivityVar) {
         }
 
         val actChangeLastTimeServerIp = { newSeverIp: String ->
-            activityVar.nasVM.lastTimeConnectServerIp = newSeverIp
+            nasViewModel.lastTimeConnectServerIp = newSeverIp
         }
 
         val actConnectLastTimeServer = {
-            activityVar.connectServerVM.reduce(
+            connectServerViewModel.reduce(
                 ConnectServerViewModel.Action.ConnectServer(
-                    activityVar.nasVM.lastTimeConnectServerIp
+                    nasViewModel.lastTimeConnectServerIp
                 )
             )
         }
 
         ServerOther(
-            activityVar.kernelConfig.kernelIP /* 当前IP */,
-            activityVar.nasVM.allServersInLan /* 所有服务器IP */,
-            activityVar.nasVM.lastTimeConnectServerIp /* 上次连接的服务器IP */,
-            activityVar.nasVM.getAllServerBtnText /* 搜索服务器按钮文字 */,
+            Config.kernelConfig.kernelIP /* 当前IP */,
+            nasViewModel.allServersInLan /* 所有服务器IP */,
+            nasViewModel.lastTimeConnectServerIp /* 上次连接的服务器IP */,
+            nasViewModel.getAllServerBtnText /* 搜索服务器按钮文字 */,
             actConnectSearchedServerIp /* 连接搜索到的服务器 */,
             actSearchServerInLan /* 搜索服务器 */,
             actChangeLastTimeServerIp /* 修改上次连接的服务器IP */,
             actConnectLastTimeServer /* 连接上次连接的服务器 */,
         )
 
-        val actStartServer = { activityVar.nasVM.reduce(NasViewModel.Action.StartMeAsServer) }
-        val actConnectMyServer = { activityVar.nasVM.reduce(NasViewModel.Action.ConnectMyServer) }
+        val actStartServer = { nasViewModel.reduce(NasViewModel.Action.StartMeAsServer) }
+        val actConnectMyServer = { nasViewModel.reduce(NasViewModel.Action.ConnectMyServer) }
 
         ServerMine(
             actStartServer,
             actConnectMyServer,
-            activityVar.nasVM.startMeAsServerBtnText /* startServerBtnText */
+            nasViewModel.startMeAsServerBtnText /* startServerBtnText */
         )
     }
 }
