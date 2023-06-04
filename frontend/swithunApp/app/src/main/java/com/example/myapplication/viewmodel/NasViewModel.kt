@@ -1,5 +1,6 @@
 package com.example.myapplication.viewmodel
 
+import android.app.Activity
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,7 +20,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
-class NasViewModel : BaseViewModel2<NasViewModel.Action, NasViewModel.UIState, NasViewModel.MutableUIState>() {
+class NasViewModel :
+    BaseViewModel2<
+            NasViewModel.Action,
+            NasViewModel.UIState,
+            NasViewModel.MutableUIState
+            >() {
 
     // https://juejin.cn/post/6844903551408291848
     // https://github.com/koush/AndroidAsync
@@ -31,30 +37,48 @@ class NasViewModel : BaseViewModel2<NasViewModel.Action, NasViewModel.UIState, N
         return MutableUIState()
     }
 
-    interface UIState {
-        var getAllServerBtnText: String
-        var allServersInLan: List<String>
-        var lastTimeConnectServerIp: String
-        var startMeAsServerBtnText: String
+    abstract class UIState {
+        abstract var getAllServerBtnText: String
+        abstract var allServersInLan: List<String>
+        abstract var lastTimeConnectServerIp: String
+        abstract var startMeAsServerBtnText: String
     }
 
-    class MutableUIState: UIState {
+    class MutableUIState : UIState() {
         override var getAllServerBtnText: String by mutableStateOf("搜寻其他可用server")
-        override var allServersInLan: List<String> by mutableStateOf(mutableListOf())
+        override var allServersInLan: List<String> by mutableStateOf(emptyList())
         override var lastTimeConnectServerIp: String by mutableStateOf("")
         override var startMeAsServerBtnText: String by mutableStateOf("启动server：未启动")
     }
 
+    sealed class Action : BaseViewModel2.Action() {
+        object StartMeAsServer : Action()
+        object ConnectMyServer : Action()
+        object SearchAllServer : Action()
+        class ChangeLastTimeConnectServer(val serverIP: String) : Action()
+        class DownloadTransferFile(
+            val text: String, val contentType: MessageTextDTO.ContentType, val context: Context,
+        ) : Action()
+
+        class ChooseUploadFileRootDir(val uploadPath: String) : Action()
+    }
+
+    sealed class Event : BaseViewModel2.Event() {
+        class NeedActivity(val block: (activity: Activity) -> Unit) : Event()
+    }
+
     fun init(vmCollection: VMCollection) {
         this.vmCollection = vmCollection
-        SPUtil.ServerSetting.getLastTimeConnectServer(vmCollection.activity)?.let {
-            SwithunLog.d("lastTimeConnectServerIp from SP: $it")
-            uiState.lastTimeConnectServerIp = it
-        }
-        SPUtil.PathSetting.getUploadFileRootDir(vmCollection.activity)?.let {
-            SwithunLog.d("uploadFileRootDir from SP: $it")
-            uploadFileRootDir = it
-        }
+        vmCollection.shareViewModel.reduce(ShareViewModel.Action.NeedActivity { activity ->
+            SPUtil.ServerSetting.getLastTimeConnectServer(activity)?.let {
+                SwithunLog.d("lastTimeConnectServerIp from SP: $it")
+                uiState.lastTimeConnectServerIp = it
+            }
+            SPUtil.PathSetting.getUploadFileRootDir(activity)?.let {
+                SwithunLog.d("uploadFileRootDir from SP: $it")
+                uploadFileRootDir = it
+            }
+        })
     }
 
     override fun reduce(action: Action) {
@@ -68,43 +92,40 @@ class NasViewModel : BaseViewModel2<NasViewModel.Action, NasViewModel.UIState, N
         }
     }
 
-    sealed class Action : BaseViewModel2.Action() {
-        object StartMeAsServer : Action()
-        object ConnectMyServer : Action()
-        object SearchAllServer : Action()
-        class ChangeLastTimeConnectServer(val serverIP: String): Action()
-        class DownloadTransferFile(
-            val text: String, val contentType: MessageTextDTO.ContentType, val context: Context,
-        ) : Action()
-        class ChooseUploadFileRootDir(val uploadPath: String): Action()
-    }
-
     private fun chooseUploadFileRootDir(action: Action.ChooseUploadFileRootDir) {
         this.uploadFileRootDir = action.uploadPath
-        SPUtil.PathSetting.putUploadFileRootDir(vmCollection?.activity ?: return, action.uploadPath)
+        vmCollection?.shareViewModel?.reduce(
+            ShareViewModel.Action.NeedActivity { activity ->
+                SPUtil.PathSetting.putUploadFileRootDir(activity, action.uploadPath)
+            }
+        )
     }
 
     private fun changerLastTimeConnectServer(action: Action.ChangeLastTimeConnectServer) {
-        uiState.lastTimeConnectServerIp = action.serverIP
-        SPUtil.ServerSetting.putLastTimeConnectServer(vmCollection?.activity ?: return, action.serverIP)
+        innerUISate.lastTimeConnectServerIp = action.serverIP
+        vmCollection?.shareViewModel?.reduce(
+            ShareViewModel.Action.NeedActivity { activity ->
+                SPUtil.ServerSetting.putLastTimeConnectServer(activity, action.serverIP)
+            }
+        )
     }
 
     private fun startMeAsServer() {
         if (hasStartKernel) {
-            uiState.startMeAsServerBtnText = "启动server：已连接内核 请勿重试"
+            innerUISate.startMeAsServerBtnText = "启动server：已连接内核 请勿重试"
         } else {
             viewModelScope.launch(Dispatchers.IO) {
-                uiState.startMeAsServerBtnText = "启动server：启动中..."
+                innerUISate.startMeAsServerBtnText = "启动server：启动中..."
                 // 启动内核
                 launch {
                     delay(1000)
-                    uiState.startMeAsServerBtnText = "启动server：连接内核中..."
+                    innerUISate.startMeAsServerBtnText = "启动server：连接内核中..."
                     try {
                         vmCollection?.connectKernelVM?.reduce(ConnectKernelViewModel.Action.ConnectKernelAction)
-                        uiState.startMeAsServerBtnText = "启动server：已连接内核"
+                        innerUISate.startMeAsServerBtnText = "启动server：已连接内核"
                         hasStartKernel = true
-                    } catch(e: java.lang.Exception) {
-                        uiState.startMeAsServerBtnText = "启动server：连接失败"
+                    } catch (e: java.lang.Exception) {
+                        innerUISate.startMeAsServerBtnText = "启动server：连接失败"
                         SwithunLog.e("启动内核失败：${e.message}")
                     }
                 }
@@ -128,7 +149,7 @@ class NasViewModel : BaseViewModel2<NasViewModel.Action, NasViewModel.UIState, N
             innerUISate.getAllServerBtnText = "搜寻中..."
 
             val ips = ServerSDK.getAllServerInLAN()
-            uiState.allServersInLan = ips.toList()
+            innerUISate.allServersInLan = ips.toList()
 
             innerUISate.getAllServerBtnText = "搜寻其他可用server"
         }
@@ -139,11 +160,15 @@ class NasViewModel : BaseViewModel2<NasViewModel.Action, NasViewModel.UIState, N
             MessageTextDTO.ContentType.TEXT -> {
                 SystemUtil.pushText2Clipboard(action.context, action.text)
                 viewModelScope.launch(Dispatchers.IO) {
-                    vmCollection?.scaffoldState?.showSnackbar(message = "已复制")
+                    vmCollection?.shareViewModel?.snackbarHostState?.showSnackbar(message = "已复制")
                 }
             }
             MessageTextDTO.ContentType.IMAGE -> {
-                vmCollection?.connectServerVM?.reduce(ConnectServerViewModel.Action.GetSessionFile(action.text))
+                vmCollection?.connectServerVM?.reduce(
+                    ConnectServerViewModel.Action.GetSessionFile(
+                        action.text
+                    )
+                )
             }
         }
     }

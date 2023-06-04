@@ -1,6 +1,7 @@
 package com.example.myapplication.ui.view
 
 import android.annotation.SuppressLint
+import android.app.LocalActivityManager
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ScrollState
@@ -13,10 +14,12 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel

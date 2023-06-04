@@ -74,7 +74,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
 
         val serverIp = action.serverIp
 
-        val activityVar = this.vmCollection ?: return
+        val vmCollection = this.vmCollection ?: return
 
         Config.serverConfig.serverIP = serverIp
 
@@ -85,7 +85,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
         )
 
         // 保存最后一次连接的服务器ip
-        activityVar.nasVM.reduce(NasViewModel.Action.ChangeLastTimeConnectServer(serverIp))
+        vmCollection.nasVM.reduce(NasViewModel.Action.ChangeLastTimeConnectServer(serverIp))
 
         viewModelScope.launch(Dispatchers.IO) {
             remoteWordFlow?.collect {
@@ -108,7 +108,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
                                     SwithunLog.d("oodList: $oodList")
                                     when (MessageTextDTO.ContentType.fromValue(message.content_type)) {
                                         null -> {
-                                            activityVar.scaffoldState?.showSnackbar(message = "未知 内容类型")
+                                            vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "未知 内容类型")
                                             SwithunLog.d("unknown content_type")
                                         }
                                         MessageTextDTO.ContentType.TEXT -> {
@@ -133,14 +133,14 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
 
                                 }
                                 null -> {
-                                    activityVar.scaffoldState?.showSnackbar(message = "无code")
+                                    vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "无code")
                                 }
                                 else -> {
-                                    activityVar.scaffoldState?.showSnackbar(message = "other code 不处理")
+                                    vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "other code 不处理")
                                 }
                             }
                         } catch (e: Exception) {
-                            activityVar.scaffoldState?.showSnackbar(message = "解析失败")
+                            vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "解析失败")
                         }
                     }
                 }
@@ -154,7 +154,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
 
         val suc = repository.webSocketSend(RawTextData(TransferBiz.buildPostDTO(data).toJsonStr()))
         viewModelScope.launch {
-            vmCollection?.scaffoldState?.showSnackbar(
+            vmCollection?.shareViewModel?.snackbarHostState?.showSnackbar(
                 message = if (suc) {
                     "成功发送"
                 } else {
@@ -202,7 +202,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
             -1 -> { // seq为-1，表示文件接收完成
                 viewModelScope.launch {
                     SwithunLog.d("handle -1")
-                    vmCollection?.scaffoldState?.showSnackbar(message = "文件接收完成")
+                    vmCollection?.shareViewModel?.snackbarHostState?.showSnackbar(message = "文件接收完成")
                 }
             }
             else -> { // seq为其他值，payload为文件内容

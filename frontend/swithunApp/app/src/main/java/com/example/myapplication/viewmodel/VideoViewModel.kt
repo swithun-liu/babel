@@ -2,10 +2,7 @@ package com.example.myapplication.viewmodel
 
 import android.annotation.SuppressLint
 import android.util.Log
-import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.viewModelScope
@@ -25,7 +22,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
 
-class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.VideoUIState, VideoViewModel.MutableVideoUIState>() {
+class VideoViewModel :
+    BaseViewModel2<VideoViewModel.Action, VideoViewModel.VideoUIState, VideoViewModel.MutableVideoUIState>() {
 
     private var vmCollection: VMCollection? = null
 
@@ -47,7 +45,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
         var player: IjkMediaPlayer
     }
 
-    class MutableVideoUIState: VideoUIState {
+    class MutableVideoUIState : VideoUIState {
         override var currentProcess: Float by mutableStateOf(0F)
         override var itemList: List<SectionItem> by mutableStateOf(listOf())
         override var loginStatus by mutableStateOf("未登陆")
@@ -60,15 +58,15 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
         this.vmCollection = vmCollection
     }
 
-    sealed class Action: BaseViewModel2.Action() {
+    sealed class Action : BaseViewModel2.Action() {
         data class PlayVideoAction(
             val videoUrl: String,
             val headerParams: HeaderParams? = null,
-            val onComplete: (() -> Unit)? = null
-        ): Action()
+            val onComplete: (() -> Unit)? = null,
+        ) : Action()
 
         data class CyclePlayEpisode(
-            val epId: Long
+            val epId: Long,
         ) : Action()
     }
 
@@ -90,7 +88,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
     private val BILIBILI_MY_INFO_URL = "http://api.bilibili.com/x/space/myinfo"
     private val TAG = "swithun {VideoViewModel}"
 
-    init {
+    fun init() {
         beginJob = begin()
     }
 
@@ -99,7 +97,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
     }
 
     private fun playVideo(
-        action: Action.PlayVideoAction
+        action: Action.PlayVideoAction,
     ) {
 
         val conanUrl: String = action.videoUrl
@@ -146,7 +144,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
             player.setOnPreparedListener {
                 val w = player.videoWidth.takeIf { it != 0 } ?: 1
                 val h = player.videoHeight.takeIf { it != 0 } ?: 1
-                innerUISate.aspectRatio = w.toFloat()/h
+                innerUISate.aspectRatio = w.toFloat() / h
                 SwithunLog.d("player ready w: $w h: $h aspectRatio: ${uiState.aspectRatio}")
                 player.seekTo(0)
             }
@@ -213,7 +211,10 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
             val urlEncodeParams = UrlEncodeParams().apply {
                 put("qrcode_key", qrcodeKey!!)
             }
-            val response = getRequestWithOriginalResponse(BILIBILI_LOGIN_IN_URL, urlEncodeParams = urlEncodeParams).nullCheck("response") ?: return
+            val response = getRequestWithOriginalResponse(
+                BILIBILI_LOGIN_IN_URL,
+                urlEncodeParams = urlEncodeParams
+            ).nullCheck("response") ?: return
             val body = response.getRequestBodyJsonObject() ?: let {
                 Log.e(TAG, "(qrCodeLogin) - body is null")
                 return
@@ -241,7 +242,9 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
                             val value = cookieKeyValue[1]
 
                             Log.i(TAG, "")
-                            SPUtil.putString(vmCollection?.activity, key, value)
+                            vmCollection?.shareViewModel?.reduce(ShareViewModel.Action.NeedActivity { activity ->
+                                SPUtil.putString(activity, key, value)
+                            })
                         }
                     }
 
@@ -251,13 +254,18 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
         }
     }
 
-     private suspend fun getCheckMyProfile(): Boolean {
+    private suspend fun getCheckMyProfile(): Boolean {
         val activityVar = vmCollection ?: return false
 
         val headerParams = HeaderParams().apply {
-            setBilibiliCookie(activityVar.activity)
+            activityVar.shareViewModel.suspendReduce(ShareViewModel.Action.NeedActivity {
+                setBilibiliCookie(it)
+            })
         }
-        val response = getRequest(BILIBILI_MY_INFO_URL, headerParams = headerParams).nullCheck("get my profile") ?: return false
+        val response = getRequest(
+            BILIBILI_MY_INFO_URL,
+            headerParams = headerParams
+        ).nullCheck("get my profile") ?: return false
 
         response.safeGetString("code")?.let { code ->
             return when (code) {
@@ -290,7 +298,7 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
     }
 
     private fun cyclePlayEpisode(epPos: Int) {
-         viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.IO) {
 
             itemCursor = epPos
 
@@ -313,8 +321,19 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
 
 
     private suspend fun getConan(chosePos: Int? = null): String? {
-        val pos = chosePos ?: SPUtil.Conan.getCurrentConan(vmCollection?.activity)
-            .nullCheck("get current conan pos") ?: 0
+        val pos = when {
+            chosePos != null -> chosePos
+            else -> {
+                var pos = 0
+                vmCollection?.shareViewModel?.suspendReduce(ShareViewModel.Action.NeedActivity { activity ->
+                    pos = SPUtil.Conan.getCurrentConan(activity) ?: 0
+                })
+                pos
+            }
+        }
+
+
+
         itemCursor = pos
 
         val item = innerUISate.itemList.getOrNull(pos)
@@ -322,7 +341,11 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
 
         val urlEncodeParams = UrlEncodeParams().apply { put("ep_id", epId.toString()) }
 
-        val headerParams = HeaderParams().apply { setBilibiliCookie(vmCollection?.activity) }
+        val headerParams = HeaderParams().apply {
+            vmCollection?.shareViewModel?.suspendReduce(ShareViewModel.Action.NeedActivity { activity ->
+                setBilibiliCookie(activity)
+            })
+        }
 
         val videoInfo = getRequest(
             GetEpisode.URL,
@@ -361,11 +384,13 @@ class VideoViewModel : BaseViewModel2<VideoViewModel.Action, VideoViewModel.Vide
             headerParams = headerParams
         )
         val result = conanList?.safeGetJSONObject("result").nullCheck("get result", false) ?: return
-        val main_section = result.safeGetJSONObject("main_section").nullCheck("get main_section", true) ?: return
-        val episodes = main_section.safeGetJsonArray("episodes").nullCheck("get episodes", true) ?: return
+        val main_section =
+            result.safeGetJSONObject("main_section").nullCheck("get main_section", true) ?: return
+        val episodes =
+            main_section.safeGetJsonArray("episodes").nullCheck("get episodes", true) ?: return
 
         val items = mutableListOf<SectionItem>()
-        for (i in 0 until  episodes.length()) {
+        for (i in 0 until episodes.length()) {
             val obj = episodes.getJSONObject(i)
             val shortTitle = obj.safeGetString("title").nullCheck("get shortTitle") ?: continue
             val longTitle = obj.safeGetString("long_title").nullCheck("get longTitle") ?: continue

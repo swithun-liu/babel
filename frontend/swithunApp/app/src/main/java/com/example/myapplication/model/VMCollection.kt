@@ -1,18 +1,15 @@
 package com.example.myapplication.model
 
-import androidx.compose.material3.SnackbarHostState
 import com.example.myapplication.ConnectServerViewModel
-import com.example.myapplication.MainActivity
 import com.example.myapplication.viewmodel.*
 
 class VMCollection constructor(
-    var activity: MainActivity,
     val connectKernelVM: ConnectKernelViewModel,
     val connectServerVM: ConnectServerViewModel,
     val videoVM: VideoViewModel,
     val nasVM: NasViewModel,
     val fileVM: FileManagerViewModel,
-    var scaffoldState: SnackbarHostState? = null,
+    var shareViewModel: ShareViewModel,
 ) {
 
     init {

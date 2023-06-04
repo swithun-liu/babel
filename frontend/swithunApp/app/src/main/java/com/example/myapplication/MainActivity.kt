@@ -14,6 +14,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import com.example.myapplication.model.KernelConfig
 import com.example.myapplication.model.PathConfig
 import com.example.myapplication.model.ServerConfig
@@ -22,6 +23,7 @@ import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.ui.view.Myapp
 import com.example.myapplication.util.AuthChecker
 import com.example.myapplication.viewmodel.*
+import kotlinx.coroutines.launch
 import me.jahnen.libaums.core.UsbMassStorageDevice
 
 
@@ -36,15 +38,16 @@ class MainActivity : ComponentActivity() {
     private val videoViewModel: VideoViewModel by viewModels()
     private val nasViewModel: NasViewModel by viewModels()
     private val fileViewModel: FileManagerViewModel by viewModels()
+    private val shareViewModel: ShareViewModel by viewModels()
 
     private val vmCollection by lazy {
         VMCollection(
-            this,
             connectKernelViewModel,
             connectServerViewModel,
             videoViewModel,
             nasViewModel,
-            fileViewModel
+            fileViewModel,
+            shareViewModel
         )
     }
 
@@ -53,7 +56,16 @@ class MainActivity : ComponentActivity() {
         Config.pathConfig.init(this)
         Config.kernelConfig.init(this)
 
-        vmCollection
+        lifecycleScope.launch {
+            vmCollection.shareViewModel.uiEvent.collect {
+                when (it) {
+                    is ShareViewModel.Event.NeedActivity -> {
+                        it.block(this@MainActivity)
+                    }
+                }
+            }
+        }
+        vmCollection.videoVM.init()
 
         super.onCreate(savedInstanceState)
 
