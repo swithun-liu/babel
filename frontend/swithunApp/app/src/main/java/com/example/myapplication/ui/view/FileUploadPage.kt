@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.Config
-import com.example.myapplication.ConnectServerViewModel
+import com.example.myapplication.viewmodel.ConnectServerViewModel
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.viewmodel.FileManagerViewModel
 import com.example.myapplication.viewmodel.NasViewModel

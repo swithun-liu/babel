@@ -1,4 +1,4 @@
-package com.example.myapplication
+package com.example.myapplication.viewmodel
 
 import android.content.Context
 import android.net.Uri
@@ -8,11 +8,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.Config
+import com.example.myapplication.SwithunLog
 import com.example.myapplication.model.*
 import com.example.myapplication.util.postRequest
 import com.example.myapplication.util.safeGetString
 import com.example.myapplication.framework.BaseViewModel
-import com.example.myapplication.viewmodel.NasViewModel
+import com.example.myapplication.nullCheck
 import com.example.myapplication.viewmodel.biz.TransferBiz
 import com.example.myapplication.websocket.RawDataBase
 import com.example.myapplication.websocket.RawDataBase.RawTextData
@@ -25,9 +27,11 @@ import kotlinx.coroutines.launch
 import okio.ByteString
 import java.io.File
 import java.io.RandomAccessFile
+import java.math.RoundingMode
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
+import java.text.DecimalFormat
 import java.util.UUID
 
 
@@ -234,6 +238,8 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
 
         viewModelScope.launch(Dispatchers.IO) {
 
+            val beginTime = System.currentTimeMillis()
+
             try {
                 context.contentResolver.openInputStream(uri)?.use { inputStream ->
                     val bufferSize = 60 * 1024
@@ -280,6 +286,23 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
                     val finalDTO = MessageBinaryDTO(contentId, -1, ByteString.of())
                     repository.webSocketSuspendSend(RawDataBase.RawByteData(ByteString.of(*finalDTO.toByteArray())))
 
+                    val endTime = System.currentTimeMillis()
+
+                    // 计算传输速度，保留小数点后2位
+                    val speed: Double = (File(filePath).length() / 1024 / 1024) / ((endTime - beginTime) / 1000.0)
+                    val df = DecimalFormat("#.##").apply {
+                        roundingMode = RoundingMode.DOWN
+                    }
+                    SwithunLog.d("speed: ${df.format(speed)} MB/s")
+                    vmCollection?.shareViewModel?.reduce(
+                        ShareViewModel.Action.ToastAction(
+                            "文件传输完成: ${
+                                df.format(
+                                    speed
+                                )
+                            } MB/s".toTextRes()
+                        )
+                    )
                 }
             } catch (e: Exception) {
                 SwithunLog.e("err : $e")
@@ -288,7 +311,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
     }
 
     /** 请求下载会话中的文件 */
-    private fun getSessionFile(action: ConnectServerViewModel.Action.GetSessionFile) {
+    private fun getSessionFile(action: Action.GetSessionFile) {
         val appExternalPath = Config.pathConfig.appExternalPath
         val postFileServerCachePath = Config.pathConfig.postFileServerCachePath
 

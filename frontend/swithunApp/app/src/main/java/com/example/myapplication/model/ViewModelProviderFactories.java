@@ -8,7 +8,7 @@ import androidx.annotation.RequiresApi;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.myapplication.ConnectServerViewModel;
+import com.example.myapplication.viewmodel.ConnectServerViewModel;
 import com.example.myapplication.viewmodel.ConnectKernelViewModel;
 import com.example.myapplication.viewmodel.VideoViewModel;
 import com.example.myapplication.viewmodel.FTPViewModel;

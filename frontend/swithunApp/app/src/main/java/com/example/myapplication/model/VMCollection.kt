@@ -1,6 +1,6 @@
 package com.example.myapplication.model
 
-import com.example.myapplication.ConnectServerViewModel
+import com.example.myapplication.viewmodel.ConnectServerViewModel
 import com.example.myapplication.viewmodel.*
 
 class VMCollection constructor(

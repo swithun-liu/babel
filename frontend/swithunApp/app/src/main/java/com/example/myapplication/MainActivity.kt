@@ -62,6 +62,10 @@ class MainActivity : ComponentActivity() {
                     is ShareViewModel.Event.NeedActivity -> {
                         it.block(this@MainActivity)
                     }
+                    is ShareViewModel.Event.ToastEvent -> {
+                        vmCollection.shareViewModel.snackbarHostState.showSnackbar(it.text.toString())
+                        it.block()
+                    }
                 }
             }
         }
