@@ -2,6 +2,7 @@ package com.example.myapplication.ui.view
 
 import android.graphics.SurfaceTexture
 import android.os.Build
+import android.util.Log
 import android.view.Surface
 import android.view.TextureView
 import android.view.TextureView.SurfaceTextureListener
@@ -16,11 +17,15 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.viewmodel.VideoViewModel
+import java.lang.Exception
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun VideoPage() {
-    IjkPlayer()
+    Row {
+        IjkPlayer()
+        VideoListPage()
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.M)
@@ -61,5 +66,13 @@ fun IjkPlayer(
             }
 
             textureView
-        })
+        },
+        update = {
+            try {
+                videoViewModel.uiState.player.setSurface(Surface(it?.surfaceTexture))
+            } catch (e: Exception) {
+
+            }
+        }
+    )
 }

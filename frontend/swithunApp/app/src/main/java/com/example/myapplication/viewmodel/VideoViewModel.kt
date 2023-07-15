@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.errcode.LogInErrCode
-import com.example.myapplication.framework.BaseViewModel2
+import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.*
 import com.example.myapplication.nullCheck
 import com.example.myapplication.util.*
@@ -23,9 +23,10 @@ import org.json.JSONObject
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
 
 class VideoViewModel :
-    BaseViewModel2<VideoViewModel.Action, VideoViewModel.VideoUIState, VideoViewModel.MutableVideoUIState>() {
+    BaseViewModel<VideoViewModel.Action, VideoViewModel.VideoUIState, VideoViewModel.MutableVideoUIState>() {
 
     private var vmCollection: VMCollection? = null
+    private var dependency: Dependency = Dependency("")
 
     private var itemCursor = 0
     private var beginJob: Job? = null
@@ -58,7 +59,11 @@ class VideoViewModel :
         this.vmCollection = vmCollection
     }
 
-    sealed class Action : BaseViewModel2.Action() {
+    fun initDependency(dependency: Dependency) {
+        this.dependency = dependency
+    }
+
+    sealed class Action : BaseViewModel.Action() {
         data class PlayVideoAction(
             val videoUrl: String,
             val headerParams: HeaderParams? = null,
@@ -77,8 +82,12 @@ class VideoViewModel :
         }
     }
 
-    private fun getNewPlayer() = IjkMediaPlayer().also {
-        this.uiState.player = it
+    private fun getNewPlayer(): IjkMediaPlayer {
+        this.uiState.player.reset()
+        this.uiState.player.release()
+        return IjkMediaPlayer().also {
+            this.uiState.player = it
+        }
     }
 
     private val BILIBILI_LOGIN_QR_CODE_URL =
@@ -243,6 +252,7 @@ class VideoViewModel :
 
                             Log.i(TAG, "")
                             vmCollection?.shareViewModel?.reduce(ShareViewModel.Action.NeedActivity { activity ->
+                                dependency.bilibiliCookie = value
                                 SPUtil.putString(activity, key, value)
                             })
                         }
@@ -255,12 +265,8 @@ class VideoViewModel :
     }
 
     private suspend fun getCheckMyProfile(): Boolean {
-        val activityVar = vmCollection ?: return false
-
         val headerParams = HeaderParams().apply {
-            activityVar.shareViewModel.suspendReduce(ShareViewModel.Action.NeedActivity {
-                setBilibiliCookie(it)
-            })
+            setBilibiliCookie(dependency.bilibiliCookie)
         }
         val response = getRequest(
             BILIBILI_MY_INFO_URL,
@@ -311,10 +317,8 @@ class VideoViewModel :
                 epUrl,
                 headerParams
             ) {
-                viewModelScope.launch {
-                    val nextEpPos = getNextEpisodePos()
-                    cyclePlayEpisode(nextEpPos)
-                }
+                val nextEpPos = getNextEpisodePos()
+                cyclePlayEpisode(nextEpPos)
             })
         }
     }
@@ -325,9 +329,6 @@ class VideoViewModel :
             chosePos != null -> chosePos
             else -> {
                 var pos = 0
-                vmCollection?.shareViewModel?.suspendReduce(ShareViewModel.Action.NeedActivity { activity ->
-                    pos = SPUtil.Conan.getCurrentConan(activity) ?: 0
-                })
                 pos
             }
         }
@@ -342,9 +343,7 @@ class VideoViewModel :
         val urlEncodeParams = UrlEncodeParams().apply { put("ep_id", epId.toString()) }
 
         val headerParams = HeaderParams().apply {
-            vmCollection?.shareViewModel?.suspendReduce(ShareViewModel.Action.NeedActivity { activity ->
-                setBilibiliCookie(activity)
-            })
+            setBilibiliCookie(dependency.bilibiliCookie)
         }
 
         val videoInfo = getRequest(
@@ -404,5 +403,10 @@ class VideoViewModel :
         innerUISate.itemList = items
         SwithunLog.d("haha - 2")
     }
+
+
+    class Dependency(
+        var bilibiliCookie: String
+    )
 
 }

@@ -22,6 +22,7 @@ import com.example.myapplication.model.VMCollection
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.ui.view.Myapp
 import com.example.myapplication.util.AuthChecker
+import com.example.myapplication.util.SPUtil
 import com.example.myapplication.viewmodel.*
 import kotlinx.coroutines.launch
 import me.jahnen.libaums.core.UsbMassStorageDevice
@@ -69,6 +70,9 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        vmCollection.videoVM.initDependency(VideoViewModel.Dependency(
+            SPUtil.getString(this, "SESSDATA").nullCheck("get cookieSessionData", true) ?: ""
+        ))
         vmCollection.videoVM.init()
 
         super.onCreate(savedInstanceState)

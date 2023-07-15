@@ -9,7 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.Config
 import com.example.myapplication.model.VMCollection
 import com.example.myapplication.SwithunLog
-import com.example.myapplication.framework.BaseViewModel2
+import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.model.VideoExtension
 import kotlinx.coroutines.Dispatchers
@@ -18,7 +18,7 @@ import java.io.File
 
 // Babel / 蓝田
 
-class FileManagerViewModel : BaseViewModel2<FileManagerViewModel.Action, FileManagerViewModel.UIState, FileManagerViewModel.MutableUIState>() {
+class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileManagerViewModel.UIState, FileManagerViewModel.MutableUIState>() {
 
     private val fileBasePath: String = Environment.getExternalStorageDirectory().absolutePath
     private var vmCollection: VMCollection? = null
@@ -51,7 +51,7 @@ class FileManagerViewModel : BaseViewModel2<FileManagerViewModel.Action, FileMan
         )
     }
 
-    sealed class Action: BaseViewModel2.Action() {
+    sealed class Action: BaseViewModel.Action() {
         class ClickFolder(val folder: PathItem.FolderItem): Action()
         class ClickFile(val file: PathItem.FileItem): Action()
         object RefreshBasePathListFromRemote: Action()

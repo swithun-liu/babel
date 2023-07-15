@@ -7,7 +7,7 @@ import com.example.myapplication.nullCheck
 
 object SPUtil {
 
-    private fun getSP(activity: Activity?): SharedPreferences? {
+    fun getSP(activity: Activity?): SharedPreferences? {
         return activity?.getPreferences(Context.MODE_PRIVATE).nullCheck("get SP")
     }
 

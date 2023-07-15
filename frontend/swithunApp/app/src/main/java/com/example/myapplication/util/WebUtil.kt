@@ -7,7 +7,6 @@ import android.net.wifi.WifiManager
 import android.util.Log
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.nullCheck
-import com.google.zxing.client.android.AmbientLightManager
 import okhttp3.*
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.json.JSONObject
@@ -130,6 +129,10 @@ class HeaderParams {
             SPUtil.getString(activity, "SESSDATA").nullCheck("get cookieSessionData", true)
                 ?: return
         params["Cookie"] = "SESSDATA=$cookieSessionData"
+    }
+
+    fun setBilibiliCookie(sessionData: String) {
+        params["Cookie"] = "SESSDATA=$sessionData"
     }
 
     fun setBilibiliReferer() {

@@ -15,14 +15,27 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.lang.Exception
 
-class ConnectKernelViewModel : BaseViewModel<ConnectKernelViewModel.Action>() {
+class ConnectKernelViewModel :
+    BaseViewModel<ConnectKernelViewModel.Action, Unit, Unit>() {
 
     private var remoteWordFlow: Flow<RawDataBase>? = null
     private val repository = WebSocketRepository()
     private var vmCollection: VMCollection? = null
 
+//    @Stable
+//    interface UIState {
+//    }
+//
+//    class MutableUIState: UIState {
+//    }
+
     fun init(vmCollection: VMCollection) {
         this.vmCollection = vmCollection
+    }
+
+
+    override fun getInitialUIState(): Unit {
+        return Unit
     }
 
     sealed class Action : BaseViewModel.Action() {

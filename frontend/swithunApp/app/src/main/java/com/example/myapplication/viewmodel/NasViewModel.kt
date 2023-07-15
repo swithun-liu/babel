@@ -9,7 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.Config
 import com.example.myapplication.model.VMCollection
 import com.example.myapplication.SwithunLog
-import com.example.myapplication.framework.BaseViewModel2
+import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.MessageTextDTO
 import com.example.myapplication.util.SPUtil
 import com.example.myapplication.util.SystemUtil
@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 
 
 class NasViewModel :
-    BaseViewModel2<
+    BaseViewModel<
             NasViewModel.Action,
             NasViewModel.UIState,
             NasViewModel.MutableUIState
@@ -50,7 +50,7 @@ class NasViewModel :
         override var startMeAsServerBtnText: String by mutableStateOf("启动server：未启动")
     }
 
-    sealed class Action : BaseViewModel2.Action() {
+    sealed class Action : BaseViewModel.Action() {
         object StartMeAsServer : Action()
         object ConnectMyServer : Action()
         object SearchAllServer : Action()
@@ -62,7 +62,7 @@ class NasViewModel :
         class ChooseUploadFileRootDir(val uploadPath: String) : Action()
     }
 
-    sealed class Event : BaseViewModel2.Event() {
+    sealed class Event : BaseViewModel.Event() {
         class NeedActivity(val block: (activity: Activity) -> Unit) : Event()
     }
 

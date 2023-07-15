@@ -35,7 +35,7 @@ import java.text.DecimalFormat
 import java.util.UUID
 
 
-class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
+class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action, Unit, Unit>() {
 
     private var remoteWordFlow: Flow<RawDataBase>? = null
     var wordsResult by mutableStateOf(WordsResult("", emptyList(), ""))
@@ -58,6 +58,9 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action>() {
         this.vmCollection = vmCollection
     }
 
+    override fun getInitialUIState(): Unit {
+        return Unit
+    }
     open class Action : BaseViewModel.Action() {
         class ConnectServer(val serverIp: String) : Action()
         class PostSessionText(val text: String) : Action()
