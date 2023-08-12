@@ -23,6 +23,14 @@ pub struct MessageBinaryDTO {
     pub(crate) payload: Vec<u8>,
 }
 
+impl MessageTextDTO {
+
+    pub fn to_json_str(self) -> String {
+        serde_json::to_string(&self).unwrap()
+    }
+
+}
+
 impl MessageBinaryDTO {
     pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
         if bytes.len() < 40 {

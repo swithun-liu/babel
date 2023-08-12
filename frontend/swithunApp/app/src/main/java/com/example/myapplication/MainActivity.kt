@@ -24,6 +24,8 @@ import com.example.myapplication.ui.view.Myapp
 import com.example.myapplication.util.AuthChecker
 import com.example.myapplication.util.SPUtil
 import com.example.myapplication.viewmodel.*
+import com.example.myapplication.viewmodel.connectserver.ConnectServerViewModel
+import com.example.myapplication.viewmodel.filemanager.FileManagerViewModel
 import kotlinx.coroutines.launch
 import me.jahnen.libaums.core.UsbMassStorageDevice
 import me.jahnen.libaums.core.fs.UsbFile

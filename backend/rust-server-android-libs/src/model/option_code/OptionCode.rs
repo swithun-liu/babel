@@ -4,7 +4,8 @@ pub enum CommonOptionCode {
     GET_CHILDREN_PATH_LIST_REQUEST = 3,
     GET_CHILDREN_PATH_LIST_RESPONSE = 4,
     TRANSFER_DATA = 5,
-    REQUEST_TRANSFER_FILE = 6,
+    POST_SESSION_FILE = 6,
+    SEND_FILE_PIECE_RESPONSE = 7,
 }
 
 impl From<i32> for CommonOptionCode {
@@ -15,7 +16,8 @@ impl From<i32> for CommonOptionCode {
             3 => CommonOptionCode::GET_CHILDREN_PATH_LIST_REQUEST,
             4 => CommonOptionCode::GET_CHILDREN_PATH_LIST_RESPONSE,
             5 => CommonOptionCode::TRANSFER_DATA,
-            6 => CommonOptionCode::REQUEST_TRANSFER_FILE,
+            6 => CommonOptionCode::POST_SESSION_FILE,
+            7 => CommonOptionCode::SEND_FILE_PIECE_RESPONSE,
             _ => panic!("eerr"),
         }
     }

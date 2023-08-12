@@ -130,7 +130,7 @@ impl Handler<SessionMessage> for SessionServer {
                         self.send_message((msg_clone.to_owned()).as_str())
                     }
                     // client请求下载会话中的文件
-                    option_code::OptionCode::CommonOptionCode::REQUEST_TRANSFER_FILE => {
+                    option_code::OptionCode::CommonOptionCode::POST_SESSION_FILE => {
                         debug!("SessionServer # handle # SessionMessage # REQUEST_TRANSFER_FILE");
                         let file_path_str = communicate_json.content;
                         let file_path = PathBuf::from(file_path_str.clone().as_str());

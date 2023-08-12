@@ -22,8 +22,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.*
-import com.example.myapplication.viewmodel.FileManagerViewModel
-import com.example.myapplication.viewmodel.PathItem
+import com.example.myapplication.viewmodel.filemanager.FileManagerViewModel
+import com.example.myapplication.viewmodel.filemanager.PathItem
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable

@@ -8,12 +8,12 @@ import androidx.annotation.RequiresApi;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.myapplication.viewmodel.ConnectServerViewModel;
+import com.example.myapplication.viewmodel.connectserver.ConnectServerViewModel;
 import com.example.myapplication.viewmodel.ConnectKernelViewModel;
 import com.example.myapplication.viewmodel.VideoViewModel;
 import com.example.myapplication.viewmodel.FTPViewModel;
 import com.example.myapplication.viewmodel.NasViewModel;
-import com.example.myapplication.viewmodel.FileManagerViewModel;
+import com.example.myapplication.viewmodel.filemanager.FileManagerViewModel;
 
 
 import kotlin.jvm.functions.Function0;

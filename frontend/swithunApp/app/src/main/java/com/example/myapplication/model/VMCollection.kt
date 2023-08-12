@@ -1,7 +1,8 @@
 package com.example.myapplication.model
 
-import com.example.myapplication.viewmodel.ConnectServerViewModel
+import com.example.myapplication.viewmodel.connectserver.ConnectServerViewModel
 import com.example.myapplication.viewmodel.*
+import com.example.myapplication.viewmodel.filemanager.FileManagerViewModel
 
 class VMCollection constructor(
     val connectKernelVM: ConnectKernelViewModel,

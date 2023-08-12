@@ -39,7 +39,8 @@ data class MessageTextDTO(
         GET_CHILDREN_PATH_LIST_REQUEST(3),
         GET_CHILDREN_PATH_LIST_RESPONSE(4),
         POST_SESSION_TEXT(5),
-        POST_SESSOIN_FILE(6)
+        POST_SESSION_FILE(6),
+        SEND_FILE_PIECE_RESPONSE(7)
         ;
 
         companion object {

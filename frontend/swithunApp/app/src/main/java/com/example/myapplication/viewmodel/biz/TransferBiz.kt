@@ -16,7 +16,7 @@ object TransferBiz {
     fun buildGetDTO(filePath: String): MessageTextDTO {
         return MessageTextDTO(
             getUUID(),
-            MessageTextDTO.OptionCode.POST_SESSOIN_FILE.code,
+            MessageTextDTO.OptionCode.POST_SESSION_FILE.code,
             filePath,
             MessageTextDTO.ContentType.TEXT.type
         )

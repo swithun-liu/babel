@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.Config
-import com.example.myapplication.viewmodel.ConnectServerViewModel
+import com.example.myapplication.viewmodel.connectserver.ConnectServerViewModel
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.viewmodel.NasViewModel
 

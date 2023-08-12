@@ -12,6 +12,7 @@ use actix::{Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, ContextFutu
 use actix_web_actors::ws;
 use log::debug;
 use uuid::Uuid;
+use crate::model::communicate_models::MessageTextDTO;
 
 use crate::session;
 
@@ -205,7 +206,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
                                             Ok(file) => {
                                                 debug!("{} # create file suc: {}", tag, uod_new_file_path.to_str().unwrap_or(""));
                                                 // 将文件路径存入map
-                                                self.uploading_file.insert(dto.content_id, uod_new_file_path.to_str().unwrap_or("").to_string());
+                                                self.uploading_file.insert(dto.content_id.clone(), uod_new_file_path.to_str().unwrap_or("").to_string());
                                             }
                                             Err(why) => {
                                                 debug!("{} # create file failed: {}", tag, why);
@@ -249,6 +250,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
                                                 debug!("parse model json failed")
                                             }
                                         }
+
                                     }
                                     None => {
                                         debug!("find uploading file failed: {}", dto.content_id)
@@ -287,6 +289,17 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
                                 }
                             }
                         }
+
+
+                        let receive_response_uuid: String = format!("{}", Uuid::new_v4());
+                        let receive_response = MessageTextDTO {
+                            uuid: receive_response_uuid,
+                            code: crate::model::option_code::OptionCode::CommonOptionCode::SEND_FILE_PIECE_RESPONSE as i32,
+                            content: dto.content_id.clone(),
+                            content_type: crate::model::communicate_models::ContentType::TEXT as i32,
+                        };
+
+                        ctx.text(receive_response.to_json_str())
                     }
                     None => {
                         debug!("{} # parse dto failed", tag);

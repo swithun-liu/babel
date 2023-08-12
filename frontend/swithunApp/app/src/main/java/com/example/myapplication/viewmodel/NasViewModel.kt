@@ -13,6 +13,7 @@ import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.MessageTextDTO
 import com.example.myapplication.util.SPUtil
 import com.example.myapplication.util.SystemUtil
+import com.example.myapplication.viewmodel.connectserver.ConnectServerViewModel
 import com.swithun.liu.ServerSDK
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
