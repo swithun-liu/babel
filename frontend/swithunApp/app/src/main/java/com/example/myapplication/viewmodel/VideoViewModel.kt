@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.viewModelScope
+import com.example.myapplication.Config
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.errcode.LogInErrCode
 import com.example.myapplication.framework.BaseViewModel
@@ -73,12 +74,23 @@ class VideoViewModel :
         data class CyclePlayEpisode(
             val epId: Long,
         ) : Action()
+
+        object Test: Action()
     }
 
     override fun reduce(action: Action) {
         when (action) {
             is Action.PlayVideoAction -> playVideo(action)
             is Action.CyclePlayEpisode -> cyclePlayEpisodeByEpId(action.epId)
+            Action.Test -> test()
+        }
+    }
+
+    private fun test() {
+        viewModelScope.launch {
+            getRequestWithOriginalResponse(
+                "http://${Config.serverConfig.serverHost}/${ServerConfig.ServerPath.TestPath.path}"
+            )
         }
     }
 

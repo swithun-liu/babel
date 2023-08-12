@@ -26,6 +26,7 @@ import com.example.myapplication.util.SPUtil
 import com.example.myapplication.viewmodel.*
 import kotlinx.coroutines.launch
 import me.jahnen.libaums.core.UsbMassStorageDevice
+import me.jahnen.libaums.core.fs.UsbFile
 
 
 /**
@@ -95,8 +96,11 @@ class MainActivity : ComponentActivity() {
         Log.d("swithun-xxxx", "devices: ${devices.size}")
         for (device in devices) {
 
-            val permissionIntent = PendingIntent.getBroadcast(this, 0, Intent(
-                ACTION_USB_PERMISSION), 0)
+            val permissionIntent = PendingIntent.getBroadcast(
+                this, 0, Intent(
+                    ACTION_USB_PERMISSION
+                ), PendingIntent.FLAG_IMMUTABLE
+            )
             usbManager.requestPermission(device.usbDevice, permissionIntent)
             usbManager.hasPermission(device.usbDevice).nullCheck("usb haspermission", true)
 
@@ -119,7 +123,7 @@ class MainActivity : ComponentActivity() {
                 SwithunLog.d("usb 4")
                 val root = currentFs.rootDirectory
                 SwithunLog.d("usb 5")
-                val files = root.listFiles()
+                val files: Array<UsbFile> = root.listFiles()
                 for (file in files) {
                     SwithunLog.d("usb file: " + file.name)
                 }

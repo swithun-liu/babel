@@ -49,6 +49,11 @@ fun ConanVideoView(
             }) {
                 Text(text = "stop")
             }
+            Button(onClick = {
+                videoViewModel.reduce(VideoViewModel.Action.Test)
+            }) {
+                Text(text = "test")
+            }
             Text(text = videoViewModel.uiState.currentProcess.toString())
         }
 

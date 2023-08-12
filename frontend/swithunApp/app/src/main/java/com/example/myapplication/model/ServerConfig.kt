@@ -19,6 +19,10 @@ object ServerConfig {
         object WebSocketPath {
             const val path = "ws"
         }
+
+        object TestPath {
+            const val path = "test"
+        }
     }
 
 }

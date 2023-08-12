@@ -1,10 +1,7 @@
 use jni::objects::{JClass, JObject, JString};
 use jni::JNIEnv;
 
-use std::{
-    sync::{atomic::AtomicUsize, Arc},
-    time::Instant,
-};
+use std::{panic, sync::{atomic::AtomicUsize, Arc}, time::Instant};
 
 use crate::model::option_code;
 use actix::{Actor, Addr};
@@ -460,8 +457,50 @@ async fn add_session(
 }
 
 async fn test() -> String {
-    debug!("somebody test");
+    debug!("somebody test 2");
+
+    debug!("somebody test 2-1");
+    let result = panic::catch_unwind(|| {
+        return rusb::devices();
+    });
+    match result {
+        Err(e) => {
+            debug!("somebody test # panic: {:?}", e);
+        }
+        Ok(a) => {
+            debug!("somebody test # not panic");
+            match a {
+                Err(..) => {
+                    debug!("somebody test # none");
+                }
+                Ok(a) => {
+                    debug!("somebody test # some");
+                    for device in a.iter() {
+                        let device_desc = device.device_descriptor();
+                        match device_desc {
+                            Err(..) => {
+                                debug!("somebody test # device none");
+                            }
+                            Ok(device_desc) => {
+                                debug!("Bus {:03} Device {:03} ID {:04x}:{:04x}",
+                                device.bus_number(),
+                                device.address(),
+                                device_desc.vendor_id(),
+                                device_desc.product_id());
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+
+
+    debug!("somebody test 2 end");
+
     "i am session".to_string()
+
 }
 
 async fn connect(
