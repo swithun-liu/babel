@@ -17,7 +17,9 @@ import okio.ByteString
 
 /** 封装给websocket发送的数据 */
 sealed class RawDataBase {
+    /** 纯文本 **/
     data class RawTextData(val json: String): RawDataBase()
+    /** 二进制 **/
     data class RawByteData(val bytes: ByteString): RawDataBase()
 }
 

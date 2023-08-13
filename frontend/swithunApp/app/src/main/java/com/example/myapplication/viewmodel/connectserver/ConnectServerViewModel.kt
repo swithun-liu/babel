@@ -21,7 +21,6 @@ import com.example.myapplication.viewmodel.biz.TransferBiz
 import com.example.myapplication.websocket.RawDataBase
 import com.example.myapplication.websocket.WebSocketRepository
 import com.google.gson.Gson
-import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -44,6 +43,8 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action, Unit
     private var remoteWordFlow: Flow<RawDataBase>? = null
     var wordsResult by mutableStateOf(WordsResult("", emptyList(), ""))
     private val repository = WebSocketRepository()
+    private val receiver = Receiver()
+    private val sender = Sender()
 
     private val YOUDAO_URL = "https://openapi.youdao.com/api"
     private val APP_KEY = "03f39bd127e854a5"
@@ -78,9 +79,9 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action, Unit
     override fun reduce(action: Action) {
         when (action) {
             is Action.ConnectServer -> connectServer(action)
-            is Action.PostSessionText -> postText(action)
-            is Action.PostSessionFile -> postSessionFile(action)
-            is Action.GetSessionFile -> getSessionFile(action)
+            is Action.PostSessionText -> sender.postText(action)
+            is Action.PostSessionFile -> sender.postSessionFile(action)
+            is Action.GetSessionFile -> sender.getSessionFile(action)
         }
     }
 
@@ -97,253 +98,264 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action, Unit
         val url = "http://${ServerConfig.serverHost}/${ServerConfig.ServerPath.WebSocketPath.path}"
         remoteWordFlow = repository.webSocketCreate(url, viewModelScope, "Client")
         viewModelScope.launch(Dispatchers.IO) {
-            remoteWordFlow?.collect { handleReceive(it) }
+            remoteWordFlow?.collect { receiver.handleReceive(it) }
         }
     }
 
-    private suspend fun handleReceive(data: RawDataBase) {
-        when (data) {
-            // 纯文本
-            is RawDataBase.RawTextData -> handleReceiveTextData(data)
-            // 二进制
-            is RawDataBase.RawByteData -> handleReceiveByteData(data)
-        }
-    }
-
-    /** 接受会话中的文件 */
-    private fun handleReceiveByteData(binary: RawDataBase.RawByteData) {
-        SwithunLog.d("remoteWordFlow collect RawByteData")
-
-        // 把binary转成 MessageBinaryDTO
-        val messageBinaryDTO = MessageBinaryDTO.parseFrom(binary.bytes)
-        val contentId = messageBinaryDTO.contentId
-        SwithunLog.d("handleByteData contentId: $contentId")
-
-        when (val seq = messageBinaryDTO.seq) {
-            0 -> { // seq为0，payload为文件名
-                try {
-                    SwithunLog.d("handle 0")
-                    val appExternalPath = Config.pathConfig.appExternalPath
-                    val postFileClientDownloadPath = Config.pathConfig.postFileClientDownloadPath
-                    // 获取文件名
-                    val fileName = messageBinaryDTO.payload.utf8()
-                    val file = File(
-                        "$appExternalPath$postFileClientDownloadPath",
-                        fileName
-                    )
-                    SwithunLog.d("handleByteData file: ${file.absolutePath}")
-
-                    // 递归创建父文件夹(如果不存在的话)
-                    file.parentFile?.mkdirs()
-
-                    // 检查文件是否存在，存在则删除
-                    if (file.exists()) {
-                        file.delete().nullCheck("delete old file", true)
-                    }
-                    // 创建新文件
-                    file.createNewFile().nullCheck("create new file", true)
-                    rememberReceivingFile[contentId] = fileName
-                } catch (e: java.lang.Exception) {
-                    SwithunLog.e("handleByteData error: ${e.message}")
-                }
-            }
-            -1 -> { // seq为-1，表示文件接收完成
-                viewModelScope.launch {
-                    SwithunLog.d("handle -1")
-                    vmCollection?.shareViewModel?.snackbarHostState?.showSnackbar(message = "文件接收完成")
-                }
-            }
-            else -> { // seq为其他值，payload为文件内容
-                try {
-                    SwithunLog.d("handle $seq")
-                    val appExternalPath = Config.pathConfig.appExternalPath
-                    val postFileClientDownloadPath = Config.pathConfig.postFileClientDownloadPath
-
-                    val fileName = rememberReceivingFile[contentId] ?: return
-                    val file = File("$appExternalPath$postFileClientDownloadPath", fileName)
-                    // 根据seq计算写入位置（seq * 60kB）
-                    val offset = (messageBinaryDTO.seq - 1) * 60 * 1024
-
-                    val raf = RandomAccessFile(file, "rw")
-                    raf.seek(offset.toLong())
-                    raf.write(messageBinaryDTO.payload.toByteArray())
-                    raf.close()
-                } catch (e: java.lang.Exception) {
-                    SwithunLog.e("handleByteData error 1: ${e.message}")
-                }
+    inner class Receiver {
+        suspend fun handleReceive(data: RawDataBase) {
+            when (data) {
+                is RawDataBase.RawTextData -> handleReceiveTextData(data)
+                is RawDataBase.RawByteData -> handleReceiveByteData(data)
             }
         }
-    }
 
-    private suspend fun handleReceiveTextData(data: RawDataBase.RawTextData) {
-        val vmCollection = vmCollection ?: return
+        /** 接收server纯文本 */
+        private suspend fun handleReceiveTextData(data: RawDataBase.RawTextData) {
+            val vmCollection = vmCollection ?: return
 
-        SwithunLog.d("remoteWordFlow collect RawTextData ${data.json}")
-
-        try {
-            val message: MessageTextDTO = Gson().fromJson(data.json, MessageTextDTO::class.java)
-            when (MessageTextDTO.OptionCode.fromValue(message.code)) {
-                // 其他client发送到会话数据(文本/图片/文件)
-                MessageTextDTO.OptionCode.POST_SESSION_TEXT -> handleReceivePostSessionText(message)
-                MessageTextDTO.OptionCode.SEND_FILE_PIECE_RESPONSE -> handleReceiveSendFilePieceResponse(message)
-                null -> vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "无code")
-                else -> vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "未知code")
-            }
-        } catch (e: Exception) {
-            vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "解析失败 非MessageTextDTO格式")
-        }
-    }
-
-    private fun handleReceiveSendFilePieceResponse(message: MessageTextDTO) {
-        val content_id = message.content
-        rememberSendingFile.remove(content_id)?.invoke()
-    }
-
-    private suspend fun handleReceivePostSessionText(message: MessageTextDTO) {
-        val vmCollection = vmCollection ?: return
-
-        val oodList = receivedData
-        SwithunLog.d("oodList: $oodList")
-        when (MessageTextDTO.ContentType.fromValue(message.content_type)) {
-            null -> {
-                vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "未知 内容类型")
-                SwithunLog.d("unknown content_type")
-            }
-            MessageTextDTO.ContentType.TEXT -> {
-                SwithunLog.d("content_type: Text")
-                val uodList = mutableListOf<TransferData>(
-                    TransferData.TextData(message.content)
-                )
-                uodList.addAll(oodList.take(4))
-                SwithunLog.d("uodList: $uodList")
-                receivedData = uodList
-            }
-            MessageTextDTO.ContentType.IMAGE -> {
-                SwithunLog.d("content_type: Image")
-                val uodList = mutableListOf<TransferData>(
-                    TransferData.ImageData(message.content)
-                )
-                uodList.addAll(oodList.take(4))
-                SwithunLog.d("uodList: $uodList")
-                receivedData = uodList
-            }
-        }
-    }
-
-    /** 发送文本到会话 */
-    private fun postText(action: Action.PostSessionText) {
-        val data = action.text
-
-        val suc = repository.webSocketSend(RawDataBase.RawTextData(TransferBiz.buildPostDTO(data).toJsonStr()))
-        viewModelScope.launch {
-            vmCollection?.shareViewModel?.snackbarHostState?.showSnackbar(
-                message = if (suc) {
-                    "成功发送"
-                } else {
-                    "发送失败"
-                }
-            )
-        }
-    }
-
-    private suspend fun sendAndContinueAfterResponse(data: MessageBinaryDTO) = suspendCancellableCoroutine<Unit> { continuation ->
-        rememberSendingFile[data.contentId] = { continuation.resume(Unit) }
-        viewModelScope.launch {
-            repository.webSocketSuspendSend(RawDataBase.RawByteData(ByteString.of(*data.toByteArray())))
-        }
-    }
-
-    /** 发送文件到会话 */
-    private fun postSessionFile(action: Action.PostSessionFile) {
-        val uri = action.uri
-        val context = action.context
-
-        viewModelScope.launch(Dispatchers.IO) {
-
-            val beginTime = System.currentTimeMillis()
+            SwithunLog.d("remoteWordFlow collect RawTextData ${data.json}")
 
             try {
-                context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                    val bufferSize = 60 * 1024
-                    val buffer = ByteArray(bufferSize)
-
-                    var seq = 0
-                    val contentId = UUID.randomUUID().toString()
-
-                    val fileName: String = context.contentResolver.query(
-                        uri, null, null, null, null
-                    )?.use { cursor ->
-                        cursor.moveToFirst()
-                        cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME).let {
-                            if (it >= 0) {
-                                cursor.getString(it)
-                            } else {
-                                "unknown"
-                            }
-                        }
-                    } ?: "unknown"
-
-                    // 文件存储路径
-                    val filePath = "${action.parentPath}/$fileName"
-                    val filePathBytes = filePath.encodeToByteArray()
-                    val filePathDTO =
-                        MessageBinaryDTO(contentId, seq, ByteString.of(*filePathBytes))
-                    sendAndContinueAfterResponse(filePathDTO)
-
-                    seq++
-
-                    while (true) {
-                        SwithunLog.d("send $seq")
-                        val bytesRead = inputStream.read(buffer)
-                        if (bytesRead == -1) {
-                            break
-                        }
-                        val payload = buffer.sliceArray(0 until bytesRead)
-                        val message = MessageBinaryDTO(contentId, seq, ByteString.of(*payload))
-                        val messageBytes = message.toByteArray()
-                        sendAndContinueAfterResponse(message)
-                        seq++
-                    }
-
-                    val finalDTO = MessageBinaryDTO(contentId, -1, ByteString.of())
-                    sendAndContinueAfterResponse(finalDTO)
-
-                    val endTime = System.currentTimeMillis()
-
-                    // 计算传输速度，保留小数点后2位
-                    val speed: Double = (File(filePath).length() / 1024 / 1024) / ((endTime - beginTime) / 1000.0)
-                    val df = DecimalFormat("#.##").apply {
-                        roundingMode = RoundingMode.DOWN
-                    }
-                    SwithunLog.d("speed: ${df.format(speed)} MB/s")
-                    vmCollection?.shareViewModel?.reduce(
-                        ShareViewModel.Action.ToastAction(
-                            "文件传输完成: ${
-                                df.format(
-                                    speed
-                                )
-                            } MB/s".toTextRes()
-                        )
-                    )
+                val message: MessageTextDTO = Gson().fromJson(data.json, MessageTextDTO::class.java)
+                when (MessageTextDTO.OptionCode.fromValue(message.code)) {
+                    MessageTextDTO.OptionCode.MESSAGE_TO_SESSION -> handleReceivePostSessionText(message)
+                    MessageTextDTO.OptionCode.CLIENT_FILE_TO_SESSION_PIECE_ACKNOWLEDGE -> handleReceiveSendFilePieceResponse(message)
+                    null -> vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "无code")
+                    else -> vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "未知code")
                 }
             } catch (e: Exception) {
-                SwithunLog.e("err : $e")
+                vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "解析失败 非MessageTextDTO格式")
+            }
+        }
+
+        /** 接收server文件 */
+        private fun handleReceiveByteData(binary: RawDataBase.RawByteData) {
+            SwithunLog.d("remoteWordFlow collect RawByteData")
+
+            // 把binary转成 MessageBinaryDTO
+            val messageBinaryDTO = MessageBinaryDTO.parseFrom(binary.bytes)
+            val contentId = messageBinaryDTO.contentId
+            SwithunLog.d("handleByteData contentId: $contentId")
+
+            when (val seq = messageBinaryDTO.seq) {
+                0 -> { // seq为0，payload为文件名
+                    try {
+                        SwithunLog.d("handle 0")
+                        val appExternalPath = Config.pathConfig.appExternalPath
+                        val postFileClientDownloadPath = Config.pathConfig.postFileClientDownloadPath
+                        // 获取文件名
+                        val fileName = messageBinaryDTO.payload.utf8()
+                        val file = File(
+                            "$appExternalPath$postFileClientDownloadPath",
+                            fileName
+                        )
+                        SwithunLog.d("handleByteData file: ${file.absolutePath}")
+
+                        // 递归创建父文件夹(如果不存在的话)
+                        file.parentFile?.mkdirs()
+
+                        // 检查文件是否存在，存在则删除
+                        if (file.exists()) {
+                            file.delete().nullCheck("delete old file", true)
+                        }
+                        // 创建新文件
+                        file.createNewFile().nullCheck("create new file", true)
+                        rememberReceivingFile[contentId] = fileName
+                    } catch (e: java.lang.Exception) {
+                        SwithunLog.e("handleByteData error: ${e.message}")
+                    }
+                }
+                -1 -> { // seq为-1，表示文件接收完成
+                    viewModelScope.launch {
+                        SwithunLog.d("handle -1")
+                        vmCollection?.shareViewModel?.snackbarHostState?.showSnackbar(message = "文件接收完成")
+                    }
+                }
+                else -> { // seq为其他值，payload为文件内容
+                    try {
+                        SwithunLog.d("handle $seq")
+                        val appExternalPath = Config.pathConfig.appExternalPath
+                        val postFileClientDownloadPath = Config.pathConfig.postFileClientDownloadPath
+
+                        val fileName = rememberReceivingFile[contentId] ?: return
+                        val file = File("$appExternalPath$postFileClientDownloadPath", fileName)
+                        // 根据seq计算写入位置（seq * 60kB）
+                        val offset = (messageBinaryDTO.seq - 1) * Config.serverConfig.fileChunkSize * 1024
+
+                        val raf = RandomAccessFile(file, "rw")
+                        raf.seek(offset.toLong())
+                        raf.write(messageBinaryDTO.payload.toByteArray())
+                        raf.close()
+                    } catch (e: java.lang.Exception) {
+                        SwithunLog.e("handleByteData error 1: ${e.message}")
+                    }
+                }
+            }
+        }
+
+        private fun handleReceiveSendFilePieceResponse(message: MessageTextDTO) {
+            val content_id = message.content
+            rememberSendingFile.remove(content_id)?.invoke()
+        }
+
+        private suspend fun handleReceivePostSessionText(message: MessageTextDTO) {
+            val vmCollection = vmCollection ?: return
+
+            val oodList = receivedData
+            SwithunLog.d("oodList: $oodList")
+            when (MessageTextDTO.ContentType.fromValue(message.content_type)) {
+                null -> {
+                    vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "未知 内容类型")
+                    SwithunLog.d("unknown content_type")
+                }
+                MessageTextDTO.ContentType.TEXT -> {
+                    SwithunLog.d("content_type: Text")
+                    val uodList = mutableListOf<TransferData>(
+                        TransferData.TextData(message.content)
+                    )
+                    uodList.addAll(oodList.take(4))
+                    SwithunLog.d("uodList: $uodList")
+                    receivedData = uodList
+                }
+                MessageTextDTO.ContentType.IMAGE -> {
+                    SwithunLog.d("content_type: Image")
+                    val uodList = mutableListOf<TransferData>(
+                        TransferData.ImageData(message.content)
+                    )
+                    uodList.addAll(oodList.take(4))
+                    SwithunLog.d("uodList: $uodList")
+                    receivedData = uodList
+                }
             }
         }
     }
 
-    /** 请求下载会话中的文件 */
-    private fun getSessionFile(action: Action.GetSessionFile) {
-        val appExternalPath = Config.pathConfig.appExternalPath
-        val postFileServerCachePath = Config.pathConfig.postFileServerCachePath
+    inner class Sender {
 
-        val fileName = action.fileName
-        val filePath =
-            "$appExternalPath$postFileServerCachePath/$fileName"
-        repository.webSocketSend(
-            RawDataBase.RawTextData(TransferBiz.buildGetDTO(filePath).toJsonStr())
-        )
+        /** 发送文本到会话 */
+        fun postText(action: Action.PostSessionText) {
+            val data = action.text
+
+            val suc = repository.webSocketSend(RawDataBase.RawTextData(TransferBiz.buildPostDTO(data).toJsonStr()))
+            viewModelScope.launch {
+                vmCollection?.shareViewModel?.snackbarHostState?.showSnackbar(
+                    message = if (suc) {
+                        "成功发送"
+                    } else {
+                        "发送失败"
+                    }
+                )
+            }
+        }
+
+        /** 发送文件到会话 */
+        fun postSessionFile(action: Action.PostSessionFile) {
+            val uri = action.uri
+            val context = action.context
+
+            viewModelScope.launch(Dispatchers.IO) {
+
+                val beginTime = System.currentTimeMillis()
+
+                try {
+                    context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                        // 准备：设置
+                        val bufferSize = Config.serverConfig.fileChunkSize * 1024
+                        val buffer = ByteArray(bufferSize)
+
+                        // 准备：文件信息
+                        val fileName: String = context.contentResolver.query(
+                            uri, null, null, null, null
+                        )?.use { cursor ->
+                            cursor.moveToFirst()
+                            cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME).let {
+                                if (it >= 0) {
+                                    cursor.getString(it)
+                                } else {
+                                    "unknown"
+                                }
+                            }
+                        } ?: "unknown"
+
+                        // 发送：0 first package
+                        var seq = 0
+                        val contentId = UUID.randomUUID().toString()
+
+                        val filePath = "${action.parentPath}/$fileName" // 文件存储路径
+                        val filePathBytes = filePath.encodeToByteArray()
+                        val filePathDTO =
+                            MessageBinaryDTO(contentId, seq, ByteString.of(*filePathBytes))
+                        sendAndContinueAfterResponse(filePathDTO)
+
+                        seq++
+
+                        // 发送：1..(n-1) sequence package
+                        while (true) {
+                            SwithunLog.d("send $seq")
+                            val bytesRead = inputStream.read(buffer)
+                            if (bytesRead == -1) {
+                                break
+                            }
+                            val payload = buffer.sliceArray(0 until bytesRead)
+                            val message = MessageBinaryDTO(contentId, seq, ByteString.of(*payload))
+                            val messageBytes = message.toByteArray()
+                            sendAndContinueAfterResponse(message)
+                            seq++
+                        }
+
+                        // 发送：n final package
+                        val finalDTO = MessageBinaryDTO(contentId, -1, ByteString.of())
+                        sendAndContinueAfterResponse(finalDTO)
+
+                        // 结束：计算传输速度，保留小数点后2位
+                        val endTime = System.currentTimeMillis()
+                        val speed: Double = (File(filePath).length() / 1024 / 1024) / ((endTime - beginTime) / 1000.0)
+                        val df = DecimalFormat("#.##").apply {
+                            roundingMode = RoundingMode.DOWN
+                        }
+                        SwithunLog.d("speed: ${df.format(speed)} MB/s")
+                        vmCollection?.shareViewModel?.reduce(
+                            ShareViewModel.Action.ToastAction(
+                                "文件传输完成: ${
+                                    df.format(
+                                        speed
+                                    )
+                                } MB/s".toTextRes()
+                            )
+                        )
+                    }
+                } catch (e: Exception) {
+                    SwithunLog.e("err : $e")
+                }
+            }
+        }
+
+
+        /** 请求下载会话中的文件 */
+        fun getSessionFile(action: Action.GetSessionFile) {
+            val appExternalPath = Config.pathConfig.appExternalPath
+            val postFileServerCachePath = Config.pathConfig.postFileServerCachePath
+
+            val fileName = action.fileName
+            val filePath =
+                "$appExternalPath$postFileServerCachePath/$fileName"
+            repository.webSocketSend(
+                RawDataBase.RawTextData(TransferBiz.buildGetDTO(filePath).toJsonStr())
+            )
+        }
+
+
+        private suspend fun sendAndContinueAfterResponse(data: MessageBinaryDTO) = suspendCancellableCoroutine<Unit> { continuation ->
+            rememberSendingFile[data.contentId] = { continuation.resume(Unit) }
+            viewModelScope.launch {
+                repository.webSocketSuspendSend(RawDataBase.RawByteData(ByteString.of(*data.toByteArray())))
+            }
+        }
+
     }
+
+
 
     private suspend fun translate(data: RawDataBase.RawTextData) {
         val q = data.json

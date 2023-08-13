@@ -250,6 +250,8 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
     }
 }
 
+const MAX_FRAME_SIZE: usize = 1024 * 1024; // 16Ki
+
 async fn get_video(
     query: web::Query<HashMap<String, String>>,
     req: HttpRequest,
@@ -383,7 +385,7 @@ async fn get_path_list(query: web::Query<HashMap<String, String>>) -> impl Respo
             "base" => {
                 debug!(
                     "get_path_list: base_string, {}",
-                    option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST as i32
+                    option_code::OptionCode::CommonOptionCode::GetBasePathListRequest as i32
                 );
                 let new_uuid: String = format!("{}", Uuid::new_v4());
                 let (tx, rx) = oneshot::channel();
@@ -394,7 +396,7 @@ async fn get_path_list(query: web::Query<HashMap<String, String>>) -> impl Respo
                     .insert(new_uuid.clone(), tx);
                 let json_struct = communicate_models::MessageTextDTO {
                     uuid: new_uuid,
-                    code: option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST
+                    code: option_code::OptionCode::CommonOptionCode::GetBasePathListRequest
                         as i32,
                     content: "".to_string(),
                     content_type: 0,
@@ -410,7 +412,7 @@ async fn get_path_list(query: web::Query<HashMap<String, String>>) -> impl Respo
                 debug!(
                     "get_path_list: {} code {}",
                     path,
-                    option_code::OptionCode::CommonOptionCode::GET_CHILDREN_PATH_LIST_REQUEST
+                    option_code::OptionCode::CommonOptionCode::GetChildrenPathListRequest
                         as i32
                 );
 
@@ -423,7 +425,7 @@ async fn get_path_list(query: web::Query<HashMap<String, String>>) -> impl Respo
                     .insert(new_uuid.clone(), tx);
                 let json_struct = communicate_models::MessageTextDTO {
                     uuid: new_uuid,
-                    code: option_code::OptionCode::CommonOptionCode::GET_CHILDREN_PATH_LIST_REQUEST
+                    code: option_code::OptionCode::CommonOptionCode::GetChildrenPathListRequest
                         as i32,
                     content: path.to_string(),
                     content_type: 0,
@@ -453,7 +455,10 @@ async fn add_session(
         uploading_file: HashMap::new()
     };
 
-    ws::start(session, &req, stream)
+    ws::WsResponseBuilder::new(session, &req, stream)
+        .frame_size(MAX_FRAME_SIZE)
+        .protocols(&["A", "B"])
+        .start()
 }
 
 async fn test() -> String {

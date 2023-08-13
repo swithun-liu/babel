@@ -24,7 +24,7 @@ const PARENT_PATH: &str = "/storage/emulated/0/";
 
 pub struct SessionServer {
     // <人的id，对应的recipient>
-    sessions: HashMap<usize, Recipient<ServerMessage>>,
+    sessions_ref: HashMap<usize, Recipient<ServerMessage>>,
     // 访客人数
     visitor_count: Arc<AtomicUsize>,
     connect_server: Addr<crate::connect::connect_server::ConnectServer>,
@@ -37,7 +37,7 @@ impl SessionServer {
         connect_server: Addr<crate::connect::connect_server::ConnectServer>,
     ) -> SessionServer {
         SessionServer {
-            sessions: HashMap::new(),
+            sessions_ref: HashMap::new(),
             visitor_count,
             connect_server,
             rng: rand::thread_rng(),
@@ -47,14 +47,14 @@ impl SessionServer {
     pub fn send_message(&self, message: &str) {
         debug!("[ChatServer] [send_message] {}", message);
 
-        for (id, rcp) in &self.sessions {
+        for (id, rcp) in &self.sessions_ref {
             rcp.do_send(ServerMessage { text: Some(message.to_owned()), binary: None })
         }
     }
 
     pub fn send_binary(&self, bytes: Vec<u8>, session_id: usize) {
         debug!("[ChatServer] [send_bytes]");
-        let session_holder = &self.sessions.get(&session_id);
+        let session_holder = &self.sessions_ref.get(&session_id);
         match session_holder {
             None => {
                 debug!("session_holder is None");
@@ -71,7 +71,7 @@ impl SessionServer {
     }
 
     pub fn send_message_to_specific_recipient(&self, recipient_id: usize, message: &str) {
-        for (id, rcp) in &self.sessions {
+        for (id, rcp) in &self.sessions_ref {
             if *id == recipient_id {
                 rcp.do_send(ServerMessage { text: Some(message.to_owned()), binary: None })
             }
@@ -92,7 +92,7 @@ impl Handler<Connect> for SessionServer {
 
         self.send_message("Someone joined");
         let id = self.rng.gen::<usize>();
-        self.sessions.insert(id, msg.addr);
+        self.sessions_ref.insert(id, msg.addr);
 
         let count = self.visitor_count.fetch_add(1, Ordering::SeqCst);
 
@@ -120,17 +120,17 @@ impl Handler<SessionToSessionServerMessage> for SessionServer {
                     .unwrap()
                 {
                     // client获取server的根目录下文件列表
-                    option_code::OptionCode::CommonOptionCode::GET_BASE_PATH_LIST_REQUEST => {
-                        debug!("SessionServer # handle # SessionMessage # GET_BASE_PATH_LIST_REQUEST");
+                    option_code::OptionCode::CommonOptionCode::GetBasePathListRequest => {
+                        debug!("SessionServer # handle # SessionMessage # GetBasePathListRequest");
                         kernel_send_message_to_front_end(communicate_json)
                     }
                     // client发送文件/文件到会话
-                    option_code::OptionCode::CommonOptionCode::TRANSFER_DATA => {
+                    option_code::OptionCode::CommonOptionCode::MessageToSession => {
                         debug!("SessionServer # handle # SessionMessage # TRANSFER_DATA");
                         self.send_message((msg_clone.to_owned()).as_str())
                     }
                     // client请求下载会话中的文件
-                    option_code::OptionCode::CommonOptionCode::POST_SESSION_FILE => {
+                    option_code::OptionCode::CommonOptionCode::ClientRequestSessionFile => {
                         debug!("SessionServer # handle # SessionMessage # REQUEST_TRANSFER_FILE");
                         let file_path_str = communicate_json.content;
                         let file_path = PathBuf::from(file_path_str.clone().as_str());
@@ -150,7 +150,7 @@ impl Handler<SessionToSessionServerMessage> for SessionServer {
                         debug!("file_path: {}", file_path_str);
 
                         // 发送文件内容
-                        let mut buffer = [0; 60 * 1024];
+                        let mut buffer = [0; (crate::connect::server_config::FILE_CHUNK_SIZE as usize) * 1024];
                         match std::fs::File::open(file_path_str) {
                             Ok(mut file) => {
                                 let mut seq = 1;
@@ -214,7 +214,7 @@ impl Handler<Disconnect> for SessionServer {
         println!("Someone disconnected");
 
         let mut old_size: usize = 0;
-        if self.sessions.remove(&msg.id).is_some() {
+        if self.sessions_ref.remove(&msg.id).is_some() {
             old_size = self
                 .visitor_count
                 .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |x| Some(x - 1))

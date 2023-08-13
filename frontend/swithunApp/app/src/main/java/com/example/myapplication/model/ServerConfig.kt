@@ -7,6 +7,8 @@ object ServerConfig {
     val serverHost get() = "$serverIP:$serverPort"
     val serverPath = ServerPath
 
+    const val fileChunkSize = 1000
+
     object ServerPath {
         object GetPathList {
             const val path = "get_path_list"

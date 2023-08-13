@@ -1,8 +1,9 @@
 use std::any::Any;
 use std::collections::HashMap;
+use std::convert::Infallible;
 use std::fmt::{Binary, format};
 use std::fs::{File, OpenOptions};
-use std::io::{Seek, SeekFrom, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::string::ToString;
 use std::time::{Duration, Instant};
@@ -14,7 +15,9 @@ use actix_web_actors::ws;
 use actix_web_actors::ws::WebsocketContext;
 use log::debug;
 use uuid::Uuid;
+use crate::model::communicate_models;
 use crate::model::communicate_models::{MessageBinaryDTO, MessageTextDTO};
+use crate::model::option_code::OptionCode::CommonOptionCode;
 
 use crate::session;
 
@@ -55,12 +58,100 @@ impl Session {
         });
     }
 
-    fn handle_receive_text(&self, text: &str) {
+    fn handle_receive_text(&self, text: &str, ctx: &mut WebsocketContext<Session>) {
         // 将客户端消息发送给session_server处理
+
+        let dto = MessageTextDTO::from_json_str(text);
+        match dto {
+            Ok(dto) => {
+                match CommonOptionCode::try_from(dto.code) {
+                    Ok(code) => {
+                        match code {
+                            CommonOptionCode::ClientRequestSessionFile => self.handle_client_request_session_file_request(dto, ctx),
+                            _ => self.transfer_message_to_session_server(text),
+                        }
+                    }
+                    Err(..) => {
+                        debug!("handle_receive_text unknown code");
+                        self.transfer_message_to_session_server(text);
+                    }
+                }
+            }
+            Err(..) => {
+                debug!("handle_receive_text parse dto failed");
+                self.transfer_message_to_session_server(text);
+            }
+        }
+
+    }
+
+    fn transfer_message_to_session_server(&self, text: &str) {
         self.session_server_ref.do_send(session::session_server::SessionToSessionServerMessage {
             session_id: self.id,
             json_msg: text.to_owned(),
         })
+    }
+
+    fn handle_client_request_session_file_request(&self, dto: MessageTextDTO, ctx: &mut WebsocketContext<Session>) {
+        debug!("SessionServer # handle # SessionMessage # REQUEST_TRANSFER_FILE");
+        let file_path_str = dto.content;
+        let file_path = PathBuf::from(file_path_str.clone().as_str());
+        let file_name = file_path.file_name().unwrap_or("".as_ref()).to_str().unwrap_or("");
+
+        let content_id = communicate_models::generateUUID();
+        let file_name_dto = MessageBinaryDTO {
+            content_id: content_id.clone(),
+            seq: 0,
+            payload: file_name.as_bytes().to_vec(),
+        };
+        let file_name_dto_bytes = file_name_dto.to_bytes();
+        // 发送文件名
+        ctx.binary(file_name_dto_bytes);
+        debug!("contentId {}", content_id);
+
+        debug!("file_path: {}", file_path_str);
+
+        // 发送文件内容
+        let mut buffer = [0; (crate::connect::server_config::FILE_CHUNK_SIZE as usize) * 1024];
+        match std::fs::File::open(file_path_str) {
+            Ok(mut file) => {
+                let mut seq = 1;
+                loop {
+                    // 读取文件内容
+                    match file.read(&mut buffer) {
+                        Ok(size) => {
+                            if size == 0 {
+                                break;
+                            }
+                            let file_dto = MessageBinaryDTO {
+                                content_id: content_id.clone(),
+                                seq,
+                                payload: buffer[0..size].to_vec(),
+                            };
+                            let file_dto_bytes = file_dto.to_bytes();
+                            // 发送文件内容
+                            ctx.binary(file_dto_bytes);
+                            seq += 1;
+                        }
+                        Err(e) => {
+                            debug!("read file error: {}", e);
+                            break;
+                        }
+                    }
+                }
+
+                let file_finish_dto = MessageBinaryDTO {
+                    content_id: content_id.clone(),
+                    seq: -1,
+                    payload: vec![],
+                };
+                // 发送文件结束标志
+                ctx.binary(file_finish_dto.to_bytes());
+            }
+            Err(e) => {
+                debug!("open file error: {}", e);
+            }
+        }
     }
 
     /// 其他分片payload都是数据
@@ -70,7 +161,7 @@ impl Session {
 
         debug!("{} # file seq {}", tag, dto.seq);
         // 每片60k
-        let chunk_size = 60 * 1024;
+        let chunk_size = (crate::connect::server_config::FILE_CHUNK_SIZE as u64) * 1024;
         // 计算偏移量
         let offset = (dto.seq as u64 - 1) * chunk_size;
 
@@ -118,7 +209,7 @@ impl Session {
                 let new_uuid: String = format!("{}", Uuid::new_v4());
                 let model = crate::model::communicate_models::MessageTextDTO {
                     uuid: new_uuid,
-                    code: crate::model::option_code::OptionCode::CommonOptionCode::TRANSFER_DATA as i32,
+                    code: crate::model::option_code::OptionCode::CommonOptionCode::MessageToSession as i32,
                     content: file_name.to_string(),
                     content_type: crate::model::communicate_models::ContentType::IMAGE as i32,
                 };
@@ -208,6 +299,7 @@ impl Session {
         }
     }
 
+    /// 处理 client 上传的文件
     fn handle_receive_binary(&mut self, byte: Bytes, ctx: &mut WebsocketContext<Session>) {
 
         let tag = "WsChatSession - StreamHandler";
@@ -229,9 +321,9 @@ impl Session {
                 let receive_response_uuid: String = format!("{}", Uuid::new_v4());
                 let receive_response = MessageTextDTO {
                     uuid: receive_response_uuid,
-                    code: crate::model::option_code::OptionCode::CommonOptionCode::SEND_FILE_PIECE_RESPONSE as i32,
+                    code: CommonOptionCode::ClientFileToSessionPieceAcknowledge as i32,
                     content: remember_dto_content_id,
-                    content_type: crate::model::communicate_models::ContentType::TEXT as i32,
+                    content_type: communicate_models::ContentType::TEXT as i32,
                 };
                 ctx.text(receive_response.to_json_str())
             }
@@ -322,7 +414,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
             }
             ws::Message::Text(text) => {
                 debug!("WsChatSession - StreamHandler - handle - Text");
-                self.handle_receive_text(text.trim());
+                self.handle_receive_text(text.trim(), ctx);
             }
             ws::Message::Binary(byte) => {
                 debug!("WsChatSession - StreamHandler - handle - Binary");
