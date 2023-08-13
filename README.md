@@ -39,6 +39,7 @@ babel/蓝田
 - done
   1. 会话可以发送文件，下载会话文件
   2. 整理Android代码，迁移MVI架构，View和Viewmodel间已经实现单向数据流，但是viewmodel间交互还需要思考一下，目前是通过public方法，这样会违反单向数据流的设计原则，考虑通过Action实现，在Action中添加callback，我在思考这样是否违背原则，我倾向于不违反，reduce作为对viewmodel的数据，uiSateFlow作为viewmodel的输出，前者理解为request，后者理解为response，在Action中添加callback也可以理解为response，但是这样感觉不太收敛。
+  3. flutter 成功对接 rust（初试）
 
 ## 2023/04/02
 - done
