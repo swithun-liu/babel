@@ -17,6 +17,7 @@ use crate::kernel_send_message_to_front_end;
 
 
 use crate::model::communicate_models;
+use crate::model::communicate_models::MessageTextDTO;
 
 
 const PARENT_PATH: &str = "/storage/emulated/0/";
@@ -101,18 +102,17 @@ impl Handler<Connect> for SessionServer {
     }
 }
 
-impl Handler<SessionMessage> for SessionServer {
+impl Handler<SessionToSessionServerMessage> for SessionServer {
     type Result = ();
 
-    // 处理client发来的数据数据
-    fn handle(&mut self, msg: SessionMessage, ctx: &mut Self::Context) -> Self::Result {
+    /// 处理 client 发来的数据数据
+    fn handle(&mut self, msg: SessionToSessionServerMessage, ctx: &mut Self::Context) -> Self::Result {
         let session_id = msg.session_id;
         let msg = msg.json_msg.as_str();
         let msg_clone = msg.clone();
         debug!("SessionServer # handle # SessionMessage {}", msg_clone);
 
-        let json_struct_result =
-            serde_json::from_str::<communicate_models::MessageTextDTO>(msg);
+        let json_struct_result = MessageTextDTO::from_json_str(msg);
 
         match json_struct_result {
             Ok(communicate_json) => {
@@ -241,7 +241,7 @@ pub struct ServerMessage {
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct SessionMessage {
+pub struct SessionToSessionServerMessage {
     pub session_id: usize,
     pub json_msg: String,
 }

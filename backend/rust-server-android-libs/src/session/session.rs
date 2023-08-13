@@ -31,7 +31,7 @@ pub struct Session {
 
     pub name: Option<String>,
 
-    pub session_server: Addr<session::session_server::SessionServer>,
+    pub session_server_ref: Addr<session::session_server::SessionServer>,
 
     pub uploading_file: HashMap<String, String>,
 }
@@ -42,7 +42,7 @@ impl Session {
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
                 println!("Websocket client heartbeat failed, disconnecting!");
 
-                act.session_server.do_send(session::session_server::Disconnect { id: act.id });
+                act.session_server_ref.do_send(session::session_server::Disconnect { id: act.id });
 
                 ctx.stop();
 
@@ -52,6 +52,15 @@ impl Session {
             ctx.ping(b"");
         });
     }
+
+    fn handle_receive_text(&self, text: ByteString) {
+        // 将客户端消息发送给session_server处理
+        self.session_server_ref.do_send(session::session_server::SessionToSessionServerMessage {
+            session_id: self.id,
+            json_msg: text.to_owned(),
+        })
+    }
+
 }
 
 impl Actor for Session {
@@ -63,7 +72,7 @@ impl Actor for Session {
         let addr = ctx.address();
         println!("WsChatSession # Actor # started $ ");
 
-        self.session_server.send(session::session_server::Connect {
+        self.session_server_ref.send(session::session_server::Connect {
             addr: addr.recipient(),
         })
             .into_actor(self)
@@ -82,7 +91,7 @@ impl Actor for Session {
     }
 
     fn stopping(&mut self, ctx: &mut Self::Context) -> actix::Running {
-        self.session_server.do_send(session::session_server::Disconnect { id: self.id });
+        self.session_server_ref.do_send(session::session_server::Disconnect { id: self.id });
         actix::Running::Stop
     }
 }
@@ -112,6 +121,7 @@ impl Handler<session::session_server::ServerMessage> for Session {
 }
 
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
+
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         let msg = match msg {
             Ok(msg) => msg,
@@ -133,12 +143,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
             ws::Message::Text(text) => {
                 debug!("WsChatSession - StreamHandler - handle - Text");
                 let json_msg = text.trim();
-
-                // 将客户端消息发送给session_server处理
-                self.session_server.do_send(session::session_server::SessionMessage {
-                    session_id: self.id,
-                    json_msg: json_msg.to_owned(),
-                })
+                self.handle_receive_text(json_msg);
             }
             ws::Message::Binary(byte) => {
                 debug!("WsChatSession - StreamHandler - handle - Binary");
@@ -152,32 +157,23 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
                                 // 第一片里面，payload是文件绝对路径
                                 match String::from_utf8(dto.payload) {
                                     Ok(file_path) => {
-                                        debug!("mmm 1");
                                         let mut ood_new_file_path = PathBuf::from(file_path.as_str());
-                                        debug!("mmm 2");
                                         let mut uod_new_file_path = ood_new_file_path.clone();
-                                        debug!("mmm 3");
 
                                         // 父路径
                                         let mut file_parent_path = ood_new_file_path.parent().unwrap().to_str().unwrap_or("");
-                                        debug!("mmm 4");
                                         // 文件名(不包括后缀)
                                         let mut file_stem = ood_new_file_path.file_stem().unwrap().to_str().unwrap_or("");
-                                        debug!("mmm 5");
                                         // 文件路径(不包括后缀)
                                         let mut file_parent_path_with_file_stem = format!("{}/{}", file_parent_path, file_stem);
-                                        debug!("mmm 6");
                                         // 文件后缀
                                         let mut ood_file_suffix = ood_new_file_path.extension().unwrap_or_default().to_str().unwrap_or("");
-                                        debug!("mmm 7");
                                         let mut uod_file_suffix = ood_file_suffix.clone().to_string();
-                                        debug!("mmm 8");
                                         if ood_file_suffix.len() > 0 {
                                             uod_file_suffix = format!(".{}", &ood_file_suffix).to_owned();
                                         }
                                         /// 使用 new_file_path 生成File对象，如果文件已存在，则在文件名后面加上(1)，(2)，(3)...，但是注意后缀名不能变
                                         // 文件标号
-                                        debug!("mmm 9");
                                         let mut num = 1;
                                         while uod_new_file_path.exists() {
                                             // 增加文件标号
@@ -241,7 +237,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for Session {
                                         match serde_json::to_string(&model) {
                                             Ok(model_json) => {
                                                 // 通知session_server，文件上传完成
-                                                self.session_server.do_send(session::session_server::SessionMessage {
+                                                self.session_server_ref.do_send(session::session_server::SessionToSessionServerMessage {
                                                     session_id: self.id,
                                                     json_msg: model_json,
                                                 });

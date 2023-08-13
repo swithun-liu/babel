@@ -449,7 +449,7 @@ async fn add_session(
         id: 0,
         hb: Instant::now(),
         name: None,
-        session_server: srv.get_ref().clone(),
+        session_server_ref: srv.get_ref().clone(),
         uploading_file: HashMap::new()
     };
 

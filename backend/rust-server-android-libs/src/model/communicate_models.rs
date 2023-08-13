@@ -29,6 +29,10 @@ impl MessageTextDTO {
         serde_json::to_string(&self).unwrap()
     }
 
+    pub fn from_json_str(json_str: &str) -> serde_json::Result<MessageTextDTO> {
+        serde_json::from_str::<MessageTextDTO>(json_str)
+    }
+
 }
 
 impl MessageBinaryDTO {
