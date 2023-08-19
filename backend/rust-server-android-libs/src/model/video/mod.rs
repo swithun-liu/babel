@@ -4,26 +4,32 @@ use std::task::{Context, Poll};
 use std::io::{Read, Seek, SeekFrom};
 use crate::get_content_type;
 
-pub trait FileStream : futures::Stream + Unpin {
+pub trait FileStream: futures::Stream<Item=Result<actix_web::web::Bytes, actix_web::Error>> + Unpin {
     fn get_file_length(&self) -> u64;
     fn get_file_type(&self) -> String;
 }
 
-pub struct FileReaderStream {
+pub struct LocalFileStream {
     file: File,
     content_length: u64,
     content_type: String,
     pos: u64,
 }
 
-impl FileReaderStream {
-    pub fn new(path: &str, pos: u64) -> FileReaderStream {
+pub struct RemoteUsbStorageFileStream {
+    content_length: u64,
+    content_type: String,
+    pos: u64,
+}
+
+impl LocalFileStream {
+    pub fn new(path: &str, pos: u64) -> LocalFileStream {
         let file = File::open(&path).unwrap();
         let metadata = file.metadata().unwrap();
         let content_length = metadata.len();
         let content_type = get_content_type(path).unwrap_or("err");
 
-        FileReaderStream {
+        LocalFileStream {
             file: file,
             content_length: content_length,
             content_type: content_type.to_string(),
@@ -32,7 +38,18 @@ impl FileReaderStream {
     }
 }
 
-impl FileStream for FileReaderStream {
+impl RemoteUsbStorageFileStream {
+    pub async fn new(path: &str, pos: u64) -> RemoteUsbStorageFileStream {
+
+        RemoteUsbStorageFileStream {
+            content_length: 0,
+            content_type: "".to_string(),
+            pos: pos,
+        }
+    }
+}
+
+impl FileStream for LocalFileStream {
     fn get_file_length(&self) -> u64 {
         return self.content_length
     }
@@ -42,7 +59,7 @@ impl FileStream for FileReaderStream {
     }
 }
 
-impl futures::Stream for FileReaderStream {
+impl futures::Stream for LocalFileStream {
     type Item = Result<actix_web::web::Bytes, actix_web::Error>;
 
     fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -67,3 +84,4 @@ impl futures::Stream for FileReaderStream {
         Poll::Ready(Some(Ok(bytes)))
     }
 }
+

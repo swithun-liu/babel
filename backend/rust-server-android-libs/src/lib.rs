@@ -27,9 +27,10 @@ use std::{
     task::{Context, Poll},
     time::Duration,
 };
+use futures::channel::oneshot::{Receiver, Sender};
 use serde_json::to_string;
 use uuid::Uuid;
-use model::video::FileReaderStream;
+use model::video::LocalFileStream;
 
 mod connect;
 pub mod logger;
@@ -304,10 +305,10 @@ async fn get_video(
 
     let _size = (end - start + 1) as u64;
 
-    let localFileStream = FileReaderStream::new(path.as_str(), start);
+    let local_file_stream: Box<dyn FileStream<Item=Result<actix_web::web::Bytes, actix_web::Error>>> = Box::new(LocalFileStream::new(path.as_str(), start));
 
-    let content_length = localFileStream.get_file_length();
-    let content_type = localFileStream.get_file_type().clone();
+    let content_length = local_file_stream.get_file_length();
+    let content_type = local_file_stream.get_file_type().clone();
     info!(
         "get_video # content_length: {:?} content-type: {}",
         content_length,
@@ -321,7 +322,7 @@ async fn get_video(
             "Content-Range",
             format!("bytes {}-{}/{}", start,  (content_length - 1), content_length),
         ))
-        .streaming(Box::pin(localFileStream)))
+        .streaming(Box::pin(local_file_stream)))
 }
 
 pub fn get_content_type(file_path: &str) -> Option<&'static str> {
@@ -387,7 +388,7 @@ async fn get_path_list(query: web::Query<HashMap<String, String>>) -> impl Respo
                 );
 
                 let new_uuid: std::string::String = format!("{}", Uuid::new_v4());
-                let (tx, rx) = oneshot::channel();
+                let (tx, rx): (Sender<String>, Receiver<String>) = oneshot::channel();
 
                 SERVER_CLIENT_REQUEST_MAP
                     .lock()
