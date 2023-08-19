@@ -2,13 +2,13 @@ mod bridge_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not
 use jni::objects::{JClass, JObject, JString};
 use jni::JNIEnv;
 
-use std::{panic, sync::{atomic::AtomicUsize, Arc}, time::Instant};
+use std::{panic, sync::{Arc, atomic::AtomicUsize}, time::Instant};
 
 use crate::model::option_code;
 use actix::{Actor, Addr};
 use actix_files::NamedFile;
 use actix_web::rt::Runtime;
-use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{App, Error, HttpRequest, HttpResponse, HttpServer, Responder, web};
 use actix_web_actors::ws;
 use android_logger::Config;
 use futures::channel::oneshot;
@@ -29,6 +29,7 @@ use std::{
 };
 use serde_json::to_string;
 use uuid::Uuid;
+use model::video::FileReaderStream;
 
 mod connect;
 pub mod logger;
@@ -37,6 +38,7 @@ mod session;
 mod api;
 
 use crate::model::communicate_models;
+use crate::model::video::FileStream;
 
 extern crate core;
 extern crate log;
@@ -262,15 +264,7 @@ async fn get_video(
     let path = query.get("path").unwrap_or(&temp);
     info!("get_video / {}", path);
 
-    let file = File::open(&path)?;
-    let metadata = file.metadata()?;
-    let content_length = metadata.len();
-    let content_type = get_content_type(&path.as_str()).unwrap_or("err");
-    info!(
-        "get_video # content_length: {:?} content-type: {}",
-        content_length,
-        content_type.clone()
-    );
+
 
     // 打印所有请求头
     for (header_name, header_value) in req.headers().iter() {
@@ -286,77 +280,51 @@ async fn get_video(
         info!("2");
         let start = parts.next()?.parse().ok()?;
         info!("3");
-        let end = parts
-            .next()
-            .map(|s| s.parse().ok())
-            .unwrap_or(Some(content_length as usize - 1))
-            .unwrap_or(content_length as usize - 1);
+        // let end = parts
+        //     .next()
+        //     .map(|s| s.parse().ok())
+        //     .unwrap_or(Some(content_length as usize - 1))
+        //     .unwrap_or(content_length as usize - 1);
         info!("4");
-        info!("start {} end {}", start, end);
-        Some((start, end))
+        info!("start {} end {}", start, 0);
+        Some((start, 0))
     });
 
     let (start, end) = match range {
         Some((start, end)) => {
             info!("get_video $ start:{} end: {}", start, end);
-            if start > content_length as usize || start > end || end >= content_length as usize {
-                info!("Invalid range");
-                return Err(actix_web::error::ErrorBadRequest("Invalid range"));
-            }
+            // if start > content_length as usize || start > end || end >= content_length as usize {
+            //     info!("Invalid range");
+            //     return Err(actix_web::error::ErrorBadRequest("Invalid range"));
+            // }
             (start, end)
         }
-        None => (0, content_length as usize - 1),
+        None => (0, 0),
     };
 
     let _size = (end - start + 1) as u64;
+
+    let localFileStream = FileReaderStream::new(path.as_str(), start);
+
+    let content_length = localFileStream.get_file_length();
+    let content_type = localFileStream.get_file_type().clone();
+    info!(
+        "get_video # content_length: {:?} content-type: {}",
+        content_length,
+        content_type.clone()
+    );
+
     Ok(HttpResponse::PartialContent()
         .append_header(("Content-Type", content_type))
         .append_header(("Content-Length", content_length))
         .append_header((
             "Content-Range",
-            format!("bytes {}-{}/{}", start, end, content_length),
+            format!("bytes {}-{}/{}", start,  (content_length - 1), content_length),
         ))
-        .streaming(Box::pin(FileReaderStream::new(file, start as u64))))
+        .streaming(Box::pin(localFileStream)))
 }
 
-struct FileReaderStream {
-    file: std::fs::File,
-    pos: u64,
-}
-
-impl FileReaderStream {
-    fn new(file: std::fs::File, pos: u64) -> FileReaderStream {
-        FileReaderStream { file, pos }
-    }
-}
-
-impl futures::Stream for FileReaderStream {
-    type Item = Result<actix_web::web::Bytes, actix_web::Error>;
-
-    fn poll_next(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let mut file = &self.file;
-        let mut buf = vec![0u8; 1024 * 1024];
-
-        file.seek(SeekFrom::Start(self.pos as u64))?;
-
-        let n = match file.read(&mut buf) {
-            Ok(n) => n,
-            Err(ref e) if e.kind() == std::io::ErrorKind::Interrupted => return Poll::Pending,
-            Err(e) => return Poll::Ready(Some(Err(actix_web::Error::from(e)))),
-        };
-
-        if n == 0 {
-            return Poll::Ready(None);
-        }
-
-        let bytes = actix_web::web::Bytes::copy_from_slice(&buf[..n]);
-        self.pos += n as u64;
-
-        Poll::Ready(Some(Ok(bytes)))
-    }
-}
-
-fn get_content_type(file_path: &str) -> Option<&'static str> {
+pub fn get_content_type(file_path: &str) -> Option<&'static str> {
     match file_path.split('.').last() {
         Some("html") => Some("text/html"),
         Some("css") => Some("text/css"),
