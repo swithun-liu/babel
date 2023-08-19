@@ -40,7 +40,8 @@ data class MessageTextDTO(
         GET_CHILDREN_PATH_LIST_RESPONSE(4),
         MESSAGE_TO_SESSION(5),
         CLIENT_REQUEST_SESSION_FILE(6),
-        CLIENT_FILE_TO_SESSION_PIECE_ACKNOWLEDGE(7)
+        CLIENT_FILE_TO_SESSION_PIECE_ACKNOWLEDGE(7),
+        ServerGetAndroidUsbFileSize(8),
         ;
 
         companion object {

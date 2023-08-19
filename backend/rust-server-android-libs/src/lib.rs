@@ -28,6 +28,7 @@ use std::{
     time::Duration,
 };
 use futures::channel::oneshot::{Receiver, Sender};
+use futures::TryFutureExt;
 use serde_json::to_string;
 use uuid::Uuid;
 use model::video::LocalFileStream;
@@ -39,7 +40,7 @@ mod session;
 mod api;
 
 use crate::model::communicate_models;
-use crate::model::video::FileStream;
+use crate::model::video::{FileStream, AndroidUsbStorageFileStream};
 
 extern crate core;
 extern crate log;
@@ -263,9 +264,10 @@ async fn get_video(
 ) -> Result<HttpResponse, Error> {
     let temp = "failed path".to_string();
     let path = query.get("path").unwrap_or(&temp);
-    info!("get_video / {}", path);
-
-
+    let android_usb_storage = "android_usb".to_string();
+    let inner_storage = "inner".to_string();
+    let storage_type = query.get("storage_type").unwrap_or(&inner_storage);
+    info!("get_video path: {} storage_type: {}", path, storage_type);
 
     // 打印所有请求头
     for (header_name, header_value) in req.headers().iter() {
@@ -305,7 +307,34 @@ async fn get_video(
 
     let _size = (end - start + 1) as u64;
 
-    let local_file_stream: Box<dyn FileStream<Item=Result<actix_web::web::Bytes, actix_web::Error>>> = Box::new(LocalFileStream::new(path.as_str(), start));
+    let local_file_stream: Box<dyn FileStream<Item=Result<actix_web::web::Bytes, actix_web::Error>>> =
+        if *storage_type == android_usb_storage {
+            let (tx, rx): (Sender<String>, Receiver<String>) = oneshot::channel();
+
+            let new_uudi = format!("{}", Uuid::new_v4());
+            debug!("get content_length from client new_uudi: {}", new_uudi);
+            SERVER_CLIENT_REQUEST_MAP
+                .lock()
+                .unwrap()
+                .insert(new_uudi.clone(), tx);
+
+            let json_struct = communicate_models::MessageTextDTO {
+                uuid: new_uudi.clone(),
+                code: option_code::OptionCode::CommonOptionCode::ServerGetAndroidUsbFileSize as i32,
+                content: path.to_string(),
+                content_type: 0
+            };
+            kernel_send_message_to_front_end(json_struct);
+
+            let content_size = rx.await.unwrap().parse::<u64>().unwrap();
+
+            debug!("get content_length from client new_uudi: {} length {}", new_uudi, content_size);
+
+            Box::new(AndroidUsbStorageFileStream::new(path.as_str(), start, content_size).await)
+        } else {
+            Box::new(LocalFileStream::new(path.as_str(), start))
+        }
+    ;
 
     let content_length = local_file_stream.get_file_length();
     let content_type = local_file_stream.get_file_type().clone();

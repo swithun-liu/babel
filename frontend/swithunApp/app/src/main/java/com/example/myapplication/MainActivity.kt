@@ -117,18 +117,9 @@ class MainActivity : ComponentActivity() {
                     return
                 }
 
-                SwithunLog.d("usb Capacity: " + currentFs.capacity)
-                SwithunLog.d("usb Occupied Space: " + currentFs.occupiedSpace)
-                SwithunLog.d("usb 3")
-                SwithunLog.d("usb Free Space: " + currentFs.freeSpace)
-                SwithunLog.d("usb Chunk size: " + currentFs.chunkSize)
-                SwithunLog.d("usb 4")
-                val root = currentFs.rootDirectory
-                SwithunLog.d("usb 5")
-                val files: Array<UsbFile> = root.listFiles()
-                for (file in files) {
-                    SwithunLog.d("usb file: " + file.name)
-                }
+                vmCollection.fileVM.initUsbDevices(currentFs)
+
+                break
 
             } catch (e: java.lang.Exception) {
                 SwithunLog.d("usb exception: $e")

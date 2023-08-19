@@ -12,11 +12,14 @@ import com.example.myapplication.SwithunLog
 import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.model.VideoExtension
+import com.example.myapplication.viewmodel.ConnectKernelViewModel
 import com.example.myapplication.viewmodel.FileManagerHTTPRepository
 import com.example.myapplication.viewmodel.FileManagerLocalRepository
 import com.example.myapplication.viewmodel.VideoViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import me.jahnen.libaums.core.fs.FileSystem
+import me.jahnen.libaums.core.fs.UsbFile
 import java.io.File
 
 // Babel / 蓝田
@@ -27,6 +30,7 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
     private var vmCollection: VMCollection? = null
     private val remoteRepository = FileManagerHTTPRepository()
     private val localRepository = FileManagerLocalRepository(fileBasePath)
+    private var usbRoot: UsbFile? = null
 
     @Stable
     interface UIState {
@@ -54,10 +58,49 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
         )
     }
 
+    fun initUsbDevices(currentFs: FileSystem) {
+
+        try {
+            SwithunLog.d("usb Capacity: " + currentFs.capacity)
+            SwithunLog.d("usb Occupied Space: " + currentFs.occupiedSpace)
+            SwithunLog.d("usb 3")
+            SwithunLog.d("usb Free Space: " + currentFs.freeSpace)
+            SwithunLog.d("usb Chunk size: " + currentFs.chunkSize)
+            SwithunLog.d("usb 4")
+            val root: UsbFile = currentFs.rootDirectory
+            this.usbRoot = root
+            SwithunLog.d("usb 5")
+            val files: Array<UsbFile> = root.listFiles()
+            for (file in files) {
+                SwithunLog.d("usb file: " + file.name)
+            }
+        } catch (e: java.lang.Exception) {
+            SwithunLog.d("vm usb exception: $e")
+        }
+    }
+
+    private fun findUsbFile(action: Action.FindUsbFile){
+        val file = run {
+            val usbRoot = this.usbRoot ?: return@run null
+
+            val files: Array<UsbFile> = usbRoot.listFiles()
+            for (file in files) {
+                SwithunLog.d("usb file: " + file.name)
+                if (file.name == action.path) {
+                    return@run file
+                }
+            }
+            return@run null
+        }
+
+        vmCollection?.connectKernelVM?.reduce(ConnectKernelViewModel.Action.ServerGetAndroidUsbFileFileManagerResponse(file, action.uuid))
+    }
+
     sealed class Action: BaseViewModel.Action() {
         class ClickFolder(val folder: PathItem.FolderItem): Action()
         class ClickFile(val file: PathItem.FileItem): Action()
         object RefreshBasePathListFromRemote: Action()
+        class FindUsbFile(val path: String, val uuid: String): Action()
     }
 
     override fun reduce(action: Action) {
@@ -65,6 +108,7 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
             is Action.ClickFile -> clickFile(action.file)
             is Action.ClickFolder -> clickFolder(action.folder)
             Action.RefreshBasePathListFromRemote -> refreshBasePathListFromRemote()
+            is Action.FindUsbFile -> findUsbFile(action)
         }
     }
 

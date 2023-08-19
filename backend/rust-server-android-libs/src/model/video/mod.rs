@@ -2,6 +2,9 @@ use std::fs::File;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::io::{Read, Seek, SeekFrom};
+use actix::dev::Stream;
+use actix_web::Error;
+use actix_web::web::Bytes;
 use crate::get_content_type;
 
 pub trait FileStream: futures::Stream<Item=Result<actix_web::web::Bytes, actix_web::Error>> + Unpin {
@@ -16,7 +19,7 @@ pub struct LocalFileStream {
     pos: u64,
 }
 
-pub struct RemoteUsbStorageFileStream {
+pub struct AndroidUsbStorageFileStream {
     content_length: u64,
     content_type: String,
     pos: u64,
@@ -38,12 +41,14 @@ impl LocalFileStream {
     }
 }
 
-impl RemoteUsbStorageFileStream {
-    pub async fn new(path: &str, pos: u64) -> RemoteUsbStorageFileStream {
+impl AndroidUsbStorageFileStream {
+    pub async fn new(path: &str, pos: u64, content_length: u64) -> AndroidUsbStorageFileStream {
 
-        RemoteUsbStorageFileStream {
-            content_length: 0,
-            content_type: "".to_string(),
+        let content_type = get_content_type(path).unwrap_or("err");
+
+        AndroidUsbStorageFileStream {
+            content_length: content_length,
+            content_type: content_type.to_string(),
             pos: pos,
         }
     }
@@ -56,6 +61,16 @@ impl FileStream for LocalFileStream {
 
     fn get_file_type(&self) -> String {
         return self.content_type.clone()
+    }
+}
+
+impl FileStream for AndroidUsbStorageFileStream {
+    fn get_file_length(&self) -> u64 {
+        self.content_length
+    }
+
+    fn get_file_type(&self) -> String {
+        self.content_type.clone()
     }
 }
 
@@ -85,3 +100,11 @@ impl futures::Stream for LocalFileStream {
     }
 }
 
+
+impl Stream for AndroidUsbStorageFileStream {
+    type Item = Result<actix_web::web::Bytes, actix_web::Error>;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        return Poll::Ready(None);
+    }
+}
