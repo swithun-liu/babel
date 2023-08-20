@@ -42,6 +42,7 @@ data class MessageTextDTO(
         CLIENT_REQUEST_SESSION_FILE(6),
         CLIENT_FILE_TO_SESSION_PIECE_ACKNOWLEDGE(7),
         ServerGetAndroidUsbFileSize(8),
+        ServerGetAndroidUsbFileByPiece(9)
         ;
 
         companion object {
@@ -63,6 +64,7 @@ data class MessageBinaryDTO(
         val seqBytes: ByteArray = ByteBuffer.allocate(4).putInt(seq).array()
         val payloadBytes = payload.toByteArray()
         val totalLength = contentIdBytes.size + seqBytes.size + payloadBytes.size
+        SwithunLog.d("MessageBinaryDTO#toByteArray:  contentIdSize: ${contentIdBytes.size} seqSize: ${seqBytes.size} payload${payloadBytes.size}")
         val result = ByteArray(totalLength)
         System.arraycopy(contentIdBytes, 0, result, 0, contentIdBytes.size)
         System.arraycopy(seqBytes, 0, result, contentIdBytes.size, seqBytes.size)

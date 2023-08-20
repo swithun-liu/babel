@@ -7,6 +7,7 @@ pub enum CommonOptionCode {
     ClientRequestSessionFile = 6, // client 请求下载会话中的文件
     ClientFileToSessionPieceAcknowledge = 7, // server 收到一片上传的文件后回复 client 已收到，可以发送下一片
     ServerGetAndroidUsbFileSize = 8, // server 获取 android usb storage 文件大小
+    ServerGetAndroidUsbFileByPiece = 9, // server 获取 android usb storage 文件
 }
 
 impl From<i32> for CommonOptionCode {

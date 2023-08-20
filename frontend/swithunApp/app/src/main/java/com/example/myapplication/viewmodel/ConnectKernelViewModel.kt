@@ -1,11 +1,13 @@
 package com.example.myapplication.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.Config
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.*
 import com.example.myapplication.model.MessageTextDTO.OptionCode
+import com.example.myapplication.nullCheck
 import com.example.myapplication.viewmodel.filemanager.FileManagerViewModel
 import com.example.myapplication.websocket.RawDataBase
 import com.example.myapplication.websocket.RawDataBase.RawTextData
@@ -15,7 +17,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import me.jahnen.libaums.core.fs.UsbFile
+import okio.ByteString
+import okio.ByteString.Companion.toByteString
 import java.lang.Exception
+import java.nio.ByteBuffer
 
 class ConnectKernelViewModel :
     BaseViewModel<ConnectKernelViewModel.Action, Unit, Unit>() {
@@ -45,6 +50,12 @@ class ConnectKernelViewModel :
         class Response2Kernel(val dto: MessageDTO) : Action()
 
         class ServerGetAndroidUsbFileFileManagerResponse(val usbFile: UsbFile?, val uuid: String): Action()
+
+        class ServerGetAndroidUsbFileByPieceFileManagerResponse(
+            val buffer: ByteBuffer,
+            val uuid: String,
+            val pos: String
+        ) : Action()
     }
 
     override fun reduce(action: Action) {
@@ -52,6 +63,7 @@ class ConnectKernelViewModel :
             Action.ConnectKernelAction -> connectKernel()
             is Action.Response2Kernel -> response2Kernel(action)
             is Action.ServerGetAndroidUsbFileFileManagerResponse -> handleReceiveServerGetAndroidUsbFileSizeFileManagerViewModelResponse(action)
+            is Action.ServerGetAndroidUsbFileByPieceFileManagerResponse -> handleReceiveServerGetAndroidUsbFileByPieceResponse(action)
         }
     }
 
@@ -138,6 +150,7 @@ class ConnectKernelViewModel :
                 }
             }
             OptionCode.ServerGetAndroidUsbFileSize -> handleReceiveServerGetAndroidUsbFileSize(data)
+            OptionCode.ServerGetAndroidUsbFileByPiece -> handleReceiveServerGetAndroidUsbFileByPiece(data)
             null -> {
                 SwithunLog.d("unKnown code")
             }
@@ -147,16 +160,47 @@ class ConnectKernelViewModel :
         }
     }
 
+    private fun handleReceiveServerGetAndroidUsbFileByPiece(data: MessageTextDTO) {
+        vmCollection?.fileVM?.reduce(FileManagerViewModel.Action.GetUsbFileByPiece(data))
+    }
+
+    private fun handleReceiveServerGetAndroidUsbFileByPieceResponse(action: Action.ServerGetAndroidUsbFileByPieceFileManagerResponse) {
+        SwithunLog.d("handleReceiveServerGetAndroidUsbFileByPieceResponse ${action.buffer}")
+        val message = MessageBinaryDTO(
+            action.uuid,
+            action.pos.toInt(),
+            ByteString.of(*action.buffer.array())
+        )
+
+        viewModelScope.launch {
+            repository.webSocketSuspendSend(
+                RawDataBase.RawByteData(
+                    ByteString.of(*message.toByteArray())
+                )
+            )
+        }
+    }
+
 
     private fun handleReceiveServerGetAndroidUsbFileSize(message: MessageTextDTO) {
         val path = message.content
         val vmCollection = vmCollection ?: return
         vmCollection.fileVM.reduce(FileManagerViewModel.Action.FindUsbFile(path, message.uuid))
+
+//        viewModelScope.launch {
+//            val dto = MessageTextDTO(
+//                message.uuid,
+//                OptionCode.ServerGetAndroidUsbFileSize.code,
+//                58351478.toString(),
+//                MessageTextDTO.ContentType.TEXT.type
+//            )
+//            reduce(Action.Response2Kernel(dto))
+//        }
     }
 
 
     private fun handleReceiveServerGetAndroidUsbFileSizeFileManagerViewModelResponse(action: Action.ServerGetAndroidUsbFileFileManagerResponse) {
-        val usbFile = action.usbFile
+        val usbFile = action.usbFile.nullCheck(" handleReceiveServerGetAndroidUsbFileSizeFileManagerViewModelResponse usbFile", true)
         val vmCollection = vmCollection ?: return
         vmCollection.fileVM.viewModelScope.launch(Dispatchers.IO) {
             val size = usbFile?.length ?: 0

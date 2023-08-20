@@ -8,6 +8,7 @@ object ServerConfig {
     val serverPath = ServerPath
 
     const val fileChunkSize = 1000
+    const val fileFrameSize = 1024
 
     object ServerPath {
         object GetPathList {

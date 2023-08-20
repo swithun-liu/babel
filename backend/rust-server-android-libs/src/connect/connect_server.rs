@@ -1,15 +1,26 @@
 use actix::{Actor, Context, Handler, Message, Recipient};
+use actix_web::web::Bytes;
 use log::{debug, info};
 use rand::rngs::ThreadRng;
+use crate::message_front_end_to_kernel;
+use crate::model::communicate_models::MessageBinaryDTO;
 
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct ConnectSessionMessage(pub String);
+
 #[derive(Message)]
 #[rtype(result = "()")]
 #[derive(Debug)]
 pub struct FrontEndMessage {
     pub msg: String,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+#[derive(Debug)]
+pub struct FrontEndMessageBinary {
+    pub msg: Bytes,
 }
 #[derive(Message)]
 #[rtype(result = "()")]
@@ -37,7 +48,7 @@ impl ConnectServer {
         }
     }
 
-    pub fn send_command(&self, message: &str) {
+    pub fn send_text(&self, message: &str) {
         debug!("swithun-xxxx [send_command] {}", message);
         match &self.fronter {
             None => { }
@@ -58,9 +69,9 @@ impl Handler<FronterConnectMessage> for ConnectServer {
 
     fn handle(&mut self, msg: FronterConnectMessage, ctx: &mut Self::Context) -> Self::Result {
         debug!("handle fronter Connect");
-        self.send_command("fronter Connect");
+        self.send_text("fronter Connect");
         self.fronter = Some(msg.addr);
-        self.send_command("fronter Connected");
+        self.send_text("fronter Connected");
     }
 }
 
@@ -68,7 +79,7 @@ impl Handler<KernelToFrontEndMessage> for ConnectServer {
     type Result = ();
 
     fn handle(&mut self, msg: KernelToFrontEndMessage, ctx: &mut Self::Context) -> Self::Result {
-        self.send_command(msg.msg.as_str())
+        self.send_text(msg.msg.as_str())
     }
 }
 
@@ -89,5 +100,24 @@ impl Handler<FrontEndMessage> for ConnectServer {
                 debug!("kernel receive front_end_mgs_json parse failed")
             }
         }
+    }
+}
+
+impl Handler<FrontEndMessageBinary> for ConnectServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: FrontEndMessageBinary, ctx: &mut Self::Context) -> Self::Result {
+        let dto = MessageBinaryDTO::from_bytes(msg.msg.to_vec().as_slice());
+
+        match dto {
+            None => {
+                debug!("FrontEndMessageBinary parse failed")
+            }
+            Some(dto) => {
+                debug!("FrontEndMessageBinary parse suc {}", dto.content_id);
+                message_front_end_to_kernel(dto)
+            }
+        }
+
     }
 }

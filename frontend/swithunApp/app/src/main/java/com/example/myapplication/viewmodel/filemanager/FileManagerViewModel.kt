@@ -1,5 +1,6 @@
 package com.example.myapplication.viewmodel.filemanager
 
+import android.hardware.usb.UsbManager
 import android.os.Environment
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -10,6 +11,7 @@ import com.example.myapplication.Config
 import com.example.myapplication.model.VMCollection
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.framework.BaseViewModel
+import com.example.myapplication.model.MessageTextDTO
 import com.example.myapplication.model.ServerConfig
 import com.example.myapplication.model.VideoExtension
 import com.example.myapplication.viewmodel.ConnectKernelViewModel
@@ -21,6 +23,7 @@ import kotlinx.coroutines.launch
 import me.jahnen.libaums.core.fs.FileSystem
 import me.jahnen.libaums.core.fs.UsbFile
 import java.io.File
+import java.nio.ByteBuffer
 
 // Babel / 蓝田
 
@@ -79,21 +82,27 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
         }
     }
 
-    private fun findUsbFile(action: Action.FindUsbFile){
-        val file = run {
-            val usbRoot = this.usbRoot ?: return@run null
-
-            val files: Array<UsbFile> = usbRoot.listFiles()
-            for (file in files) {
-                SwithunLog.d("usb file: " + file.name)
-                if (file.name == action.path) {
-                    return@run file
-                }
-            }
-            return@run null
-        }
+    private fun findUsbFileForName(action: Action.FindUsbFile){
+        val file = findUsbFile(action.path)
 
         vmCollection?.connectKernelVM?.reduce(ConnectKernelViewModel.Action.ServerGetAndroidUsbFileFileManagerResponse(file, action.uuid))
+    }
+
+    private fun findUsbFile(path: String): UsbFile? {
+        SwithunLog.d("findUsbFile path: $path")
+        val usbRoot = this.usbRoot ?: return null
+
+        val files: Array<UsbFile> = usbRoot.listFiles()
+
+        SwithunLog.d("findUsbFile file: ${files.size}")
+
+        for (file in files) {
+            SwithunLog.d("usb file: " + file.name)
+            if (file.name == path) {
+                return file
+            }
+        }
+        return null
     }
 
     sealed class Action: BaseViewModel.Action() {
@@ -101,6 +110,7 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
         class ClickFile(val file: PathItem.FileItem): Action()
         object RefreshBasePathListFromRemote: Action()
         class FindUsbFile(val path: String, val uuid: String): Action()
+        class GetUsbFileByPiece(val data: MessageTextDTO): Action()
     }
 
     override fun reduce(action: Action) {
@@ -108,8 +118,46 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
             is Action.ClickFile -> clickFile(action.file)
             is Action.ClickFolder -> clickFolder(action.folder)
             Action.RefreshBasePathListFromRemote -> refreshBasePathListFromRemote()
-            is Action.FindUsbFile -> findUsbFile(action)
+            is Action.FindUsbFile -> findUsbFileForName(action)
+            is Action.GetUsbFileByPiece -> getUsbFileByPiece(action)
         }
+    }
+
+    private fun getUsbFileByPiece(action: Action.GetUsbFileByPiece) {
+        val datas = action.data.content.split(";");
+        val pos = datas[0]
+        val path = datas[1]
+
+
+        val file = findUsbFile(path) ?: run {
+            vmCollection?.connectKernelVM?.reduce(
+                ConnectKernelViewModel.Action.ServerGetAndroidUsbFileByPieceFileManagerResponse(
+                    ByteBuffer.allocate(0),
+                    action.data.uuid,
+                    pos,
+                )
+            )
+            return
+        }
+
+
+        // 从pos开始读取 1024 * 1024 字节
+        val a = ServerConfig.fileFrameSize.toLong() * 1024L
+        val b = file.length - pos.toLong()
+        val bufferSize = Math.min(a, b)
+        SwithunLog.d("getUsbFileByPiece pos: ${pos} path ${path} fileLength : ${file.length} bfferize ${bufferSize}")
+        val buffer = ByteBuffer.allocate(bufferSize.toInt())
+        file.read(pos.toLong(), buffer)
+
+
+        vmCollection?.connectKernelVM?.reduce(
+            ConnectKernelViewModel.Action.ServerGetAndroidUsbFileByPieceFileManagerResponse(
+                buffer,
+                action.data.uuid,
+                pos,
+            )
+        )
+
     }
 
     private fun clickFolder(folder: PathItem.FolderItem) {

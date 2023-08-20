@@ -7,6 +7,7 @@ import android.hardware.usb.UsbManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -28,7 +29,6 @@ import com.example.myapplication.viewmodel.connectserver.ConnectServerViewModel
 import com.example.myapplication.viewmodel.filemanager.FileManagerViewModel
 import kotlinx.coroutines.launch
 import me.jahnen.libaums.core.UsbMassStorageDevice
-import me.jahnen.libaums.core.fs.UsbFile
 
 
 /**
@@ -57,6 +57,8 @@ class MainActivity : ComponentActivity() {
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         Config.pathConfig.init(this)
         Config.kernelConfig.init(this)
 

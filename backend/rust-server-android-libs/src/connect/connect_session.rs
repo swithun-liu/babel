@@ -1,6 +1,7 @@
 use std::time::{Instant, Duration};
 
 use actix::{Addr, Actor, StreamHandler, ActorContext, AsyncContext, Handler, WrapFuture, ActorFutureExt, fut, ContextFutureSpawner};
+use actix_web::web::Bytes;
 use actix_web_actors::ws;
 use log::debug;
 
@@ -90,8 +91,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ConnectSession {
                 });
 
             }
-            ws::Message::Binary(_) => {
+            ws::Message::Binary(binary) => {
                 debug!("swithun-xxxx # rust # ConnnectSession - handle - Binary");
+                self.connect_server.do_send(connect_server::FrontEndMessageBinary {
+                    msg: binary,
+                })
             }
             ws::Message::Close(reason) => {
                 ctx.close(reason);

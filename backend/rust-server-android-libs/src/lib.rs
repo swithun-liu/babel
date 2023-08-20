@@ -27,8 +27,15 @@ use std::{
     task::{Context, Poll},
     time::Duration,
 };
-use futures::channel::oneshot::{Receiver, Sender};
-use futures::TryFutureExt;
+use std::any::Any;
+use std::future::Future;
+use std::ptr::addr_of;
+use actix_web::web::Bytes;
+use async_stream::__private::AsyncStream;
+use async_stream::{stream, try_stream};
+use awc::http::StatusCode;
+use futures::channel::oneshot::{Canceled, Receiver, Sender};
+use futures::{Stream, TryFutureExt, TryStreamExt};
 use serde_json::to_string;
 use uuid::Uuid;
 use model::video::LocalFileStream;
@@ -40,6 +47,7 @@ mod session;
 mod api;
 
 use crate::model::communicate_models;
+use crate::model::communicate_models::{MessageBinaryDTO, MessageTextDTO};
 use crate::model::video::{FileStream, AndroidUsbStorageFileStream};
 
 extern crate core;
@@ -53,6 +61,9 @@ lazy_static! {
         session::session_server::SessionServer::new(app_state.clone(), KERNEL_SERVER.clone()).start()
     };
     static ref SERVER_CLIENT_REQUEST_MAP: Arc<Mutex<HashMap<std::string::String, oneshot::Sender<std::string::String>>>> =
+        Arc::new(Mutex::new(HashMap::new()));
+
+    static ref SERVER_CLIENT_REQUEST_MAP_BINARY: Arc<Mutex<HashMap<std::string::String, oneshot::Sender<Bytes>>>> =
         Arc::new(Mutex::new(HashMap::new()));
 }
 
@@ -256,14 +267,15 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
     }
 }
 
-const MAX_FRAME_SIZE: usize = 1024 * 1024; // 16Ki
+const MAX_FRAME_SIZE: usize = 1224 * 1024; // 16Ki
+const DEFAULT_FRAME_SIZE: usize = 1024 * 1024;
 
 async fn get_video(
     query: web::Query<HashMap<String, String>>,
     req: HttpRequest,
 ) -> Result<HttpResponse, Error> {
     let temp = "failed path".to_string();
-    let path = query.get("path").unwrap_or(&temp);
+    let path = query.get("path").unwrap_or(&temp).to_string();
     let android_usb_storage = "android_usb".to_string();
     let inner_storage = "inner".to_string();
     let storage_type = query.get("storage_type").unwrap_or(&inner_storage);
@@ -307,42 +319,69 @@ async fn get_video(
 
     let _size = (end - start + 1) as u64;
 
-    let local_file_stream: Box<dyn FileStream<Item=Result<actix_web::web::Bytes, actix_web::Error>>> =
-        if *storage_type == android_usb_storage {
-            let (tx, rx): (Sender<String>, Receiver<String>) = oneshot::channel();
 
-            let new_uudi = format!("{}", Uuid::new_v4());
-            debug!("get content_length from client new_uudi: {}", new_uudi);
-            SERVER_CLIENT_REQUEST_MAP
-                .lock()
-                .unwrap()
-                .insert(new_uudi.clone(), tx);
+    let (tx, rx): (Sender<String>, Receiver<String>) = oneshot::channel();
 
-            let json_struct = communicate_models::MessageTextDTO {
-                uuid: new_uudi.clone(),
-                code: option_code::OptionCode::CommonOptionCode::ServerGetAndroidUsbFileSize as i32,
-                content: path.to_string(),
-                content_type: 0
-            };
-            kernel_send_message_to_front_end(json_struct);
+    let new_uudi = format!("{}", Uuid::new_v4());
+    debug!("get content_length from client new_uudi: {}", new_uudi);
+    SERVER_CLIENT_REQUEST_MAP
+        .lock()
+        .unwrap()
+        .insert(new_uudi.clone(), tx);
 
-            let content_size = rx.await.unwrap().parse::<u64>().unwrap();
+    let json_struct = communicate_models::MessageTextDTO {
+        uuid: new_uudi.clone(),
+        code: option_code::OptionCode::CommonOptionCode::ServerGetAndroidUsbFileSize as i32,
+        content: path.to_string(),
+        content_type: 0
+    };
+    kernel_send_message_to_front_end(json_struct);
 
-            debug!("get content_length from client new_uudi: {} length {}", new_uudi, content_size);
+    let content_size = rx.await.unwrap().parse::<u64>().unwrap();
 
-            Box::new(AndroidUsbStorageFileStream::new(path.as_str(), start, content_size).await)
-        } else {
-            Box::new(LocalFileStream::new(path.as_str(), start))
-        }
-    ;
-
-    let content_length = local_file_stream.get_file_length();
-    let content_type = local_file_stream.get_file_type().clone();
+    let content_length = content_size;
+    let content_type = get_content_type(path.clone().as_str()).unwrap();
     info!(
         "get_video # content_length: {:?} content-type: {}",
         content_length,
         content_type.clone()
     );
+
+    let mut pos = start;
+    let stream = stream! {
+        loop {
+            let new_uuid: String = format!("{}", Uuid::new_v4());
+            let content = format!("{};{}", pos.to_string(), path.to_string());
+
+            debug!("AndroidUsbStorageFileStream pull_next {}", new_uuid);
+            let json_struct = communicate_models::MessageTextDTO {
+                uuid: new_uuid.clone(),
+                code: option_code::OptionCode::CommonOptionCode::ServerGetAndroidUsbFileByPiece as i32,
+                content: content,
+                content_type: 0
+            };
+
+            let (tx, rx): (Sender<Bytes>, Receiver<Bytes>) = oneshot::channel();
+            message_kernel_to_front_end(json_struct, tx);
+
+
+            // let bytes = rx.await.unwrap();
+            // yield bytes
+            match rx.await {
+                Ok(bytes) => {
+                    debug!("async stream poll_next {} success byteslen {}", new_uuid, bytes.len());
+                    if bytes.len() == 0 {
+                        break
+                    }
+                    pos = pos + bytes.len() as u64;
+                    yield Ok::<Bytes, actix_web::Error>(bytes)
+                }
+                Err(e) => {
+                    debug!("async stream poll_next {} error {}", new_uuid, e);
+                }
+            };
+        }
+    };
 
     Ok(HttpResponse::PartialContent()
         .append_header(("Content-Type", content_type))
@@ -351,7 +390,7 @@ async fn get_video(
             "Content-Range",
             format!("bytes {}-{}/{}", start,  (content_length - 1), content_length),
         ))
-        .streaming(Box::pin(local_file_stream)))
+        .streaming(Box::pin(stream)))
 }
 
 pub fn get_content_type(file_path: &str) -> Option<&'static str> {
@@ -518,7 +557,11 @@ async fn connect(
         connect_server: srv.get_ref().clone(),
     };
 
-    ws::start(session, &req, stream)
+    // ws::start(session, &req, stream)
+    ws::WsResponseBuilder::new(session, &req, stream)
+        .frame_size(MAX_FRAME_SIZE)
+        .protocols(&["A", "B"])
+        .start()
 }
 
 pub fn kernel_send_message_to_front_end(
@@ -543,6 +586,28 @@ pub fn handle_android_front_end_response(
         }
         None => {
             eprintln!("Failed to find request with uuid: {}", uuid);
+        }
+    }
+}
+
+
+pub fn message_kernel_to_front_end(json_struct: MessageTextDTO, tx: Sender<Bytes>) {
+    debug!(" message_kernel_to_front_end insert request {} sender {:p}", json_struct.uuid, &tx);
+    SERVER_CLIENT_REQUEST_MAP_BINARY.lock().unwrap().insert(json_struct.uuid.clone(), tx);
+    KERNEL_SERVER.do_send(connect::connect_server::KernelToFrontEndMessage{
+        msg: json_struct.to_json_str(),
+    });
+}
+
+pub fn message_front_end_to_kernel(dto: MessageBinaryDTO) {
+    let mut map = SERVER_CLIENT_REQUEST_MAP_BINARY.lock().unwrap();
+    match map.remove(&dto.content_id) {
+        None => {
+            debug!("message_front_end_to_kernel find request err {}", dto.content_id);
+        }
+        Some(sender) => {
+            debug!("message_front_end_to_kernel find request {} {:p} payload: {}", dto.content_id, &sender, dto.payload.len());
+            sender.send(Bytes::from(dto.payload)).unwrap()
         }
     }
 }
