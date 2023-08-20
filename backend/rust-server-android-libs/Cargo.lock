@@ -1939,6 +1939,7 @@ dependencies = [
  "serde_json",
  "thread-priority",
  "tokio",
+ "usb-disk-probe",
  "uuid",
 ]
 
@@ -2367,6 +2368,17 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+]
+
+[[package]]
+name = "usb-disk-probe"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf22ef5fa3663ec0ceaa44d9b36c9c1336f5639ed18d72a617cdcbaaad18a276"
+dependencies = [
+ "futures",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]

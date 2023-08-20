@@ -35,8 +35,9 @@ use async_stream::__private::AsyncStream;
 use async_stream::{stream, try_stream};
 use awc::http::StatusCode;
 use futures::channel::oneshot::{Canceled, Receiver, Sender};
-use futures::{Stream, TryFutureExt, TryStreamExt};
+use futures::{Stream, StreamExt, TryFutureExt, TryStreamExt};
 use serde_json::to_string;
+use usb_disk_probe::stream::UsbDiskProbe;
 use uuid::Uuid;
 use model::video::LocalFileStream;
 
@@ -227,7 +228,7 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
     let config = Config::default().with_min_level(Level::Debug);
     android_logger::init_once(config);
 
-    debug!("rust debug 1");
+    debug!("rust debug 1 usb");
 
     let rt = Runtime::new();
     match rt {
@@ -247,7 +248,7 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
                         )
                         .service(web::resource("/get-video").to(get_video))
                 })
-                .workers(2)
+                .workers(100)
                 .bind(("0.0.0.0", 8088));
 
                 match a {
@@ -350,10 +351,11 @@ async fn get_video(
     let mut pos = start;
     let stream = stream! {
         loop {
+            debug!("loop");
             let new_uuid: String = format!("{}", Uuid::new_v4());
             let content = format!("{};{}", pos.to_string(), path.to_string());
 
-            debug!("AndroidUsbStorageFileStream pull_next {}", new_uuid);
+            debug!("AndroidUsbStorageFileStream pull_next {} {}", new_uuid, content);
             let json_struct = communicate_models::MessageTextDTO {
                 uuid: new_uuid.clone(),
                 code: option_code::OptionCode::CommonOptionCode::ServerGetAndroidUsbFileByPiece as i32,
@@ -369,11 +371,12 @@ async fn get_video(
             // yield bytes
             match rx.await {
                 Ok(bytes) => {
-                    debug!("async stream poll_next {} success byteslen {}", new_uuid, bytes.len());
+                    debug!("async stream poll_next {} success byteslen {} pos{}", new_uuid, bytes.len(), pos);
                     if bytes.len() == 0 {
                         break
                     }
                     pos = pos + bytes.len() as u64;
+                    debug!("async stream poll_next {} success byteslen {} next_pos{}", new_uuid, bytes.len(), pos);
                     yield Ok::<Bytes, actix_web::Error>(bytes)
                 }
                 Err(e) => {

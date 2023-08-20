@@ -87,11 +87,14 @@ class VideoViewModel :
     }
 
     private fun test() {
-        viewModelScope.launch {
-            getRequestWithOriginalResponse(
-                "http://${Config.serverConfig.serverHost}/${ServerConfig.ServerPath.TestPath.path}"
-            )
-        }
+//        viewModelScope.launch {
+//            getRequestWithOriginalResponse(
+//                "http://${Config.serverConfig.serverHost}/${ServerConfig.ServerPath.TestPath.path}"
+//            )
+//        }
+        playVideo(Action.PlayVideoAction(
+            "http://192.168.31.249:8088/get-video?path=spider.mp4&storage_type=android_usb"
+        ))
     }
 
     private fun getNewPlayer(): IjkMediaPlayer {

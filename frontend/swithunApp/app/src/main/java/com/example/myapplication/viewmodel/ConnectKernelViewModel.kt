@@ -166,19 +166,28 @@ class ConnectKernelViewModel :
 
     private fun handleReceiveServerGetAndroidUsbFileByPieceResponse(action: Action.ServerGetAndroidUsbFileByPieceFileManagerResponse) {
         SwithunLog.d("handleReceiveServerGetAndroidUsbFileByPieceResponse ${action.buffer}")
-        val message = MessageBinaryDTO(
-            action.uuid,
-            action.pos.toInt(),
-            ByteString.of(*action.buffer.array())
-        )
 
-        viewModelScope.launch {
-            repository.webSocketSuspendSend(
-                RawDataBase.RawByteData(
-                    ByteString.of(*message.toByteArray())
-                )
+        try {
+            val message = MessageBinaryDTO(
+                action.uuid,
+                0,
+                ByteString.of(*action.buffer.array())
             )
+
+            SwithunLog.d("handleReceiveServerGetAndroidUsbFileByPieceResponse message ${message}")
+
+            viewModelScope.launch {
+                SwithunLog.d("handleReceiveServerGetAndroidUsbFileByPieceResponse send")
+                repository.webSocketSuspendSend(
+                    RawDataBase.RawByteData(
+                        ByteString.of(*message.toByteArray())
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            SwithunLog.e("handleReceiveServerGetAndroidUsbFileByPieceResponse err ${e}")
         }
+
     }
 
 

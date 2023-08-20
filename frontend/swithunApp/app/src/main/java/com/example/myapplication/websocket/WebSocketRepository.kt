@@ -1,5 +1,7 @@
 package com.example.myapplication.websocket
 
+import com.example.myapplication.SwithunLog
+import com.example.myapplication.nullCheck
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 
@@ -27,8 +29,13 @@ class WebSocketRepository {
 
     suspend fun webSocketSuspendSend(data: RawDataBase): Boolean {
         return when (val c = channel) {
-            null -> false
+            null -> {
+                SwithunLog.e("WebSocketRepository webSocketSuspendSend channel is null")
+                false
+            }
             else -> {
+                SwithunLog.e("WebSocketRepository webSocketSuspendSend channel send ${data} ${c.isClosed()}")
+
                 c.suspendSend(data)
                 true
             }
