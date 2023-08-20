@@ -337,7 +337,7 @@ async fn get_video(
     };
     kernel_send_message_to_front_end(json_struct);
 
-    let content_size = rx.await.unwrap().parse::<u64>().unwrap();
+    let content_size = rx.await.unwrap().parse::<u64>().unwrap_or(2);
 
     let content_length = content_size;
     let content_type = get_content_type(path.clone().as_str()).unwrap();
