@@ -84,6 +84,7 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
 
     private fun findUsbFileForName(action: Action.FindUsbFile){
         val file = findUsbFile(action.path)
+        SwithunLog.d(" findUsbFileForName after file")
 
         vmCollection?.connectKernelVM?.reduce(ConnectKernelViewModel.Action.ServerGetAndroidUsbFileFileManagerResponse(file, action.uuid))
     }
@@ -99,9 +100,11 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
         for (file in files) {
             SwithunLog.d("usb file: " + file.name)
             if (file.name == path) {
+                SwithunLog.d("findUsbFile return file")
                 return file
             }
         }
+        SwithunLog.d("findUsbFile return null")
         return null
     }
 

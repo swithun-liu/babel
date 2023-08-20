@@ -200,7 +200,10 @@ class ConnectKernelViewModel :
 
 
     private fun handleReceiveServerGetAndroidUsbFileSizeFileManagerViewModelResponse(action: Action.ServerGetAndroidUsbFileFileManagerResponse) {
-        val usbFile = action.usbFile.nullCheck(" handleReceiveServerGetAndroidUsbFileSizeFileManagerViewModelResponse usbFile", true)
+        SwithunLog.d(" handleReceiveServerGetAndroidUsbFileSizeFileManagerViewModelResponse")
+        SwithunLog.d(" handleReceiveServerGetAndroidUsbFileSizeFileManagerViewModelResponse 1 ${action.usbFile}")
+        val usbFile = action.usbFile
+        SwithunLog.d(" handleReceiveServerGetAndroidUsbFileSizeFileManagerViewModelResponse 2")
         val vmCollection = vmCollection ?: return
         vmCollection.fileVM.viewModelScope.launch(Dispatchers.IO) {
             val size = usbFile?.length ?: 0
