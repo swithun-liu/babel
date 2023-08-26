@@ -113,13 +113,15 @@ class MainActivity : ComponentActivity() {
                 val init = device.init()
                 SwithunLog.d("usb 2 : init : $init")
                 SwithunLog.d("usb device.partitions: ${device?.partitions?.size}")
-                val currentFs = device.partitions?.getOrNull(1)?.fileSystem
+                val currentFs = device.partitions?.getOrNull(0)?.fileSystem
                 if (currentFs == null) {
                     SwithunLog.d("usb currentFs null")
                     return
                 }
 
                 vmCollection.fileVM.initUsbDevices(currentFs)
+                vmCollection.nasVM.initUstDevices(currentFs)
+
 
                 break
 

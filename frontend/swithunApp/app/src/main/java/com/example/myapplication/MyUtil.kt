@@ -10,7 +10,13 @@ fun Any?.convert2Json(): String? {
     if (this is String) return this
 
     val gson: Gson = GsonBuilder().setPrettyPrinting().create()
-    return StringEscapeUtils.unescapeJson(gson.toJson(this))
+    return null
+//    return try {
+//        StringEscapeUtils.unescapeJson(gson.toJson(this))
+//    } catch (e: Exception) {
+//        Log.e("swithun-xxxx", "convert2Json err: ${e.message}")
+//        null
+//    }
 }
 
 object SwithunLog {

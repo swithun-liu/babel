@@ -7,17 +7,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.Config
-import com.example.myapplication.model.VMCollection
 import com.example.myapplication.SwithunLog
 import com.example.myapplication.framework.BaseViewModel
 import com.example.myapplication.model.MessageTextDTO
+import com.example.myapplication.model.VMCollection
+import com.example.myapplication.nullCheck
 import com.example.myapplication.util.SPUtil
 import com.example.myapplication.util.SystemUtil
 import com.example.myapplication.viewmodel.connectserver.ConnectServerViewModel
+import com.koushikdutta.async.http.server.AsyncHttpServer
+import com.koushikdutta.async.http.server.AsyncHttpServerRequest
+import com.koushikdutta.async.http.server.AsyncHttpServerResponse
+import com.koushikdutta.async.http.server.HttpServerRequestCallback
 import com.swithun.liu.ServerSDK
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import me.jahnen.libaums.core.fs.FileSystem
+import me.jahnen.libaums.core.fs.UsbFile
+import me.jahnen.libaums.core.fs.UsbFileInputStream
+import me.jahnen.libaums.core.fs.UsbFileOutputStream
+import java.net.URL
+import java.net.URLDecoder
 
 
 class NasViewModel :
@@ -32,6 +43,11 @@ class NasViewModel :
     private var vmCollection: VMCollection? = null
     private var uploadFileRootDir: String by mutableStateOf("")
     private var hasStartKernel = false
+
+
+    private var usbRoot: UsbFile? = null
+
+    private var server = AsyncHttpServer()
 
     override fun getInitialUIState(): MutableUIState {
         return MutableUIState()
@@ -79,6 +95,59 @@ class NasViewModel :
                 uploadFileRootDir = it
             }
         })
+
+        SwithunLog.d("nas - usb_video init")
+
+        server["/", HttpServerRequestCallback { request, response -> response.send("Hello!!!") }]
+
+        server.get("/get_usb_video?.*", object : HttpServerRequestCallback {
+            override fun onRequest(
+                request: AsyncHttpServerRequest?,
+                response: AsyncHttpServerResponse?,
+            ) {
+
+
+                val filePath = request?.query?.get("path")?.get(0).nullCheck("service # filePath ", true) ?: ""
+                val pos = request?.query?.get("pos")?.get(0).nullCheck("service # pos", true) ?: ""
+
+                val file = findUsbFile(filePath)?.nullCheck("service # find file", true) ?: return
+
+                val inputStream = UsbFileInputStream(file)
+
+                response?.setContentType(
+                    getContentType(filePath).nullCheck("service # file extension", true)
+                )
+
+                response
+                    ?.sendStream(
+                    inputStream,
+                    file.length
+                )
+
+            }
+
+        })
+
+        server.listen(54321)
+    }
+
+    private fun findUsbFile(path: String): UsbFile? {
+        SwithunLog.d("findUsbFile path: $path")
+        val usbRoot = this.usbRoot.nullCheck("findUsbFile", true) ?: return null
+
+        val files: Array<UsbFile> = usbRoot.listFiles()
+
+        SwithunLog.d("findUsbFile file: ${files.size}")
+
+        for (file in files) {
+            SwithunLog.d("usb file: " + file.name)
+            if (file.name == path) {
+                SwithunLog.d("findUsbFile return file")
+                return file
+            }
+        }
+        SwithunLog.d("findUsbFile return null")
+        return null
     }
 
     override fun reduce(action: Action) {
@@ -173,4 +242,48 @@ class NasViewModel :
         }
     }
 
+    fun initUstDevices(currentFs: FileSystem) {
+        try {
+            SwithunLog.d("usb Capacity: " + currentFs.capacity)
+            SwithunLog.d("usb Occupied Space: " + currentFs.occupiedSpace)
+            SwithunLog.d("usb 3")
+            SwithunLog.d("usb Free Space: " + currentFs.freeSpace)
+            SwithunLog.d("usb Chunk size: " + currentFs.chunkSize)
+            SwithunLog.d("usb 4")
+            val root: UsbFile = currentFs.rootDirectory
+            this.usbRoot = root
+            SwithunLog.d("usb 5")
+            val files: Array<UsbFile> = root.listFiles()
+            for (file in files) {
+                SwithunLog.d("usb file: " + file.name)
+            }
+
+        } catch (e: java.lang.Exception) {
+            SwithunLog.d("vm usb exception: $e")
+        }
+    }
+
+}
+
+
+fun getContentType(filePath: String): String? {
+    val fileExtension = filePath.substringAfterLast(".")
+    return when (fileExtension) {
+        "html" -> "text/html"
+        "css" -> "text/css"
+        "js" -> "application/javascript"
+        "json" -> "application/json"
+        "jpg", "jpeg" -> "image/jpeg"
+        "png" -> "image/png"
+        "gif" -> "image/gif"
+        "bmp" -> "image/bmp"
+        "ico" -> "image/x-icon"
+        "pdf" -> "application/pdf"
+        "mp4" -> "video/mp4"
+        "mov" -> "video/quicktime"
+        "webm" -> "video/webm"
+        "wmv" -> "video/x-ms-wmv"
+        "mkv" -> "video/x-matroska"
+        else -> null
+    }
 }

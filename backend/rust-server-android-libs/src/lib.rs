@@ -599,8 +599,10 @@ pub fn message_kernel_to_front_end(json_struct: MessageTextDTO, tx: Sender<Bytes
 
 pub fn message_front_end_to_kernel(dto: MessageBinaryDTO) {
     let mut map = SERVER_CLIENT_REQUEST_MAP_BINARY.lock().unwrap();
+    debug!("message_front_end_to_kernel SERVER_CLIENT_REQUEST_MAP_BINARY len: {}", map.len());
     match map.remove(&dto.content_id) {
         None => {
+            debug!("message_front_end_to_kernel SERVER_CLIENT_REQUEST_MAP_BINARY len: {}", map.len());
             debug!(
                 "message_front_end_to_kernel find request err {}",
                 dto.content_id

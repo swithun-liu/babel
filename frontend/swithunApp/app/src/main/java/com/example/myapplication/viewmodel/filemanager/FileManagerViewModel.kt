@@ -1,6 +1,5 @@
 package com.example.myapplication.viewmodel.filemanager
 
-import android.hardware.usb.UsbManager
 import android.os.Environment
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -145,9 +144,9 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
 
 
         // 从pos开始读取 1024 * 1024 字节
-        val a = ServerConfig.fileFrameSize.toLong() * 1024L
-        val b = file.length - pos.toLong()
-        val bufferSize = Math.min(a, b)
+        val frameSize = ServerConfig.fileFrameSize.toLong() * 1024L
+        val leftFileSize = file.length - pos.toLong()
+        val bufferSize = Math.min(frameSize, leftFileSize)
         SwithunLog.d("getUsbFileByPiece pos: ${pos} path ${path} fileLength : ${file.length} bfferize ${bufferSize}")
         val buffer = ByteBuffer.allocate(bufferSize.toInt())
         file.read(pos.toLong(), buffer)
