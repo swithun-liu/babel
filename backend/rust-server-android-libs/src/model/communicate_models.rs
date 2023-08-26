@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use log::debug;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MessageTextDTO {
@@ -24,7 +24,6 @@ pub struct MessageBinaryDTO {
 }
 
 impl MessageTextDTO {
-
     pub fn to_json_str(self) -> String {
         serde_json::to_string(&self).unwrap()
     }
@@ -32,7 +31,6 @@ impl MessageTextDTO {
     pub fn from_json_str(json_str: &str) -> serde_json::Result<MessageTextDTO> {
         serde_json::from_str::<MessageTextDTO>(json_str)
     }
-
 }
 
 impl MessageBinaryDTO {
@@ -40,7 +38,9 @@ impl MessageBinaryDTO {
         if bytes.len() < 40 {
             return None;
         }
-        let content_id = String::from_utf8_lossy(&bytes[..36]).trim_end_matches(char::from(0)).to_string();
+        let content_id = String::from_utf8_lossy(&bytes[..36])
+            .trim_end_matches(char::from(0))
+            .to_string();
         debug!("MessageDTO # from_bytes # content_id: {}", content_id);
         let seq = i32::from_be_bytes([bytes[36], bytes[37], bytes[38], bytes[39]]);
         debug!("MessageDTO # from_bytes # seq: {}", seq);
@@ -59,12 +59,11 @@ impl MessageBinaryDTO {
         result.extend(&self.payload); // payload
         result.into()
     }
-
 }
 
-pub fn generateUUID() -> String {
+pub fn generate_uuid() -> String {
     let uid = uuid::Uuid::new_v4();
     let uid_utf8 = format!("{:?}", uid);
-    debug!("new uid: {} - {}", uid_utf8 , uid_utf8.as_bytes().len());
-    return uid_utf8
+    debug!("new uid: {} - {}", uid_utf8, uid_utf8.as_bytes().len());
+    return uid_utf8;
 }

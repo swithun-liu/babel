@@ -1,3 +1,6 @@
+use std::fmt::Binary;
+use std::io::Read;
+use std::path::PathBuf;
 use std::{
     collections::HashMap,
     sync::{
@@ -5,20 +8,15 @@ use std::{
         Arc,
     },
 };
-use std::fmt::Binary;
-use std::io::Read;
-use std::path::PathBuf;
 
+use crate::kernel_send_message_to_front_end;
 use crate::model::option_code;
 use actix::{Actor, Addr, Context, Handler, Message, Recipient};
 use log::debug;
 use rand::{rngs::ThreadRng, Rng};
-use crate::kernel_send_message_to_front_end;
-
 
 use crate::model::communicate_models;
 use crate::model::communicate_models::MessageTextDTO;
-
 
 const PARENT_PATH: &str = "/storage/emulated/0/";
 
@@ -48,7 +46,10 @@ impl SessionServer {
         debug!("[ChatServer] [send_message] {}", message);
 
         for (id, rcp) in &self.sessions_ref {
-            rcp.do_send(ServerMessage { text: Some(message.to_owned()), binary: None })
+            rcp.do_send(ServerMessage {
+                text: Some(message.to_owned()),
+                binary: None,
+            })
         }
     }
 
@@ -59,21 +60,20 @@ impl SessionServer {
             None => {
                 debug!("session_holder is None");
             }
-            Some(session_holder) => {
-                session_holder.do_send(
-                    ServerMessage {
-                        text: None,
-                        binary: Some(bytes),
-                    }
-                )
-            }
+            Some(session_holder) => session_holder.do_send(ServerMessage {
+                text: None,
+                binary: Some(bytes),
+            }),
         }
     }
 
     pub fn send_message_to_specific_recipient(&self, recipient_id: usize, message: &str) {
         for (id, rcp) in &self.sessions_ref {
             if *id == recipient_id {
-                rcp.do_send(ServerMessage { text: Some(message.to_owned()), binary: None })
+                rcp.do_send(ServerMessage {
+                    text: Some(message.to_owned()),
+                    binary: None,
+                })
             }
         }
     }
@@ -106,7 +106,11 @@ impl Handler<SessionToSessionServerMessage> for SessionServer {
     type Result = ();
 
     /// 处理 client 发来的数据数据
-    fn handle(&mut self, msg: SessionToSessionServerMessage, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(
+        &mut self,
+        msg: SessionToSessionServerMessage,
+        ctx: &mut Self::Context,
+    ) -> Self::Result {
         let session_id = msg.session_id;
         let msg = msg.json_msg.as_str();
         let msg_clone = msg.clone();
@@ -134,9 +138,13 @@ impl Handler<SessionToSessionServerMessage> for SessionServer {
                         debug!("SessionServer # handle # SessionMessage # REQUEST_TRANSFER_FILE");
                         let file_path_str = communicate_json.content;
                         let file_path = PathBuf::from(file_path_str.clone().as_str());
-                        let file_name = file_path.file_name().unwrap_or("".as_ref()).to_str().unwrap_or("");
+                        let file_name = file_path
+                            .file_name()
+                            .unwrap_or("".as_ref())
+                            .to_str()
+                            .unwrap_or("");
 
-                        let content_id = communicate_models::generateUUID();
+                        let content_id = communicate_models::generate_uuid();
                         let file_name_dto = communicate_models::MessageBinaryDTO {
                             content_id: content_id.clone(),
                             seq: 0,
@@ -150,7 +158,8 @@ impl Handler<SessionToSessionServerMessage> for SessionServer {
                         debug!("file_path: {}", file_path_str);
 
                         // 发送文件内容
-                        let mut buffer = [0; (crate::connect::server_config::FILE_CHUNK_SIZE as usize) * 1024];
+                        let mut buffer =
+                            [0; (crate::connect::server_config::FILE_CHUNK_SIZE as usize) * 1024];
                         match std::fs::File::open(file_path_str) {
                             Ok(mut file) => {
                                 let mut seq = 1;
@@ -195,14 +204,14 @@ impl Handler<SessionToSessionServerMessage> for SessionServer {
                     _ => {
                         debug!("SessionServer # handle # SessionMessage # unknown command");
                         self.send_message((msg_clone.to_owned() + "1!!!").as_str())
-                    },
+                    }
                 }
             }
             // client未按照定义格式发送数据包，直接将原数据转发给所有客client
             Err(_) => {
                 debug!("SessionServer # handle # SessionMessage # json parse error");
                 self.send_message((msg_clone.to_owned() + "2!!!").as_str())
-            },
+            }
         }
     }
 }
@@ -257,4 +266,3 @@ pub struct Disconnect {
 pub struct Connect {
     pub addr: Recipient<ServerMessage>,
 }
-

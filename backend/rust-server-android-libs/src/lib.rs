@@ -2,54 +2,46 @@ mod bridge_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not
 use jni::objects::{JClass, JObject, JString};
 use jni::JNIEnv;
 
-use std::{panic, sync::{Arc, atomic::AtomicUsize}, time::Instant};
+use std::{
+    panic,
+    sync::{atomic::AtomicUsize, Arc},
+    time::Instant,
+};
 
 use crate::model::option_code;
 use actix::{Actor, Addr};
 use actix_files::NamedFile;
 use actix_web::rt::Runtime;
-use actix_web::{App, Error, HttpRequest, HttpResponse, HttpServer, Responder, web};
+use actix_web::web::Bytes;
+use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_actors::ws;
 use android_logger::Config;
+use async_stream::stream;
 use futures::channel::oneshot;
+use futures::channel::oneshot::{Receiver, Sender};
 use jni::sys::{jobject, jstring};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
+use std::collections::{HashMap, HashSet};
 use std::{
-    collections::HashMap,
-    fs::File,
-    io::{Read, Seek, SeekFrom, Write},
+    io::{Read, Write},
     net::ToSocketAddrs,
-    pin::Pin,
     process::Command,
     string::String,
     sync::Mutex,
-    task::{Context, Poll},
     time::Duration,
 };
-use std::any::Any;
-use std::future::Future;
-use std::ptr::addr_of;
-use actix_web::web::Bytes;
-use async_stream::__private::AsyncStream;
-use async_stream::{stream, try_stream};
-use awc::http::StatusCode;
-use futures::channel::oneshot::{Canceled, Receiver, Sender};
-use futures::{Stream, StreamExt, TryFutureExt, TryStreamExt};
-use serde_json::to_string;
-use usb_disk_probe::stream::UsbDiskProbe;
+use std::sync::RwLock;
 use uuid::Uuid;
-use model::video::LocalFileStream;
 
+mod api;
 mod connect;
 pub mod logger;
 mod model;
 mod session;
-mod api;
 
 use crate::model::communicate_models;
 use crate::model::communicate_models::{MessageBinaryDTO, MessageTextDTO};
-use crate::model::video::{FileStream, AndroidUsbStorageFileStream};
 
 extern crate core;
 extern crate log;
@@ -59,11 +51,11 @@ lazy_static! {
         connect::connect_server::ConnectServer::new().start();
     static ref CLIENT_SERVER: Addr<session::session_server::SessionServer> = {
         let app_state = Arc::new(AtomicUsize::new(0));
-        session::session_server::SessionServer::new(app_state.clone(), KERNEL_SERVER.clone()).start()
+        session::session_server::SessionServer::new(app_state.clone(), KERNEL_SERVER.clone())
+            .start()
     };
     static ref SERVER_CLIENT_REQUEST_MAP: Arc<Mutex<HashMap<std::string::String, oneshot::Sender<std::string::String>>>> =
         Arc::new(Mutex::new(HashMap::new()));
-
     static ref SERVER_CLIENT_REQUEST_MAP_BINARY: Arc<Mutex<HashMap<std::string::String, oneshot::Sender<Bytes>>>> =
         Arc::new(Mutex::new(HashMap::new()));
 }
@@ -224,7 +216,8 @@ async fn index() -> impl Responder {
 }
 
 #[no_mangle]
-pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
+pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever(env: JNIEnv, _: JClass) {
+
     let config = Config::default().with_min_level(Level::Debug);
     android_logger::init_once(config);
 
@@ -269,7 +262,6 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever() {
 }
 
 const MAX_FRAME_SIZE: usize = 1224 * 1024; // 16Ki
-const DEFAULT_FRAME_SIZE: usize = 1024 * 1024;
 
 async fn get_video(
     query: web::Query<HashMap<String, String>>,
@@ -277,7 +269,6 @@ async fn get_video(
 ) -> Result<HttpResponse, Error> {
     let temp = "failed path".to_string();
     let path = query.get("path").unwrap_or(&temp).to_string();
-    let android_usb_storage = "android_usb".to_string();
     let inner_storage = "inner".to_string();
     let storage_type = query.get("storage_type").unwrap_or(&inner_storage);
     info!("get_video path: {} storage_type: {}", path, storage_type);
@@ -320,7 +311,6 @@ async fn get_video(
 
     let _size = (end - start + 1) as u64;
 
-
     let (tx, rx): (Sender<String>, Receiver<String>) = oneshot::channel();
 
     let new_uudi = format!("{}", Uuid::new_v4());
@@ -334,7 +324,7 @@ async fn get_video(
         uuid: new_uudi.clone(),
         code: option_code::OptionCode::CommonOptionCode::ServerGetAndroidUsbFileSize as i32,
         content: path.to_string(),
-        content_type: 0
+        content_type: 0,
     };
     kernel_send_message_to_front_end(json_struct);
 
@@ -391,7 +381,12 @@ async fn get_video(
         .append_header(("Content-Length", content_length))
         .append_header((
             "Content-Range",
-            format!("bytes {}-{}/{}", start,  (content_length - 1), content_length),
+            format!(
+                "bytes {}-{}/{}",
+                start,
+                (content_length - 1),
+                content_length
+            ),
         ))
         .streaming(Box::pin(stream)))
 }
@@ -438,8 +433,7 @@ async fn get_path_list(query: web::Query<HashMap<String, String>>) -> impl Respo
                     .insert(new_uuid.clone(), tx);
                 let json_struct = communicate_models::MessageTextDTO {
                     uuid: new_uuid,
-                    code: option_code::OptionCode::CommonOptionCode::GetBasePathListRequest
-                        as i32,
+                    code: option_code::OptionCode::CommonOptionCode::GetBasePathListRequest as i32,
                     content: "".to_string(),
                     content_type: 0,
                 };
@@ -454,8 +448,7 @@ async fn get_path_list(query: web::Query<HashMap<String, String>>) -> impl Respo
                 debug!(
                     "get_path_list: {} code {}",
                     path,
-                    option_code::OptionCode::CommonOptionCode::GetChildrenPathListRequest
-                        as i32
+                    option_code::OptionCode::CommonOptionCode::GetChildrenPathListRequest as i32
                 );
 
                 let new_uuid: std::string::String = format!("{}", Uuid::new_v4());
@@ -494,7 +487,7 @@ async fn add_session(
         hb: Instant::now(),
         name: None,
         session_server_ref: srv.get_ref().clone(),
-        uploading_file: HashMap::new()
+        uploading_file: HashMap::new(),
     };
 
     ws::WsResponseBuilder::new(session, &req, stream)
@@ -529,25 +522,24 @@ async fn test() -> String {
                                 debug!("somebody test # device none");
                             }
                             Ok(device_desc) => {
-                                debug!("Bus {:03} Device {:03} ID {:04x}:{:04x}",
-                                device.bus_number(),
-                                device.address(),
-                                device_desc.vendor_id(),
-                                device_desc.product_id());
+                                debug!(
+                                    "Bus {:03} Device {:03} ID {:04x}:{:04x}",
+                                    device.bus_number(),
+                                    device.address(),
+                                    device_desc.vendor_id(),
+                                    device_desc.product_id()
+                                );
                             }
                         }
-
                     }
                 }
             }
         }
     }
 
-
     debug!("somebody test 2 end");
 
     "i am session".to_string()
-
 }
 
 async fn connect(
@@ -567,9 +559,7 @@ async fn connect(
         .start()
 }
 
-pub fn kernel_send_message_to_front_end(
-    json_struct: communicate_models::MessageTextDTO,
-) {
+pub fn kernel_send_message_to_front_end(json_struct: communicate_models::MessageTextDTO) {
     let json_struct_str = serde_json::to_string(&json_struct).unwrap();
 
     KERNEL_SERVER.do_send(connect::connect_server::KernelToFrontEndMessage {
@@ -593,11 +583,16 @@ pub fn handle_android_front_end_response(
     }
 }
 
-
 pub fn message_kernel_to_front_end(json_struct: MessageTextDTO, tx: Sender<Bytes>) {
-    debug!(" message_kernel_to_front_end insert request {} sender {:p}", json_struct.uuid, &tx);
-    SERVER_CLIENT_REQUEST_MAP_BINARY.lock().unwrap().insert(json_struct.uuid.clone(), tx);
-    KERNEL_SERVER.do_send(connect::connect_server::KernelToFrontEndMessage{
+    debug!(
+        " message_kernel_to_front_end insert request {} sender {:p}",
+        json_struct.uuid, &tx
+    );
+    SERVER_CLIENT_REQUEST_MAP_BINARY
+        .lock()
+        .unwrap()
+        .insert(json_struct.uuid.clone(), tx);
+    KERNEL_SERVER.do_send(connect::connect_server::KernelToFrontEndMessage {
         msg: json_struct.to_json_str(),
     });
 }
@@ -606,10 +601,18 @@ pub fn message_front_end_to_kernel(dto: MessageBinaryDTO) {
     let mut map = SERVER_CLIENT_REQUEST_MAP_BINARY.lock().unwrap();
     match map.remove(&dto.content_id) {
         None => {
-            debug!("message_front_end_to_kernel find request err {}", dto.content_id);
+            debug!(
+                "message_front_end_to_kernel find request err {}",
+                dto.content_id
+            );
         }
         Some(sender) => {
-            debug!("message_front_end_to_kernel find request {} {:p} payload: {}", dto.content_id, &sender, dto.payload.len());
+            debug!(
+                "message_front_end_to_kernel find request {} {:p} payload: {}",
+                dto.content_id,
+                &sender,
+                dto.payload.len()
+            );
             sender.send(Bytes::from(dto.payload)).unwrap()
         }
     }
