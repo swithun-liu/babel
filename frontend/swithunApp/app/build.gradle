@@ -94,5 +94,6 @@ dependencies {
     implementation 'androidx.documentfile:documentfile:1.0.1'
 
     implementation 'me.jahnen.libaums:core:0.10.0'
+    implementation 'me.jahnen:java-fs:0.1.4'
 
 }

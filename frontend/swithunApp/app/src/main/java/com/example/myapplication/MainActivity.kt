@@ -6,6 +6,7 @@ import android.content.Intent
 import android.hardware.usb.UsbManager
 import android.os.Build
 import android.os.Bundle
+import android.os.storage.StorageManager
 import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -23,12 +24,16 @@ import com.example.myapplication.model.VMCollection
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.ui.view.Myapp
 import com.example.myapplication.util.AuthChecker
+import com.example.myapplication.util.DocumentsUtils
 import com.example.myapplication.util.SPUtil
+import com.example.myapplication.util.StorageUtils
 import com.example.myapplication.viewmodel.*
 import com.example.myapplication.viewmodel.connectserver.ConnectServerViewModel
 import com.example.myapplication.viewmodel.filemanager.FileManagerViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.jahnen.libaums.core.UsbMassStorageDevice
+import java.io.File
 
 
 /**
@@ -97,6 +102,11 @@ class MainActivity : ComponentActivity() {
 
         val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
         val devices = UsbMassStorageDevice.getMassStorageDevices(this)
+
+
+
+
+
         Log.d("swithun-xxxx", "devices: ${devices.size}")
         for (device in devices) {
 
@@ -130,6 +140,41 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        val path = StorageUtils.getUsbDir(this).nullCheck("usb new path", true)
+
+
+        path?.let { path ->
+
+            lifecycleScope.launch {
+                showOpenDocumentTree(path)
+                delay(10000)
+
+                val files = File(path).listFiles().nullCheck("usb new list files", true)
+                files?.forEach {
+                    SwithunLog.d("usb file: ${it.name}")
+                }
+            }
+
+        }
+
+
+
+    }
+
+    private fun showOpenDocumentTree(rootPath: String) {
+        var intent: Intent? = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val sm = getSystemService(StorageManager::class.java)
+            val volume = sm.getStorageVolume(File(rootPath))
+            if (volume != null) {
+                intent = volume.createAccessIntent(null)
+            }
+        }
+        if (intent == null) {
+            intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+        }
+        Log.d("MainActivity", "startActivityForResult...")
+        startActivityForResult(intent, DocumentsUtils.OPEN_DOCUMENT_TREE_CODE)
     }
 
     companion object {
