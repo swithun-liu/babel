@@ -1,0 +1,3 @@
+cargo:rerun-if-changed=build/main.rs
+cargo:rustc-env=TYPENUM_BUILD_CONSTS=/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/lantian-frontend-lib/target/aarch64-linux-android/release/build/typenum-7d3645a1278c3994/out/consts.rs
+cargo:rustc-env=TYPENUM_BUILD_OP=/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/lantian-frontend-lib/target/aarch64-linux-android/release/build/typenum-7d3645a1278c3994/out/op.rs

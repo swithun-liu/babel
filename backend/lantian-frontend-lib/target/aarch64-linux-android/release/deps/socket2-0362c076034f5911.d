@@ -1,0 +1,11 @@
+/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/lantian-frontend-lib/target/aarch64-linux-android/release/deps/socket2-0362c076034f5911.rmeta: /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/lib.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/sockaddr.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/socket.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/sockref.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/sys/unix.rs
+
+/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/lantian-frontend-lib/target/aarch64-linux-android/release/deps/libsocket2-0362c076034f5911.rlib: /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/lib.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/sockaddr.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/socket.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/sockref.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/sys/unix.rs
+
+/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/lantian-frontend-lib/target/aarch64-linux-android/release/deps/socket2-0362c076034f5911.d: /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/lib.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/sockaddr.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/socket.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/sockref.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/sys/unix.rs
+
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/lib.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/sockaddr.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/socket.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/sockref.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/socket2-0.5.3/src/sys/unix.rs:

@@ -14,6 +14,8 @@ import com.example.lantian_front.nullCheck
 import com.example.lantian_front.util.*
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
+import com.swithun.lantian.Callback
+import com.swithun.lantian.FrontEndSDK
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -86,14 +88,22 @@ class VideoViewModel :
     }
 
     private fun test() {
-//        viewModelScope.launch {
-//            getRequestWithOriginalResponse(
-//                "http://${Config.serverConfig.serverHost}/${ServerConfig.ServerPath.TestPath.path}"
-//            )
-//        }
-        playVideo(Action.PlayVideoAction(
-            "http://192.168.31.249:8088/get-video?path=spider.mp4&storage_type=android_usb"
-        ))
+////        viewModelScope.launch {
+////            getRequestWithOriginalResponse(
+////                "http://${Config.serverConfig.serverHost}/${ServerConfig.ServerPath.TestPath.path}"
+////            )
+////        }
+//        playVideo(Action.PlayVideoAction(
+//            "http://192.168.31.249:8088/get-video?path=spider.mp4&storage_type=android_usb"
+//        ))
+
+        viewModelScope.launch(Dispatchers.IO) {
+            SwithunLog.d(TAG, "test ")
+            SwithunLog.d(TAG, "test begin ${System.identityHashCode(FrontEndSDK.callback).toString(16)}")
+            FrontEndSDK.connectServer(FrontEndSDK.callback)
+//            delay(30000)
+            SwithunLog.d(TAG, "test end ${System.identityHashCode(FrontEndSDK.callback).toString(16)}")
+        }
     }
 
     private fun getNewPlayer(): IjkMediaPlayer {
