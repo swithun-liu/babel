@@ -22,7 +22,18 @@ object AuthChecker {
         SwithunLog.d("权限检查")
         if (Build.VERSION.SDK_INT >= 23) {
             val REQUEST_CODE_CONTACT = 101
-            val permissions = arrayOf<String>(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            val permissions = arrayOf<String>(
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.MOUNT_UNMOUNT_FILESYSTEMS,
+                Manifest.permission.MANAGE_EXTERNAL_STORAGE
+            )
+
+
+            activity.requestPermissions(
+                arrayOf<String>(Manifest.permission.MOUNT_UNMOUNT_FILESYSTEMS),
+                REQUEST_CODE_CONTACT
+            )
             //验证是否许可权限
             for (str in permissions) {
                 if (activity.checkSelfPermission(str!!) != PackageManager.PERMISSION_GRANTED) {

@@ -96,4 +96,10 @@ dependencies {
     implementation 'me.jahnen.libaums:core:0.10.0'
     implementation 'me.jahnen:java-fs:0.1.4'
 
+
+
+    implementation project(path: ':usb_mass_storage_exfat')
+
+
+
 }

@@ -4,9 +4,13 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.hardware.usb.UsbManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.storage.StorageManager
+import android.provider.MediaStore
+import android.provider.MediaStore.Audio.Media
 import android.util.Log
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -30,6 +34,7 @@ import com.example.myapplication.util.StorageUtils
 import com.example.myapplication.viewmodel.*
 import com.example.myapplication.viewmodel.connectserver.ConnectServerViewModel
 import com.example.myapplication.viewmodel.filemanager.FileManagerViewModel
+import com.swithun.usb_mass_storage_exfat.UsbMassStorage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.jahnen.libaums.core.UsbMassStorageDevice
@@ -103,10 +108,6 @@ class MainActivity : ComponentActivity() {
         val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
         val devices = UsbMassStorageDevice.getMassStorageDevices(this)
 
-
-
-
-
         Log.d("swithun-xxxx", "devices: ${devices.size}")
         for (device in devices) {
 
@@ -126,7 +127,7 @@ class MainActivity : ComponentActivity() {
                 val currentFs = device.partitions?.getOrNull(0)?.fileSystem
                 if (currentFs == null) {
                     SwithunLog.d("usb currentFs null")
-                    return
+                    break
                 }
 
                 vmCollection.fileVM.initUsbDevices(currentFs)
@@ -157,8 +158,104 @@ class MainActivity : ComponentActivity() {
 
         }
 
+        testMyUsb()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            testMediaUsb()
+        }
+
+        getSDCardPath()
+
+        testLegle()
+
+    }
+
+    private fun testLegle() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val isLegacy = Environment.isExternalStorageLegacy()
+            // 打印日志
+            Log.d("swithun-xxxx", "isLegacy: $isLegacy")
+        }
+    }
 
 
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun testMediaUsb() {
+        val volumeNames = MediaStore.getExternalVolumeNames(this)
+        // Log volumeNames
+        for (volumeName in volumeNames) {
+            Log.d("swithun-xxxx", "volumeName: $volumeName")
+        }
+
+
+        val projection = arrayOf<String>(MediaStore.Audio.Media._ID, MediaStore.Audio.Media.ARTIST, MediaStore.Audio.Media.TITLE)
+
+        val volumeAudioUri = Media.getContentUri("0123-4567");
+        this.contentResolver.query(volumeAudioUri, projection, null, null, null).use { cursor ->
+            // Cache column indices.
+            val idColumn = cursor?.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+            val artistColumn = cursor?.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+            val titleColumn = cursor?.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+
+            while (cursor?.moveToNext() == true) {
+                // Get values of columns for a given video.
+                val id = cursor.getLong(idColumn!!)
+                val artist = cursor.getString(artistColumn!!)
+                val title = cursor.getString(titleColumn!!)
+
+                // Do something with the values.
+                Log.d("swithun-xxxx", "id: $id")
+                Log.d("swithun-xxxx", "artist: $artist")
+                Log.d("swithun-xxxx", "title: $title")
+                // Use the videos uri to refer to the video.
+                // e.g. Uri contentUri = ContentUris.withAppendedId(
+                //        MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id);
+            }
+        }
+
+//        val a = Environment.getExternalStorageDirectory()
+//        // 打印a
+//        Log.d("swithun-xxxx", "a: $a")
+//        // 打印a.listFiles()
+//        a.listFiles()?.forEach {
+//            Log.d("swithun-xxxx", "a.listFiles(): ${it.name}")
+//        }
+    }
+
+    private fun testMyUsb() {
+        val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
+        val usbDevices = usbManager.deviceList
+
+        SwithunLog.d("usb # usbDevices size: ${usbDevices.size}}")
+
+        lifecycleScope.launch {
+
+            for ((key, device) in usbDevices) {
+                SwithunLog.d("usb # requestPermission $key ${device.deviceId}")
+                val intent = PendingIntent.getBroadcast(
+                    this@MainActivity, 0, Intent(
+                        ACTION_USB_PERMISSION
+                    ), PendingIntent.FLAG_IMMUTABLE
+                )
+                if (usbManager.hasPermission(device)) {
+                    SwithunLog.d("usb # requestPermission has permission $key ${device.deviceId}")
+                } else {
+                    SwithunLog.d("usb # requestPermission request permission $key ${device.deviceId}")
+                    usbManager.requestPermission(device, intent)
+                }
+            }
+
+            delay(10000)
+
+            UsbMassStorage.filterUsbMassStorageFromAllUsbDevices(this@MainActivity)
+
+        }
+
+        val file = File("mnt/media_rw/64EA-D541")
+        // 打印所有子目录名字
+        file.listFiles()?.forEach {
+            Log.d("swithun-xxxx", "media_rw  file.listFiles(): ${it.name}")
+        }
     }
 
     private fun showOpenDocumentTree(rootPath: String) {
@@ -177,9 +274,22 @@ class MainActivity : ComponentActivity() {
         startActivityForResult(intent, DocumentsUtils.OPEN_DOCUMENT_TREE_CODE)
     }
 
+    public fun getSDCardPath() {
+        val sdk_paht  = Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED)
+        // 打印log
+        Log.d("swithun-xxxx", "sdk_path: $sdk_paht")
+        val sdDir = Environment.getExternalStorageDirectory()
+        // 打印sdkDir
+        Log.d("swithun-xxxx", "sdDir: $sdDir")
+    }
+
+
     companion object {
         const val ACTION_USB_PERMISSION = "com.example.myapp.USB_PERMISSION"
     }
+
+
+
 }
 
 object Config {

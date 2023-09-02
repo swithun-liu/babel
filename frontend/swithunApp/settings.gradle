@@ -13,5 +13,6 @@ dependencyResolutionManagement {
         jcenter()
     }
 }
-rootProject.name = "My Application"
+rootProject.name = "lantian"
 include ':app'
+include ':usb_mass_storage_exfat'

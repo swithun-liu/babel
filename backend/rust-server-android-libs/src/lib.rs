@@ -31,7 +31,9 @@ use std::{
     sync::Mutex,
     time::Duration,
 };
+use std::fs::File;
 use std::sync::RwLock;
+use usbd_mass_storage::MscClass;
 use uuid::Uuid;
 
 mod api;
@@ -215,13 +217,85 @@ async fn index() -> impl Responder {
     NamedFile::open_async("./static/index.html").await.unwrap()
 }
 
+fn testMscUsb() {
+    debug!("somebody test # testMscUsb");
+    let folder_path = "/mnt/media_rw/64EA-D541/";
+
+    let entries = std::fs::read_dir(folder_path);
+    match entries {
+        Ok(entries) => {
+            for entry in entries {
+                match entry {
+                    Ok(entry) => {
+                        let file_path = entry.path();
+                        debug!("文件路径: {:?}", file_path);
+                    }
+                    Err(e) => {
+                        debug!("文件路径err {:?}", e);
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            debug!("文件读取err {:?}", e);
+        }
+    }
+
+
+}
+
+fn testUsb() {
+    debug!("somebody test # testUsb");
+    let result = panic::catch_unwind(|| {
+        rusb::devices()
+    });
+    match result {
+        Err(e) => {
+            debug!("somebody test # panic: {:?}", e);
+        }
+        Ok(a) => {
+            debug!("somebody test # not panic");
+            match a {
+                Err(..) => {
+                    debug!("somebody test # none");
+                }
+                Ok(a) => {
+                    debug!("somebody test # some");
+                    for device in a.iter() {
+                        let device_desc = device.device_descriptor();
+                        match device_desc {
+                            Err(..) => {
+                                debug!("somebody test # device none");
+                            }
+                            Ok(device_desc) => {
+                                debug!(
+                                    "Bus {:03} Device {:03} ID {:04x}:{:04x}",
+                                    device.bus_number(),
+                                    device.address(),
+                                    device_desc.vendor_id(),
+                                    device_desc.product_id()
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 #[no_mangle]
 pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever(env: JNIEnv, _: JClass) {
+
 
     let config = Config::default().with_min_level(Level::Debug);
     android_logger::init_once(config);
 
-    debug!("rust debug 1 usb");
+    // testUsb();
+    testMscUsb();
+
+    debug!("rust debug 2 usb");
 
     let rt = Runtime::new();
     match rt {

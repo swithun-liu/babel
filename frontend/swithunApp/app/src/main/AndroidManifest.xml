@@ -9,9 +9,10 @@
     <uses-permission android:name="android.permission.PACKET_KEEPALIVE_OFFLOAD"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        tools:ignore="ScopedStorage" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE"
+        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" > </uses-permission>
     <uses-permission android:name="android.permission.READ_PHONE_STATE" > </uses-permission>
     <uses-permission android:name="android.permission.WAKE_LOCK" > </uses-permission>

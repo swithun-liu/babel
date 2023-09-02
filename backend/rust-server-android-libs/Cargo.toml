@@ -33,6 +33,7 @@ rusb = "0.9"
 flutter_rust_bridge = "1.80.1"
 async-stream = "0.3.5"
 usb-disk-probe = "0.2.0"
+usbd_mass_storage = "0.1.0"
 
 [lib]
 path = "src/lib.rs"
