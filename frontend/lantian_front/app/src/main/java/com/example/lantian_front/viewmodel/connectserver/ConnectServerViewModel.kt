@@ -16,7 +16,7 @@ import com.example.lantian_front.util.safeGetString
 import com.example.lantian_front.framework.BaseViewModel
 import com.example.lantian_front.nullCheck
 import com.example.lantian_front.viewmodel.NasViewModel
-import com.example.lantian_front.viewmodel.ShareViewModel
+import com.example.lantian_front.viewmodel.BusViewModel
 import com.example.lantian_front.viewmodel.biz.TransferBiz
 import com.example.lantian_front.websocket.RawDataBase
 import com.example.lantian_front.websocket.WebSocketRepository
@@ -69,7 +69,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action, Unit
         return Unit
     }
 
-    open class Action : BaseViewModel.Action() {
+    open class Action : BaseViewModel.AAction() {
         class ConnectServer(val serverIp: String) : Action()
         class PostSessionText(val text: String) : Action()
         class PostSessionFile(val uri: Uri, val context: Context, val parentPath: String) : Action()
@@ -316,7 +316,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action, Unit
                         }
                         SwithunLog.d("speed: ${df.format(speed)} MB/s")
                         vmCollection?.shareViewModel?.reduce(
-                            ShareViewModel.Action.ToastAction(
+                            BusViewModel.Action.ToastAction(
                                 "文件传输完成: ${
                                     df.format(
                                         speed

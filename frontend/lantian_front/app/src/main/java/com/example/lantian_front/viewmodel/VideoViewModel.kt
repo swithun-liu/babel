@@ -14,8 +14,8 @@ import com.example.lantian_front.nullCheck
 import com.example.lantian_front.util.*
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
-import com.swithun.lantian.Callback
 import com.swithun.lantian.FrontEndSDK
+import com.swithun.lantian.Request
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -65,7 +65,7 @@ class VideoViewModel :
         this.dependency = dependency
     }
 
-    sealed class Action : BaseViewModel.Action() {
+    sealed class Action : BaseViewModel.AAction() {
         data class PlayVideoAction(
             val videoUrl: String,
             val headerParams: HeaderParams? = null,
@@ -100,7 +100,7 @@ class VideoViewModel :
         viewModelScope.launch(Dispatchers.IO) {
             SwithunLog.d(TAG, "test ")
             SwithunLog.d(TAG, "test begin ${System.identityHashCode(FrontEndSDK.callback).toString(16)}")
-            FrontEndSDK.connectServer(FrontEndSDK.callback)
+            FrontEndSDK.request(Request.ConnectServer(FrontEndSDK.callback))
 //            delay(30000)
             SwithunLog.d(TAG, "test end ${System.identityHashCode(FrontEndSDK.callback).toString(16)}")
         }
@@ -275,7 +275,7 @@ class VideoViewModel :
                             val value = cookieKeyValue[1]
 
                             Log.i(TAG, "")
-                            vmCollection?.shareViewModel?.reduce(ShareViewModel.Action.NeedActivity { activity ->
+                            vmCollection?.shareViewModel?.reduce(BusViewModel.Action.NeedActivity { activity ->
                                 dependency.bilibiliCookie = value
                                 SPUtil.putString(activity, key, value)
                             })

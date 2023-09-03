@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -21,7 +22,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.lantian_front.ui.view.*
-import com.example.lantian_front.viewmodel.ShareViewModel
+import com.example.lantian_front.viewmodel.BusViewModel
 
 
 @RequiresApi(Build.VERSION_CODES.M)
@@ -36,7 +37,7 @@ fun PreviewMyApp() {
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun Myapp(
-    shareViewModel: ShareViewModel = viewModel(),
+    shareViewModel: BusViewModel = viewModel(),
 ) {
     val (selectedItem: Int, setSelectedItem: (Int) -> Unit) = remember { mutableStateOf(0) }
     val items: List<String> = PageIndex.values().map { it.text }
@@ -46,10 +47,9 @@ fun Myapp(
         Icons.Filled.Settings,
         Icons.Filled.Settings,
         Icons.Filled.Settings,
-        Icons.Filled.Settings
+        Icons.Filled.Settings,
+        Icons.Filled.List
     )
-
-    shareViewModel.snackbarHostState
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = shareViewModel.snackbarHostState) },
@@ -77,6 +77,7 @@ fun Myapp(
                     PageIndex.SERVER_SETTING_PAGE -> ServerSettingPage()
                     PageIndex.SERVER_FILE_PAGE -> ServerFilePage()
                     PageIndex.FILE_UPLOAD_PAGE -> FileUploadPage()
+                    PageIndex.SERVER_SETTING_PAGE2 -> ServerSettingPage2()
                     null -> {}
                 }
             }
@@ -89,7 +90,8 @@ enum class PageIndex(val text: String) {
     TRANSFER_PAGE("transfer"),
     SERVER_SETTING_PAGE("server setting"),
     SERVER_FILE_PAGE("server file"),
-    FILE_UPLOAD_PAGE("file upload page")
+    FILE_UPLOAD_PAGE("file upload page"),
+    SERVER_SETTING_PAGE2("server setting2")
     ;
 
     companion object {

@@ -18,11 +18,24 @@ object FrontEndSDK {
         }
     }
 
-    external fun connectServer(callback: Callback)
+    fun request(request: Request): Any {
+        return when (request) {
+            is Request.ConnectServer -> connectServer(request.callback)
+            is Request.SearchServer -> Request.SearchServer.Response(searchServer(request.subNet))
+        }
+    }
+
+    private external fun connectServer(callback: Callback)
+    private external fun searchServer(lanIp: String): Array<String>
 }
 
-interface Callback {
+interface Callback: BaseCallBack {
     fun result() {
         SwithunLog.d("Callback result")
     }
+}
+
+interface BaseCallBack
+interface JsonCallback: BaseCallBack {
+    fun result(op: Int, json: String)
 }

@@ -3,7 +3,7 @@ package com.example.lantian_front.framework
 import androidx.lifecycle.ViewModel
 
 abstract class BaseViewModel<
-        ACTION : BaseViewModel.Action,
+        ACTION : BaseViewModel.AAction,
         IMMUTABLE_UI_STATE,
         MUTABLE_UI_STATE : IMMUTABLE_UI_STATE,
         > :
@@ -15,8 +15,8 @@ abstract class BaseViewModel<
     abstract fun reduce(action: ACTION)
     abstract fun getInitialUIState(): MUTABLE_UI_STATE
 
-    abstract class Action
+    abstract class AAction
 
-    abstract class Event
+    abstract class AEvent
 
 }

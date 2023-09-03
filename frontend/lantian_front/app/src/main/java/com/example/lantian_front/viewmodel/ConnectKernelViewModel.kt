@@ -42,7 +42,7 @@ class ConnectKernelViewModel :
         return Unit
     }
 
-    sealed class Action : BaseViewModel.Action() {
+    sealed class Action : BaseViewModel.AAction() {
         object ConnectKernelAction : Action()
         class Response2Kernel(val dto: MessageDTO) : Action()
 

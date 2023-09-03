@@ -64,7 +64,7 @@ class NasViewModel :
         override var startMeAsServerBtnText: String by mutableStateOf("启动server：未启动")
     }
 
-    sealed class Action : BaseViewModel.Action() {
+    sealed class Action : BaseViewModel.AAction() {
         object StartMeAsServer : Action()
         object ConnectMyServer : Action()
         object SearchAllServer : Action()
@@ -76,13 +76,13 @@ class NasViewModel :
         class ChooseUploadFileRootDir(val uploadPath: String) : Action()
     }
 
-    sealed class Event : BaseViewModel.Event() {
+    sealed class Event : BaseViewModel.AEvent() {
         class NeedActivity(val block: (activity: Activity) -> Unit) : Event()
     }
 
     fun init(vmCollection: VMCollection) {
         this.vmCollection = vmCollection
-        vmCollection.shareViewModel.reduce(ShareViewModel.Action.NeedActivity { activity ->
+        vmCollection.shareViewModel.reduce(BusViewModel.Action.NeedActivity { activity ->
             SPUtil.ServerSetting.getLastTimeConnectServer(activity)?.let {
                 SwithunLog.d("lastTimeConnectServerIp from SP: $it")
                 uiState.lastTimeConnectServerIp = it
@@ -161,7 +161,7 @@ class NasViewModel :
     private fun chooseUploadFileRootDir(action: Action.ChooseUploadFileRootDir) {
         this.uploadFileRootDir = action.uploadPath
         vmCollection?.shareViewModel?.reduce(
-            ShareViewModel.Action.NeedActivity { activity ->
+            BusViewModel.Action.NeedActivity { activity ->
                 SPUtil.PathSetting.putUploadFileRootDir(activity, action.uploadPath)
             }
         )
@@ -170,7 +170,7 @@ class NasViewModel :
     private fun changerLastTimeConnectServer(action: Action.ChangeLastTimeConnectServer) {
         innerUISate.lastTimeConnectServerIp = action.serverIP
         vmCollection?.shareViewModel?.reduce(
-            ShareViewModel.Action.NeedActivity { activity ->
+            BusViewModel.Action.NeedActivity { activity ->
                 SPUtil.ServerSetting.putLastTimeConnectServer(activity, action.serverIP)
             }
         )

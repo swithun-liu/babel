@@ -43,6 +43,11 @@ object SwithunLog {
         Log.d("swithun-xxxx", generateMsg(description + " : " + msg.convert2Json()))
     }
 
+    fun d(msg: Any?, vararg description: String) {
+        val description = description.joinToString(separator = " # ")
+        Log.d("swithun-xxxx", generateMsg(description + " : " + msg.convert2Json()))
+    }
+
     fun e(msg: Any?) {
         Log.e("swithun-xxxx", generateMsg(msg.convert2Json()))
     }

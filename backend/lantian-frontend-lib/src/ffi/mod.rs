@@ -1,4 +1,3 @@
-use std::ffi::CString;
 use std::sync::{Arc, Mutex};
 use jni::JNIEnv;
 use jni::objects::JValue;
@@ -15,7 +14,7 @@ pub struct ClientReceiverJavaImpl<'a> {
 }
 
 impl<'a> ClientReceiver for ClientReceiverJavaImpl<'a> {
-    fn send_server_text(&self, op: i32, message: String) {
+    fn send_server_text(&self, _op: i32, _message: String) {
         debug!("ClientReceiverJavaImpl # send_server_text");
 
         let mut env = self.env.lock().unwrap();

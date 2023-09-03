@@ -33,6 +33,8 @@ import com.example.lantian_front.util.StorageUtils
 import com.example.lantian_front.viewmodel.*
 import com.example.lantian_front.viewmodel.connectserver.ConnectServerViewModel
 import com.example.lantian_front.viewmodel.filemanager.FileManagerViewModel
+import com.example.lantian_front.viewmodel.serversetting.Action
+import com.example.lantian_front.viewmodel.serversetting.ServerSettingViewModel
 import com.swithun.usb_mass_storage_exfat.UsbMassStorage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -51,7 +53,8 @@ class MainActivity : ComponentActivity() {
     private val videoViewModel: VideoViewModel by viewModels()
     private val nasViewModel: NasViewModel by viewModels()
     private val fileViewModel: FileManagerViewModel by viewModels()
-    private val shareViewModel: ShareViewModel by viewModels()
+    private val shareViewModel: BusViewModel by viewModels()
+    private val serverSettingViewModel: ServerSettingViewModel by viewModels()
 
     private val vmCollection by lazy {
         VMCollection(
@@ -71,13 +74,15 @@ class MainActivity : ComponentActivity() {
         Config.pathConfig.init(this)
         Config.kernelConfig.init(this)
 
+        serverSettingViewModel.reduce(Action.InitBus(shareViewModel))
+
         lifecycleScope.launch {
             vmCollection.shareViewModel.uiEvent.collect {
                 when (it) {
-                    is ShareViewModel.Event.NeedActivity -> {
+                    is BusViewModel.Event.NeedActivity -> {
                         it.block(this@MainActivity)
                     }
-                    is ShareViewModel.Event.ToastEvent -> {
+                    is BusViewModel.Event.ToastEvent -> {
                         vmCollection.shareViewModel.snackbarHostState.showSnackbar(it.text.toString())
                         it.block()
                     }

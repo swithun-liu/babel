@@ -12,7 +12,10 @@ jni = { version = "0.21.1", default-features = false }
 tokio = { version = "1.25.0", features = ["rt-multi-thread"] }
 tokio-tungstenite = "0.20.0"
             # emaple 1 https://github.com/snapview/tokio-tungstenite/issues/137
+# async
 futures-util = { version = "0.3", features = ["async-await", "sink", "std"] } # ws_stream.split()需要 https://github.com/snapview/tokio-tungstenite/issues/107
+futures = "0.3.26"
+
 # 日志
 log = "0.4.17"
 android_logger = "0.10"

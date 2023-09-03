@@ -107,7 +107,7 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
         return null
     }
 
-    sealed class Action: BaseViewModel.Action() {
+    sealed class Action: BaseViewModel.AAction() {
         class ClickFolder(val folder: PathItem.FolderItem): Action()
         class ClickFile(val file: PathItem.FileItem): Action()
         object RefreshBasePathListFromRemote: Action()
