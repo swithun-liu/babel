@@ -68,6 +68,7 @@ class ServerSettingViewModel: BaseViewModel<Action, UIState, MutableUIState>() {
                 }
 
                 is Result.OK -> result {
+                    innerUISate.currentConnectServerIp = action.ip
                     BusViewModel.Action.ToastAction("连接成功".toTextRes())
                 }
 

@@ -8,4 +8,5 @@ class MutableUIState: UIState {
     override var searchServerBtnText: String by mutableStateOf("LAN中搜索可用server")
     override var availableServerIPs: List<String> by mutableStateOf(listOf())
     override var lastTimeConnectServerIp: String by mutableStateOf("")
+    override var currentConnectServerIp: String by mutableStateOf("")
 }
