@@ -19,9 +19,10 @@ use tokio_tungstenite::tungstenite::handshake::client::Response;
 use tokio_tungstenite::tungstenite::Message;
 use crate::ws_client::message_handler::handle_ws_server_text_message;
 
-pub(crate) async fn connect_server(client_receiver: &crate::ffi::ClientReceiverImpl<'_>) {
+pub(crate) async fn connect_server(client_receiver: &crate::ffi::ClientReceiverImpl<'_>, server_ip_str: String) {
+    let uri = format!("ws://{}:8088/ws", server_ip_str);
 
-    let ws_stream: Result<(WebSocketStream<MaybeTlsStream<TcpStream>>, Response), tokio_tungstenite::tungstenite::Error> = connect_async("ws://192.168.31.249:8088/ws").await;
+    let ws_stream: Result<(WebSocketStream<MaybeTlsStream<TcpStream>>, Response), tokio_tungstenite::tungstenite::Error> = connect_async(uri).await;
 
     match ws_stream {
         Ok((ws, _response)) => {

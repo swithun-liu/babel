@@ -18,15 +18,27 @@ object FrontEndSDK {
         }
     }
 
-    fun request(request: Request): Any {
+    fun <R: Response> request(request: Request<R>): R {
         return when (request) {
-            is Request.ConnectServer -> connectServer(request.callback)
-            is Request.SearchServer -> Request.SearchServer.Response(searchServer(request.subNet))
+            is Request.ConnectServer -> request.createResponse(
+                Response.ConnectServerRsp(
+                    connectServer(request.serverIp, request.callback)
+                )
+            ) as R
+
+            is Request.SearchServer -> request.createResponse(
+                Response.SearchServerRsp(
+                    searchServer(
+                        request.subNet
+                    )
+                )
+            ) as R
         }
     }
 
-    private external fun connectServer(callback: Callback)
+    private external fun connectServer(serverIp: String, callback: Callback): Boolean
     private external fun searchServer(lanIp: String): Array<String>
+
 }
 
 interface Callback: BaseCallBack {

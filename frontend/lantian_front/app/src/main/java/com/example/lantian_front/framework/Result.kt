@@ -33,3 +33,7 @@ sealed class Result<DATA, E> {
 
 fun <T, Err> T.toOkResult() = Result.OK<T, Err>(this)
 
+fun Boolean.toResult(): Result<Unit, Unit> = when (this) {
+    true -> Result.OK(Unit)
+    false -> Result.Err(Unit)
+}

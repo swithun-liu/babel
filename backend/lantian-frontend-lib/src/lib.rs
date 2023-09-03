@@ -1,5 +1,7 @@
 extern crate alloc;
+extern crate core;
 
+use core::str::Utf8Error;
 use std::sync::{Arc, Mutex};
 use jni::{
     objects::{
@@ -10,7 +12,7 @@ use jni::{
 };
 use jni::objects::JString;
 use jni::strings::JavaStr;
-use jni::sys::{jobject, jobjectArray};
+use jni::sys::{jboolean, JNI_FALSE, JNI_TRUE, jobject, jobjectArray};
 use log::debug;
 use tokio::runtime::Runtime;
 use crate::basic::init_debugger;
@@ -22,13 +24,29 @@ pub mod ws_client;
 pub mod ffi;
 
 #[no_mangle]
-pub extern "C" fn Java_com_swithun_lantian_FrontEndSDK_connectServer(mut env: JNIEnv, _: JClass, callback: JObject) {
+pub extern "C" fn Java_com_swithun_lantian_FrontEndSDK_connectServer(
+    mut env: JNIEnv, _: JClass,
+    server_ip: JString,
+    callback: JObject
+) -> jboolean {
     init_debugger();
-
     debug!("Java_com_swithun_lantian_FrontEndSDK_connectServer");
 
-    env.call_method(callback.as_ref(), "result", "()V", &[]).unwrap();
-
+    let server_ip_str = match env.get_string(&server_ip) {
+        Ok(server_ip_str) => {
+            match server_ip_str.to_str() {
+                Ok(server_ip_str) => {
+                    server_ip_str.to_string()
+                }
+                Err(_) => {
+                    return JNI_FALSE;
+                }
+            }
+        }
+        Err(_) => {
+            return JNI_FALSE;
+        }
+    };
 
     let client_receiver = ffi::ClientReceiverImpl::Java(
         ffi::ClientReceiverJavaImpl {
@@ -37,13 +55,14 @@ pub extern "C" fn Java_com_swithun_lantian_FrontEndSDK_connectServer(mut env: JN
         }
     );
 
-    let rt = Runtime::new();
-        match rt {
+    match Runtime::new() {
         Ok(mut rt) => {
-            rt.block_on(api::connect_server(&client_receiver));
+            rt.block_on(api::connect_server(&client_receiver, server_ip_str));
+            JNI_TRUE
         }
         Err(e) => {
             debug!("error: {}", e);
+            JNI_FALSE
         }
     }
 }

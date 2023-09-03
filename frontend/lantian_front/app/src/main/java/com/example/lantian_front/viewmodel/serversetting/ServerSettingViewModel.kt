@@ -58,7 +58,25 @@ class ServerSettingViewModel: BaseViewModel<Action, UIState, MutableUIState>() {
     }
 
     private fun connectServer(action: Action.ConnectServer) {
+        viewModelScope.launch(Dispatchers.IO) {
+            SwithunLog.d(TAG, "begin")
 
+            val toast = when (val result = worker.connectServer(action)) {
+
+                is Result.Err -> result {
+                    BusViewModel.Action.ToastAction("连接失败".toTextRes())
+                }
+
+                is Result.OK -> result {
+                    BusViewModel.Action.ToastAction("连接成功".toTextRes())
+                }
+
+            }
+
+            toast(toast)
+
+            SwithunLog.d(TAG, "end")
+        }
     }
 
     override fun getInitialUIState(): MutableUIState {

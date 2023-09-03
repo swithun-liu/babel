@@ -100,7 +100,7 @@ class VideoViewModel :
         viewModelScope.launch(Dispatchers.IO) {
             SwithunLog.d(TAG, "test ")
             SwithunLog.d(TAG, "test begin ${System.identityHashCode(FrontEndSDK.callback).toString(16)}")
-            FrontEndSDK.request(Request.ConnectServer(FrontEndSDK.callback))
+//            FrontEndSDK.request(Request.ConnectServer(FrontEndSDK.callback))
 //            delay(30000)
             SwithunLog.d(TAG, "test end ${System.identityHashCode(FrontEndSDK.callback).toString(16)}")
         }
