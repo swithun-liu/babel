@@ -18,6 +18,7 @@ object FrontEndSDK {
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
     fun <R: Response> request(request: Request<R>): R {
         return when (request) {
             is Request.ConnectServer -> request.createResponse(
@@ -33,11 +34,16 @@ object FrontEndSDK {
                     )
                 )
             ) as R
+
+            is Request.GetStorage -> request.createResponse(
+                Response.GetStorageRsp(getStorage())
+            ) as R
         }
     }
 
-    private external fun connectServer(serverIp: String, callback: Callback): Boolean
+    private external fun connectServer(serverIp: String, callback: JsonCallback): Boolean
     private external fun searchServer(lanIp: String): Array<String>
+    private external fun getStorage(): Array<String>
 
 }
 
@@ -49,5 +55,5 @@ interface Callback: BaseCallBack {
 
 interface BaseCallBack
 interface JsonCallback: BaseCallBack {
-    fun result(op: Int, json: String)
+    fun result(op: String, json: String)
 }

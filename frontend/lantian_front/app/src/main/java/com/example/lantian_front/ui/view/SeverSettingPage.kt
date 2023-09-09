@@ -53,10 +53,40 @@ fun Page(
     connectServer: (ip: String) -> Unit = { },
     lastTimeConnectServerIp: String = "last time ip",
 ) {
-    var manualFillServerIp by remember { mutableStateOf(lastTimeConnectServerIp) }
+    Row {
+
+        SearchInLan(
+            onSearchServerClick,
+            searchServerBtnText,
+            lastTimeConnectServerIp
+        )
+
+        Column {
+            ConnectLastTime(
+                connectServer,
+                lastTimeConnectServerIp
+            )
+            ConnectManual(
+                connectServer,
+                lastTimeConnectServerIp
+            )
+            AvailableServerList(
+                availableServerIPs,
+                connectServer
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchInLan(
+    onSearchServerClick: (lanIp: String) -> Unit = { },
+    searchServerBtnText: String = "search again",
+    lastTimeConnectServerIp: String
+) {
 
     var lanIp by remember {
-        val items = manualFillServerIp.split(".").toMutableList()
+        val items = lastTimeConnectServerIp.split(".").toMutableList()
         val preIp = if (items.size == 4) {
             items.removeAt(3)
             items.joinToString(".")
@@ -67,84 +97,103 @@ fun Page(
         mutableStateOf(preIp)
     }
 
-    Row {
 
-        Row(
-            modifier = Modifier.padding(5.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 垂直居中
-            BasicTextField(
-                value = lanIp,
-                decorationBox = { innerTextField ->
-                    Box(
-                        modifier = Modifier
-                            .border(
-                                width = 2.dp,
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = RoundedCornerShape(size = 16.dp)
-                            )
-                            .padding(10.dp)
-                    ) {
-                        innerTextField()
-                    }
-                },
-                onValueChange = {
-                    lanIp = it
-                },
-            )
+    Row(
+        modifier = Modifier.padding(5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 垂直居中
+        BasicTextField(
+            value = lanIp,
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier
+                        .border(
+                            width = 2.dp,
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(size = 16.dp)
+                        )
+                        .padding(10.dp)
+                ) {
+                    innerTextField()
+                }
+            },
+            onValueChange = {
+                lanIp = it
+            },
+        )
 
-            SCommonButton(onClick = { onSearchServerClick.invoke(lanIp) } ) {
-                Text(text = searchServerBtnText)
-            }
-
+        SCommonButton(onClick = { onSearchServerClick.invoke(lanIp) } ) {
+            Text(text = searchServerBtnText)
         }
 
-        Column {
-            Text(text = "上次连接")
-            SCommonButton(onClick = { connectServer.invoke(lastTimeConnectServerIp) }) {
-                Text(text = lastTimeConnectServerIp)
-            }
-            Text(text = "手动连接")
+    }
+}
 
-            Row(
-                modifier = Modifier.padding(5.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 垂直居中
-                BasicTextField(
-                    value = manualFillServerIp,
-                    decorationBox = { innerTextField ->
-                        Box(
-                            modifier = Modifier
-                                .border(
-                                    width = 2.dp,
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = RoundedCornerShape(size = 16.dp)
-                                )
-                                .padding(10.dp)
-                        ) {
-                            innerTextField()
-                        }
-                    },
-                    onValueChange = {
-                        manualFillServerIp = it
-                    },
-                )
+@Composable
+private fun ConnectLastTime(
+    connectServer: (ip: String) -> Unit = { },
+    lastTimeConnectServerIp: String = "last time ip",
+) {
+    Text(text = "上次连接")
+    SCommonButton(onClick = { connectServer.invoke(lastTimeConnectServerIp) }) {
+        Text(text = lastTimeConnectServerIp)
+    }
+}
 
-                SCommonButton(onClick = { connectServer.invoke(manualFillServerIp) } ) {
-                    Text(text = "-> 连接")
+@Composable
+private fun ConnectManual(
+    connectServer: (ip: String) -> Unit = { },
+    lastTimeConnectServerIp: String = "last time ip",
+) {
+
+    var manualFillServerIp by remember { mutableStateOf(lastTimeConnectServerIp) }
+
+
+    Text(text = "手动连接")
+
+    Row(
+        modifier = Modifier.padding(5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 垂直居中
+        BasicTextField(
+            value = manualFillServerIp,
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier
+                        .border(
+                            width = 2.dp,
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(size = 16.dp)
+                        )
+                        .padding(10.dp)
+                ) {
+                    innerTextField()
                 }
+            },
+            onValueChange = {
+                manualFillServerIp = it
+            },
+        )
 
-            }
-            
-            Text(text = "可用server")
-            LazyColumn() {
-                items(availableServerIPs) { ip ->
-                    SCommonButton(onClick = { connectServer.invoke(ip) }) {
-                        Text(text = ip)
-                    }
-                }
+        SCommonButton(onClick = { connectServer.invoke(manualFillServerIp) } ) {
+            Text(text = "-> 连接")
+        }
+
+    }
+}
+
+@Composable
+private fun AvailableServerList(
+    availableServerIPs: List<String> = listOf("server ip1", "server ip1"),
+    connectServer: (ip: String) -> Unit = { },
+) {
+    Text(text = "可用server")
+    LazyColumn() {
+        items(availableServerIPs) { ip ->
+            SCommonButton(onClick = { connectServer.invoke(ip) }) {
+                Text(text = ip)
             }
         }
     }

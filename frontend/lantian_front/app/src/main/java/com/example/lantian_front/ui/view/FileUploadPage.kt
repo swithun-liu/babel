@@ -26,6 +26,7 @@ import com.example.lantian_front.viewmodel.connectserver.ConnectServerViewModel
 import com.example.lantian_front.SwithunLog
 import com.example.lantian_front.viewmodel.filemanager.FileManagerViewModel
 import com.example.lantian_front.viewmodel.NasViewModel
+import com.example.lantian_front.viewmodel.filemanager.Action
 import com.example.lantian_front.viewmodel.filemanager.PathItem
 
 @RequiresApi(Build.VERSION_CODES.M)
@@ -43,10 +44,10 @@ fun FileUploadPage(
             openDialog.value = true
         }
         val actFileClick = { it: PathItem.FileItem ->
-            fileManagerViewModel.reduce(FileManagerViewModel.Action.ClickFile(it))
+            fileManagerViewModel.reduce(Action.ClickFile(it))
         }
         val actFolderClick = { it: PathItem.FolderItem ->
-            fileManagerViewModel.reduce(FileManagerViewModel.Action.ClickFolder(it))
+            fileManagerViewModel.reduce(Action.ClickFolder(it))
         }
 
         val funGeneratePathMoreAction: (PathItem) -> List<Pair<Pair<String, ImageVector>, (pathItem: PathItem) -> Unit>> =
@@ -83,10 +84,10 @@ fun FileUploadPage(
     }
 
     val actFileClick = { it: PathItem.FileItem ->
-        fileManagerViewModel.reduce(FileManagerViewModel.Action.ClickFile(it))
+        fileManagerViewModel.reduce(Action.ClickFile(it))
     }
     val actFolderClick = { it: PathItem.FolderItem ->
-        fileManagerViewModel.reduce(FileManagerViewModel.Action.ClickFolder(it))
+        fileManagerViewModel.reduce(Action.ClickFolder(it))
     }
 
     val context = LocalContext.current

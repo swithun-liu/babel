@@ -6,21 +6,33 @@ import com.example.lantian_front.framework.BaseViewModel
 import com.example.lantian_front.framework.Result
 import com.example.lantian_front.model.toTextRes
 import com.example.lantian_front.viewmodel.BusViewModel
+import com.swithun.lantian.JsonCallback
+import com.swithun.lantian.OptionCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class ServerSettingViewModel: BaseViewModel<Action, UIState, MutableUIState>() {
 
     private var bus: BusViewModel? = null
-    private var worker: Worker = Worker(viewModelScope)
+    private var repository: Repository = Repository(viewModelScope)
 
     override fun reduce(action: Action) {
         when (action) {
             is Action.InitBus -> initBus(action)
             is Action.ConnectServer -> connectServer(action)
             is Action.SearchServer -> searchServer(action)
+            is Action.GetServerStorage -> getServerStorage(action)
         }
     }
+
+    private fun toast(action: BusViewModel.Action.ToastAction) {
+        bus?.reduce(action)
+    }
+
+    private fun initBus(action: Action.InitBus) {
+        this.bus = action.bus
+    }
+
 
     private fun searchServer(action: Action.SearchServer) {
         innerUISate.searchServerBtnText = "正在搜索"
@@ -28,7 +40,7 @@ class ServerSettingViewModel: BaseViewModel<Action, UIState, MutableUIState>() {
         viewModelScope.launch(Dispatchers.IO) {
             SwithunLog.d("searchServer", "begin")
 
-            val toast = when (val result = worker.searchServer(action)) {
+            val toast = when (val result = repository.searchServer(action)) {
 
                 is Result.Err -> result {
                     BusViewModel.Action.ToastAction("检索失败".toTextRes())
@@ -48,35 +60,44 @@ class ServerSettingViewModel: BaseViewModel<Action, UIState, MutableUIState>() {
             SwithunLog.d("searchServer", "end")
         }
     }
-
-    private fun toast(action: BusViewModel.Action.ToastAction) {
-        bus?.reduce(action)
-    }
-
-    private fun initBus(action: Action.InitBus) {
-        this.bus = action.bus
-    }
-
     private fun connectServer(action: Action.ConnectServer) {
         viewModelScope.launch(Dispatchers.IO) {
             SwithunLog.d(TAG, "begin")
 
-            val toast = when (val result = worker.connectServer(action)) {
+            val jsonCallback = object : JsonCallback {
 
-                is Result.Err -> result {
-                    BusViewModel.Action.ToastAction("连接失败".toTextRes())
-                }
+                override fun result(op: String, json: String) {
+                    when (OptionCode.fromString(op)) {
+                        OptionCode.CONNECT_SERVER -> {
+                            // json: { "result": true } 或者  { "result": false } 解析
+                            val suc = json.contains("true")
 
-                is Result.OK -> result {
-                    innerUISate.currentConnectServerIp = action.ip
-                    BusViewModel.Action.ToastAction("连接成功".toTextRes())
+                            val toast = if (suc) {
+                                innerUISate.currentConnectServerIp = action.ip
+                                BusViewModel.Action.ToastAction("连接成功".toTextRes())
+                            } else {
+                                BusViewModel.Action.ToastAction("连接失败".toTextRes())
+                            }
+
+                            toast(toast)
+                        }
+                        OptionCode.SEARCH_SERVER -> { }
+                        OptionCode.WS_TEXT_MSG -> { }
+                        null -> { SwithunLog.e("unknown op code") }
+                    }
                 }
 
             }
 
-            toast(toast)
+            repository.connectServer(action, jsonCallback)
 
             SwithunLog.d(TAG, "end")
+        }
+    }
+
+    private fun getServerStorage(action: Action.GetServerStorage) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val storages = repository.getServerStorage()
         }
     }
 

@@ -7,8 +7,8 @@ use std::time::Duration;
 use futures_util::{SinkExt, StreamExt};
 use futures_util::future::join_all;
 use futures_util::stream::{Next, SplitStream};
-use jni::objects::JObject;
-use jni::sys::jobject;
+use jni::objects::{JObject, JString, JValue};
+use jni::sys::{jobject, jstring};
 use log::debug;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use crate::basic::init_debugger;
@@ -17,6 +17,8 @@ use tokio::net::TcpStream;
 use tokio::task::futures;
 use tokio_tungstenite::tungstenite::handshake::client::Response;
 use tokio_tungstenite::tungstenite::Message;
+use crate::dto::OptionCode;
+use crate::ffi::{ClientReceiver, ClientReceiverImpl};
 use crate::ws_client::message_handler::handle_ws_server_text_message;
 
 pub(crate) async fn connect_server(client_receiver: &crate::ffi::ClientReceiverImpl<'_>, server_ip_str: String) {
@@ -26,6 +28,8 @@ pub(crate) async fn connect_server(client_receiver: &crate::ffi::ClientReceiverI
 
     match ws_stream {
         Ok((ws, _response)) => {
+            client_receiver.call_back(OptionCode::CONNECT_SERVER, r#"{"result": true}"#);
+
             let (mut write, mut read) = ws.split();
             // 发送消息"Hello WebSocket"
 
@@ -70,6 +74,8 @@ pub(crate) async fn connect_server(client_receiver: &crate::ffi::ClientReceiverI
         }
         Err(e) => {
             // 打印日志
+            client_receiver.call_back(OptionCode::CONNECT_SERVER, r#"{"result": false}"#);
+
             debug!("WS_CLIENT connect ws error: {}", e);
         }
     };

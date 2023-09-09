@@ -6,7 +6,6 @@ import com.example.lantian_front.SwithunLog
 import com.example.lantian_front.framework.BaseViewModel
 import com.example.lantian_front.model.*
 import com.example.lantian_front.model.MessageTextDTO.OptionCode
-import com.example.lantian_front.viewmodel.filemanager.FileManagerViewModel
 import com.example.lantian_front.websocket.RawDataBase
 import com.example.lantian_front.websocket.RawDataBase.RawTextData
 import com.example.lantian_front.websocket.WebSocketRepository
@@ -158,7 +157,7 @@ class ConnectKernelViewModel :
     }
 
     private fun handleReceiveServerGetAndroidUsbFileByPiece(data: MessageTextDTO) {
-        vmCollection?.fileVM?.reduce(FileManagerViewModel.Action.GetUsbFileByPiece(data))
+        vmCollection?.fileVM?.reduce(com.example.lantian_front.viewmodel.filemanager.Action.GetUsbFileByPiece(data))
     }
 
     private fun handleReceiveServerGetAndroidUsbFileByPieceResponse(action: Action.ServerGetAndroidUsbFileByPieceFileManagerResponse) {
@@ -191,7 +190,7 @@ class ConnectKernelViewModel :
     private fun handleReceiveServerGetAndroidUsbFileSize(message: MessageTextDTO) {
         val path = message.content
         val vmCollection = vmCollection ?: return
-        vmCollection.fileVM.reduce(FileManagerViewModel.Action.FindUsbFile(path, message.uuid))
+        vmCollection.fileVM.reduce(com.example.lantian_front.viewmodel.filemanager.Action.FindUsbFile(path, message.uuid))
 
 //        viewModelScope.launch {
 //            val dto = MessageTextDTO(

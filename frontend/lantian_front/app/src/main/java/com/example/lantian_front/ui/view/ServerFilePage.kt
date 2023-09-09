@@ -22,6 +22,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.lantian_front.*
+import com.example.lantian_front.model.Storage
+import com.example.lantian_front.model.StorageType
+import com.example.lantian_front.ui.view.component.SCommonButton
+import com.example.lantian_front.viewmodel.filemanager.Action
 import com.example.lantian_front.viewmodel.filemanager.FileManagerViewModel
 import com.example.lantian_front.viewmodel.filemanager.PathItem
 
@@ -31,26 +35,55 @@ fun ServerFilePage(
     fileManagerViewModel: FileManagerViewModel = viewModel(),
 ) {
     val actFileClick = { it: PathItem.FileItem ->
-        fileManagerViewModel.reduce(FileManagerViewModel.Action.ClickFile(it))
+        fileManagerViewModel.reduce(Action.ClickFile(it))
     }
     val actFolderClick = { it: PathItem.FolderItem ->
-        fileManagerViewModel.reduce(FileManagerViewModel.Action.ClickFolder(it))
+        fileManagerViewModel.reduce(Action.ClickFolder(it))
     }
     val funGeneratePathMoreAction: (PathItem) -> List<Pair<Pair<String, ImageVector>, (pathItem: PathItem) -> Unit>> =
         { emptyList() }
 
+    val storageList = fileManagerViewModel.uiState.storageList
+    val onStorageClick = { s: Storage ->
+        fileManagerViewModel.reduce(Action.GetBaseFileListOfStorage(s))
+    }
+
     Row {
         Button(onClick = {
-            fileManagerViewModel.reduce(FileManagerViewModel.Action.RefreshBasePathListFromRemote)
+            fileManagerViewModel.reduce(Action.RefreshBasePathListFromRemote)
         }) {
             Text(text = "获取服务器文件列表")
         }
+        StorageListView(storageList, onStorageClick)
         FileManagerView(
             funGeneratePathMoreAction,
             actFileClick,
             actFolderClick,
             fileManagerViewModel.uiState.pathList
         )
+    }
+}
+
+
+@Preview
+@Composable
+fun StorageListView(
+    storageList: List<Storage> = listOf(
+        Storage(
+            "name",
+            "id",
+            StorageType.LOCAL_INNER.value,
+            "/storage/emulated/0/"
+        )
+    ),
+    onStorageClick: (id: Storage) -> Unit = {},
+) {
+    LazyColumn() {
+        items(storageList) { s ->
+            SCommonButton(onClick = { onStorageClick.invoke(s) }) {
+                Text(text = "Storage: ${s.name}")
+            }
+        }
     }
 }
 
@@ -76,6 +109,7 @@ fun FileManagerView(
                 is PathItem.FileItem -> {
                     FileItemView(file = path, itemCL = actFileClick)
                 }
+
                 is PathItem.FolderItem -> {
                     FolderItemView(
                         path,
@@ -211,6 +245,7 @@ fun NestedPathListView(
             is PathItem.FileItem -> {
                 FileItemView(path, actFileClick)
             }
+
             is PathItem.FolderItem -> {
                 FolderItemView(path, funGeneratePathMoreAction, actFileClick, actFolderClick)
             }

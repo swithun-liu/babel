@@ -10,12 +10,13 @@ import com.example.lantian_front.Config
 import com.example.lantian_front.model.VMCollection
 import com.example.lantian_front.SwithunLog
 import com.example.lantian_front.framework.BaseViewModel
-import com.example.lantian_front.model.MessageTextDTO
 import com.example.lantian_front.model.ServerConfig
+import com.example.lantian_front.model.Storage
 import com.example.lantian_front.model.VideoExtension
 import com.example.lantian_front.viewmodel.ConnectKernelViewModel
-import com.example.lantian_front.viewmodel.FileManagerHTTPRepository
-import com.example.lantian_front.viewmodel.FileManagerLocalRepository
+import com.example.lantian_front.viewmodel.filemanager.repository.FileManagerHTTPRepository
+import com.example.lantian_front.viewmodel.filemanager.repository.FileManagerLocalRepository
+import com.example.lantian_front.viewmodel.filemanager.repository.FileManagerRepository
 import com.example.lantian_front.viewmodel.VideoViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,22 +27,25 @@ import java.nio.ByteBuffer
 
 // Babel / 蓝田
 
-class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileManagerViewModel.UIState, FileManagerViewModel.MutableUIState>() {
+class FileManagerViewModel : BaseViewModel<Action, FileManagerViewModel.UIState, FileManagerViewModel.MutableUIState>() {
 
     private val fileBasePath: String = Environment.getExternalStorageDirectory().absolutePath
     private var vmCollection: VMCollection? = null
     private val remoteRepository = FileManagerHTTPRepository()
     private val localRepository = FileManagerLocalRepository(fileBasePath)
+    private val repository = FileManagerRepository(fileBasePath)
     private var usbRoot: UsbFile? = null
 
     @Stable
     interface UIState {
-        var pathList: List<PathItem>
-        var uploadRootPathList: List<PathItem>
+        val pathList: List<PathItem>
+        val storageList: List<Storage>
+        val uploadRootPathList: List<PathItem>
     }
 
     class MutableUIState: UIState {
         override var pathList: List<PathItem> by mutableStateOf(listOf())
+        override var storageList: List<Storage> by mutableStateOf(listOf())
         override var uploadRootPathList: List<PathItem> by mutableStateOf(listOf())
     }
 
@@ -55,7 +59,7 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
 
         val appExternalPath = Config.pathConfig.appExternalPath
 
-        uiState.uploadRootPathList = listOf(
+        innerUISate.uploadRootPathList = listOf(
             PathItem.FolderItem(appExternalPath, emptyList())
         )
     }
@@ -107,14 +111,6 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
         return null
     }
 
-    sealed class Action: BaseViewModel.AAction() {
-        class ClickFolder(val folder: PathItem.FolderItem): Action()
-        class ClickFile(val file: PathItem.FileItem): Action()
-        object RefreshBasePathListFromRemote: Action()
-        class FindUsbFile(val path: String, val uuid: String): Action()
-        class GetUsbFileByPiece(val data: MessageTextDTO): Action()
-    }
-
     override fun reduce(action: Action) {
         when (action) {
             is Action.ClickFile -> clickFile(action.file)
@@ -122,6 +118,20 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
             Action.RefreshBasePathListFromRemote -> refreshBasePathListFromRemote()
             is Action.FindUsbFile -> findUsbFileForName(action)
             is Action.GetUsbFileByPiece -> getUsbFileByPiece(action)
+            Action.GetStorageList -> getStorageList()
+            is Action.GetBaseFileListOfStorage -> getBaseFileListOfStorage(action)
+        }
+    }
+
+    private fun getBaseFileListOfStorage(action: Action.GetBaseFileListOfStorage) {
+        viewModelScope.launch(Dispatchers.IO) {
+        }
+    }
+
+    private fun getStorageList() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val storages = repository.getServerStorage()
+            innerUISate.storageList = storages
         }
     }
 
@@ -180,9 +190,9 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
             innerUISate.pathList = mutableListOf()
             innerUISate.pathList = addMainToFirst(oldList.toMutableList())
 
-            val oldUploadList = uiState.uploadRootPathList
-            uiState.uploadRootPathList = mutableListOf()
-            uiState.uploadRootPathList = oldUploadList.toMutableList()
+            val oldUploadList = innerUISate.uploadRootPathList
+            innerUISate.uploadRootPathList = mutableListOf()
+            innerUISate.uploadRootPathList = oldUploadList.toMutableList()
         }
     }
 
@@ -215,7 +225,7 @@ class FileManagerViewModel : BaseViewModel<FileManagerViewModel.Action, FileMana
 
     private fun refreshBasePathListFromRemote() {
         viewModelScope.launch(Dispatchers.IO) {
-            uiState.pathList = addMainToFirst(remoteRepository.getBasePathList().toMutableList())
+            innerUISate.pathList = addMainToFirst(remoteRepository.getBasePathList().toMutableList())
         }
     }
 

@@ -7,4 +7,6 @@ sealed class Action: BaseViewModel.AAction() {
     class InitBus(val bus: BusViewModel): Action()
     class SearchServer(val lanIp: String) : Action()
     class ConnectServer(val ip: String): Action()
+    object GetServerStorage: Action()
+
 }
