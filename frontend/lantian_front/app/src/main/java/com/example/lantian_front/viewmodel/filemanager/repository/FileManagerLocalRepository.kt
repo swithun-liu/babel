@@ -1,6 +1,6 @@
 package com.example.lantian_front.viewmodel.filemanager.repository
 
-import com.example.lantian_front.viewmodel.filemanager.LocalPathItem
+import com.example.lantian_front.viewmodel.filemanager.model.LocalPathItem
 import java.io.File
 
 class FileManagerLocalRepository(private val fileBasePath: String) {

@@ -32,7 +32,8 @@ class NasViewModel :
     BaseViewModel<
             NasViewModel.Action,
             NasViewModel.UIState,
-            NasViewModel.MutableUIState
+            NasViewModel.MutableUIState,
+            BaseViewModel.AEvent
             >() {
 
     // https://juejin.cn/post/6844903551408291848
@@ -76,13 +77,13 @@ class NasViewModel :
         class ChooseUploadFileRootDir(val uploadPath: String) : Action()
     }
 
-    sealed class Event : BaseViewModel.AEvent() {
+    sealed class Event : BaseViewModel.AEvent {
         class NeedActivity(val block: (activity: Activity) -> Unit) : Event()
     }
 
     fun init(vmCollection: VMCollection) {
         this.vmCollection = vmCollection
-        vmCollection.shareViewModel.reduce(BusViewModel.Action.NeedActivity { activity ->
+        vmCollection.busViewModel.reduce(BusViewModel.Action.NeedActivity { activity ->
             SPUtil.ServerSetting.getLastTimeConnectServer(activity)?.let {
                 SwithunLog.d("lastTimeConnectServerIp from SP: $it")
                 uiState.lastTimeConnectServerIp = it
@@ -160,7 +161,7 @@ class NasViewModel :
 
     private fun chooseUploadFileRootDir(action: Action.ChooseUploadFileRootDir) {
         this.uploadFileRootDir = action.uploadPath
-        vmCollection?.shareViewModel?.reduce(
+        vmCollection?.busViewModel?.reduce(
             BusViewModel.Action.NeedActivity { activity ->
                 SPUtil.PathSetting.putUploadFileRootDir(activity, action.uploadPath)
             }
@@ -169,7 +170,7 @@ class NasViewModel :
 
     private fun changerLastTimeConnectServer(action: Action.ChangeLastTimeConnectServer) {
         innerUISate.lastTimeConnectServerIp = action.serverIP
-        vmCollection?.shareViewModel?.reduce(
+        vmCollection?.busViewModel?.reduce(
             BusViewModel.Action.NeedActivity { activity ->
                 SPUtil.ServerSetting.putLastTimeConnectServer(activity, action.serverIP)
             }
@@ -226,7 +227,7 @@ class NasViewModel :
             MessageTextDTO.ContentType.TEXT -> {
                 SystemUtil.pushText2Clipboard(action.context, action.text)
                 viewModelScope.launch(Dispatchers.IO) {
-                    vmCollection?.shareViewModel?.snackbarHostState?.showSnackbar(message = "已复制")
+                    vmCollection?.busViewModel?.snackbarHostState?.showSnackbar(message = "已复制")
                 }
             }
             MessageTextDTO.ContentType.IMAGE -> {

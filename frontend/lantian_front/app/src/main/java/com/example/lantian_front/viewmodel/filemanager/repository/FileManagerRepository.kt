@@ -11,29 +11,20 @@ import com.swithun.lantian.Request
 class FileManagerRepository(private val fileBasePath: String) {
 
     fun getServerStorage(): List<Storage> {
-
-        val innerLocalBasePath = fileBasePath
-        val storage = mutableListOf(
-            Storage(
-                "内部存储",
-                "1",
-                StorageType.LOCAL_INNER.value,
-                innerLocalBasePath
-            )
-        )
-        val result = FrontEndSDK.request(Request.GetStorage())
+        val result = FrontEndSDK.request(Request.GetStorageList())
         val sdkStorage = result.storages.mapNotNull { json ->
             json.toObject<Storage>()
         }
 
-        return (storage + sdkStorage).also {
+        return (sdkStorage).also {
             SwithunLog.d("$it", TAG, "getServerStorage")
         }
     }
 
 
-    private fun getBaseFileListOfStorage(action: Action.GetBaseFileListOfStorage) {
-
+    fun getBaseFileListOfStorage(action: Action.GetBaseFileListOfStorage): Array<String> {
+        val result = FrontEndSDK.request(Request.GetBaseFileOfStorage(action.s))
+        return result.fileList
     }
 
 

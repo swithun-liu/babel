@@ -11,14 +11,14 @@ import com.swithun.lantian.OptionCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class ServerSettingViewModel: BaseViewModel<Action, UIState, MutableUIState>() {
+class ServerSettingViewModel: BaseViewModel<Action, UIState, MutableUIState, Event>() {
 
     private var bus: BusViewModel? = null
-    private var repository: Repository = Repository(viewModelScope)
+    private var repository: Repository = Repository()
 
     override fun reduce(action: Action) {
         when (action) {
-            is Action.InitBus -> initBus(action)
+            is Action.Init -> init(action)
             is Action.ConnectServer -> connectServer(action)
             is Action.SearchServer -> searchServer(action)
             is Action.GetServerStorage -> getServerStorage(action)
@@ -29,10 +29,10 @@ class ServerSettingViewModel: BaseViewModel<Action, UIState, MutableUIState>() {
         bus?.reduce(action)
     }
 
-    private fun initBus(action: Action.InitBus) {
+    private fun init(action: Action.Init) {
         this.bus = action.bus
+        innerUISate.lastTimeConnectServerIp = action.lastTimeConnectServerIp ?: ""
     }
-
 
     private fun searchServer(action: Action.SearchServer) {
         innerUISate.searchServerBtnText = "正在搜索"
@@ -56,7 +56,6 @@ class ServerSettingViewModel: BaseViewModel<Action, UIState, MutableUIState>() {
             innerUISate.searchServerBtnText = "LAN中搜索可用server"
             toast(toast)
 
-
             SwithunLog.d("searchServer", "end")
         }
     }
@@ -65,7 +64,7 @@ class ServerSettingViewModel: BaseViewModel<Action, UIState, MutableUIState>() {
             SwithunLog.d(TAG, "begin")
 
             val jsonCallback = object : JsonCallback {
-
+                // 处理连接结果
                 override fun result(op: String, json: String) {
                     when (OptionCode.fromString(op)) {
                         OptionCode.CONNECT_SERVER -> {
@@ -74,6 +73,9 @@ class ServerSettingViewModel: BaseViewModel<Action, UIState, MutableUIState>() {
 
                             val toast = if (suc) {
                                 innerUISate.currentConnectServerIp = action.ip
+                                viewModelScope.launch {
+                                    bus?.reduce(BusViewModel.Action.TransferEvent(Event.UpdateLastTimeConnectServerIp(action.ip)))
+                                }
                                 BusViewModel.Action.ToastAction("连接成功".toTextRes())
                             } else {
                                 BusViewModel.Action.ToastAction("连接失败".toTextRes())
@@ -86,9 +88,9 @@ class ServerSettingViewModel: BaseViewModel<Action, UIState, MutableUIState>() {
                         null -> { SwithunLog.e("unknown op code") }
                     }
                 }
-
             }
 
+            // 尝试连接
             repository.connectServer(action, jsonCallback)
 
             SwithunLog.d(TAG, "end")

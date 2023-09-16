@@ -31,8 +31,9 @@ use std::{
     sync::Mutex,
     time::Duration,
 };
-use std::fs::File;
+use std::fs::{File, read_dir};
 use std::sync::RwLock;
+use serde_json::json;
 use usbd_mass_storage::MscClass;
 use uuid::Uuid;
 
@@ -314,6 +315,7 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever(env: JNIEnv, _: JCla
                             web::resource("/get_path_list").route(web::get().to(get_path_list)),
                         )
                         .service(web::resource("/get-video").to(get_video))
+                        .service(web::resource("/get-file-list").to(get_file_list))
                 })
                 .workers(100)
                 .bind(("0.0.0.0", 8088));
@@ -336,6 +338,63 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever(env: JNIEnv, _: JCla
 }
 
 const MAX_FRAME_SIZE: usize = 1224 * 1024; // 16Ki
+
+async fn get_file_list(
+    query: web::Query<HashMap<String, String>>,
+    req: HttpRequest,
+) -> Result<HttpResponse, Error> {
+    let local_inner_type = "local_inner".to_string();
+    let s_type = query.get("type").unwrap_or(&local_inner_type).to_string();
+    let s_parent_path =  query.get("parent").unwrap().to_string();
+
+    debug!("type : {:?} parent : {:?}", s_type, s_parent_path);
+
+    let mut result = Vec::new();
+
+    match s_type {
+        local_inner_type => {
+            // 根据 s_parent_path 获取 child file list
+            debug!("1");
+            let child_files = read_dir(s_parent_path);
+            match child_files {
+                Ok(child_files) => {
+                    debug!("2");
+                    for (i, entry) in child_files.enumerate() {
+                        let entry = entry.unwrap();
+                        let entry_path = entry.path();
+                        let entry_type = if entry_path.is_dir() {
+                            "directory"
+                        } else {
+                            "file"
+                        };
+                        result.push(json!({
+                    "path": entry_path.to_str(),
+                    "type": entry_type,
+                }));
+                    }
+                }
+                Err(e) => {
+                    debug!("get_file_list err : {:?}", e)
+                }
+            }
+        }
+        _ => { }
+    };
+
+
+    /// {
+    ///     {
+    ///         "path": ""
+    ///         "type": ""
+    ///     },
+    ///     {
+    ///         "path": ""
+    ///         "type": ""
+    ///     },
+    /// }
+    Ok(HttpResponse::Ok().json(result))
+
+}
 
 async fn get_video(
     query: web::Query<HashMap<String, String>>,

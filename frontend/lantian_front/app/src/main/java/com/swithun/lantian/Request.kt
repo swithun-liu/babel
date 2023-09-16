@@ -1,5 +1,7 @@
 package com.swithun.lantian
 
+import com.example.lantian_front.model.Storage
+
 sealed interface Request<R> {
     fun <R> buildResponse(response: R): R = response
 
@@ -15,7 +17,11 @@ sealed interface Request<R> {
         val op: OptionCode = OptionCode.SEARCH_SERVER,
     ) : Request<Response.SearchServerRsp>
 
-    class GetStorage : Request<Response.GetStorageRsp>
+    class GetStorageList : Request<Response.GetStorageRsp>
+
+    class GetBaseFileOfStorage(
+        val storage: Storage
+    ) : Request<Response.GetBaseFileOfStorageRsp>
 
     fun createResponse(response: R): R = response
 }
@@ -30,5 +36,9 @@ sealed class Response {
 
     class GetStorageRsp(
         val storages: Array<String>
+    ) : Response()
+
+    class GetBaseFileOfStorageRsp(
+        val fileList: Array<String>
     ) : Response()
 }

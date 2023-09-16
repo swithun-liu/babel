@@ -17,7 +17,7 @@ use tokio::net::TcpStream;
 use tokio::task::futures;
 use tokio_tungstenite::tungstenite::handshake::client::Response;
 use tokio_tungstenite::tungstenite::Message;
-use crate::dto::OptionCode;
+use crate::dto::{OptionCode, StorageType};
 use crate::ffi::{ClientReceiver, ClientReceiverImpl};
 use crate::ws_client::message_handler::handle_ws_server_text_message;
 
@@ -177,4 +177,8 @@ async fn is_server_available(ip: &str) -> bool {
             false
         }
     };
+}
+
+pub(crate) fn get_base_file_list_of_storage(s_type: StorageType, base_path: String) -> Vec<String> {
+   vec![]
 }

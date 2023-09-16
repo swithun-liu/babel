@@ -27,7 +27,7 @@ import com.example.lantian_front.SwithunLog
 import com.example.lantian_front.viewmodel.filemanager.FileManagerViewModel
 import com.example.lantian_front.viewmodel.NasViewModel
 import com.example.lantian_front.viewmodel.filemanager.Action
-import com.example.lantian_front.viewmodel.filemanager.PathItem
+import com.example.lantian_front.viewmodel.filemanager.model.PathItem
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable

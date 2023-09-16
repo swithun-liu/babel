@@ -15,7 +15,6 @@ import com.example.lantian_front.util.*
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
 import com.swithun.lantian.FrontEndSDK
-import com.swithun.lantian.Request
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -25,7 +24,7 @@ import org.json.JSONObject
 import tv.danmaku.ijk.media.player.IjkMediaPlayer
 
 class VideoViewModel :
-    BaseViewModel<VideoViewModel.Action, VideoViewModel.VideoUIState, VideoViewModel.MutableVideoUIState>() {
+    BaseViewModel<VideoViewModel.Action, VideoViewModel.VideoUIState, VideoViewModel.MutableVideoUIState, BaseViewModel.AEvent>() {
 
     private var vmCollection: VMCollection? = null
     private var dependency: Dependency = Dependency("")
@@ -275,7 +274,7 @@ class VideoViewModel :
                             val value = cookieKeyValue[1]
 
                             Log.i(TAG, "")
-                            vmCollection?.shareViewModel?.reduce(BusViewModel.Action.NeedActivity { activity ->
+                            vmCollection?.busViewModel?.reduce(BusViewModel.Action.NeedActivity { activity ->
                                 dependency.bilibiliCookie = value
                                 SPUtil.putString(activity, key, value)
                             })

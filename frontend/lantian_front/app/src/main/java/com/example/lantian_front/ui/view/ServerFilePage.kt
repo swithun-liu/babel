@@ -27,7 +27,7 @@ import com.example.lantian_front.model.StorageType
 import com.example.lantian_front.ui.view.component.SCommonButton
 import com.example.lantian_front.viewmodel.filemanager.Action
 import com.example.lantian_front.viewmodel.filemanager.FileManagerViewModel
-import com.example.lantian_front.viewmodel.filemanager.PathItem
+import com.example.lantian_front.viewmodel.filemanager.model.PathItem
 
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
@@ -50,9 +50,9 @@ fun ServerFilePage(
 
     Row {
         Button(onClick = {
-            fileManagerViewModel.reduce(Action.RefreshBasePathListFromRemote)
+            fileManagerViewModel.reduce(Action.GetStorageList)
         }) {
-            Text(text = "获取服务器文件列表")
+            Text(text = "获取存储")
         }
         StorageListView(storageList, onStorageClick)
         FileManagerView(

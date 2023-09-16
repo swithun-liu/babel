@@ -10,7 +10,7 @@ class VMCollection constructor(
     val videoVM: VideoViewModel,
     val nasVM: NasViewModel,
     val fileVM: FileManagerViewModel,
-    var shareViewModel: BusViewModel,
+    var busViewModel: BusViewModel,
 ) {
 
     init {

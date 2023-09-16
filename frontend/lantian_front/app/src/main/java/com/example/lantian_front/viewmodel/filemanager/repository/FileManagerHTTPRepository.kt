@@ -5,8 +5,8 @@ import com.example.lantian_front.model.ServerConfig
 import com.example.lantian_front.nullCheck
 import com.example.lantian_front.util.UrlEncodeParams
 import com.example.lantian_front.util.getRequestWithOriginalResponse
-import com.example.lantian_front.viewmodel.filemanager.LocalPathItem
-import com.example.lantian_front.viewmodel.filemanager.PathItem
+import com.example.lantian_front.viewmodel.filemanager.model.LocalPathItem
+import com.example.lantian_front.viewmodel.filemanager.model.PathItem
 import org.json.JSONArray
 import org.json.JSONObject
 import java.lang.Exception

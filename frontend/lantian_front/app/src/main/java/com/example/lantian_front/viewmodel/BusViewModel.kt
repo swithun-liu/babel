@@ -9,17 +9,16 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
-class BusViewModel : BaseViewModel<BusViewModel.Action, Unit, Unit>() {
-    private val innerUIEvent = MutableSharedFlow<Event>()
-    val uiEvent = innerUIEvent.asSharedFlow()
+class BusViewModel : BaseViewModel<BusViewModel.Action, Unit, Unit, BaseViewModel.AEvent>() {
 
     val snackbarHostState: SnackbarHostState = SnackbarHostState()
     sealed class Action : BaseViewModel.AAction() {
         class NeedActivity(val block: (activity: Activity) -> Unit) : Action()
         class ToastAction(val text: TextRes): Action()
+        class TransferEvent(val event: BaseViewModel.AEvent): Action()
     }
 
-    sealed class Event: BaseViewModel.AEvent() {
+    sealed class Event: BaseViewModel.AEvent {
         class NeedActivity(val block: (activity: Activity) -> Unit) : Event()
         class ToastEvent(val text: TextRes, val block: () -> Unit): Event()
     }
@@ -28,12 +27,18 @@ class BusViewModel : BaseViewModel<BusViewModel.Action, Unit, Unit>() {
         when (action) {
             is Action.NeedActivity -> {
                 viewModelScope.launch {
-                    innerUIEvent.emit(Event.NeedActivity(action.block))
+                    innerEvent.emit(Event.NeedActivity(action.block))
                 }
             }
             is Action.ToastAction -> {
                 viewModelScope.launch {
-                    innerUIEvent.emit(Event.ToastEvent(action.text) { })
+                    innerEvent.emit(Event.ToastEvent(action.text) { })
+                }
+            }
+
+            is Action.TransferEvent -> {
+                viewModelScope.launch {
+                    innerEvent.emit(action.event)
                 }
             }
         }

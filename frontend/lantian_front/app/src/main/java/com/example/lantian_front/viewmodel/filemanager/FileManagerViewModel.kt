@@ -18,6 +18,8 @@ import com.example.lantian_front.viewmodel.filemanager.repository.FileManagerHTT
 import com.example.lantian_front.viewmodel.filemanager.repository.FileManagerLocalRepository
 import com.example.lantian_front.viewmodel.filemanager.repository.FileManagerRepository
 import com.example.lantian_front.viewmodel.VideoViewModel
+import com.example.lantian_front.viewmodel.filemanager.model.LocalPathItem
+import com.example.lantian_front.viewmodel.filemanager.model.PathItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.jahnen.libaums.core.fs.FileSystem
@@ -27,7 +29,7 @@ import java.nio.ByteBuffer
 
 // Babel / 蓝田
 
-class FileManagerViewModel : BaseViewModel<Action, FileManagerViewModel.UIState, FileManagerViewModel.MutableUIState>() {
+class FileManagerViewModel : BaseViewModel<Action, FileManagerViewModel.UIState, FileManagerViewModel.MutableUIState, BaseViewModel.AEvent>() {
 
     private val fileBasePath: String = Environment.getExternalStorageDirectory().absolutePath
     private var vmCollection: VMCollection? = null
@@ -125,6 +127,7 @@ class FileManagerViewModel : BaseViewModel<Action, FileManagerViewModel.UIState,
 
     private fun getBaseFileListOfStorage(action: Action.GetBaseFileListOfStorage) {
         viewModelScope.launch(Dispatchers.IO) {
+            val fileList = repository.getBaseFileListOfStorage(action)
         }
     }
 
@@ -255,26 +258,3 @@ class FileManagerViewModel : BaseViewModel<Action, FileManagerViewModel.UIState,
 
 }
 
-sealed class PathItem(val path: String) {
-    val name = path
-
-    class FolderItem(path: String, var children: List<PathItem>) : PathItem(path) {
-        var isOpening = false
-    }
-
-    class FileItem(path: String) : PathItem(path)
-}
-
-data class LocalPathItem(val path: String, val fileType: Int) {
-
-    enum class PathType(val type: Int) {
-        FILE(0),
-        Folder(1);
-
-        companion object {
-            fun fromValue(value: Int): PathType? = values().find { it.type == value }
-        }
-
-    }
-
-}

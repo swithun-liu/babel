@@ -38,7 +38,7 @@ import java.util.UUID
 import kotlin.coroutines.resume
 
 
-class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action, Unit, Unit>() {
+class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action, Unit, Unit, BaseViewModel.AEvent>() {
 
     private var remoteWordFlow: Flow<RawDataBase>? = null
     var wordsResult by mutableStateOf(WordsResult("", emptyList(), ""))
@@ -121,11 +121,11 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action, Unit
                 when (MessageTextDTO.OptionCode.fromValue(message.code)) {
                     MessageTextDTO.OptionCode.MESSAGE_TO_SESSION -> handleReceivePostSessionText(message)
                     MessageTextDTO.OptionCode.CLIENT_FILE_TO_SESSION_PIECE_ACKNOWLEDGE -> handleReceiveSendFilePieceResponse(message)
-                    null -> vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "无code")
-                    else -> vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "未知code")
+                    null -> vmCollection.busViewModel.snackbarHostState.showSnackbar(message = "无code")
+                    else -> vmCollection.busViewModel.snackbarHostState.showSnackbar(message = "未知code")
                 }
             } catch (e: Exception) {
-                vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "解析失败 非MessageTextDTO格式")
+                vmCollection.busViewModel.snackbarHostState.showSnackbar(message = "解析失败 非MessageTextDTO格式")
             }
         }
 
@@ -169,7 +169,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action, Unit
                 -1 -> { // seq为-1，表示文件接收完成
                     viewModelScope.launch {
                         SwithunLog.d("handle -1")
-                        vmCollection?.shareViewModel?.snackbarHostState?.showSnackbar(message = "文件接收完成")
+                        vmCollection?.busViewModel?.snackbarHostState?.showSnackbar(message = "文件接收完成")
                     }
                 }
                 else -> { // seq为其他值，payload为文件内容
@@ -206,7 +206,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action, Unit
             SwithunLog.d("oodList: $oodList")
             when (MessageTextDTO.ContentType.fromValue(message.content_type)) {
                 null -> {
-                    vmCollection.shareViewModel.snackbarHostState.showSnackbar(message = "未知 内容类型")
+                    vmCollection.busViewModel.snackbarHostState.showSnackbar(message = "未知 内容类型")
                     SwithunLog.d("unknown content_type")
                 }
                 MessageTextDTO.ContentType.TEXT -> {
@@ -239,7 +239,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action, Unit
 
             val suc = repository.webSocketSend(RawDataBase.RawTextData(TransferBiz.buildPostDTO(data).toJsonStr()))
             viewModelScope.launch {
-                vmCollection?.shareViewModel?.snackbarHostState?.showSnackbar(
+                vmCollection?.busViewModel?.snackbarHostState?.showSnackbar(
                     message = if (suc) {
                         "成功发送"
                     } else {
@@ -315,7 +315,7 @@ class ConnectServerViewModel : BaseViewModel<ConnectServerViewModel.Action, Unit
                             roundingMode = RoundingMode.DOWN
                         }
                         SwithunLog.d("speed: ${df.format(speed)} MB/s")
-                        vmCollection?.shareViewModel?.reduce(
+                        vmCollection?.busViewModel?.reduce(
                             BusViewModel.Action.ToastAction(
                                 "文件传输完成: ${
                                     df.format(

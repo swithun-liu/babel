@@ -10,12 +10,13 @@ use jni::{
     },
     JNIEnv,
 };
-use jni::objects::JString;
+use jni::objects::{JIntArray, JString};
 use jni::strings::JavaStr;
-use jni::sys::{jboolean, JNI_FALSE, JNI_TRUE, jobject, jobjectArray};
+use jni::sys::{jboolean, jint, JNI_FALSE, JNI_TRUE, jobject, jobjectArray};
 use log::debug;
 use tokio::runtime::Runtime;
 use crate::basic::init_debugger;
+use crate::dto::StorageType;
 
 pub mod api;
 pub mod basic;
@@ -98,5 +99,35 @@ pub extern "C" fn Java_com_swithun_lantian_FrontEndSDK_searchServer(
             .unwrap();
     }
 
+    array.into_raw()
+}
+
+#[no_mangle]
+pub extern "C" fn Java_com_swithun_lantian_FrontEndSDK_getBaseFileListOfStorage(
+    mut env: JNIEnv,
+    _: JClass,
+    s_type: jint,
+    basePath: JString,
+) -> jobjectArray {
+    let s_type = s_type as i32;
+    let s_type = StorageType::from(s_type);
+    let basePath = env.get_string(&basePath).unwrap().to_str().unwrap().to_string();
+
+
+    // 找到 Java 中的 String 类
+    let java_string_class = env.find_class("java/lang/String").unwrap();
+    let array = env.new_object_array(0, java_string_class, JObject::null()).unwrap();
+    array.into_raw()
+}
+
+
+#[no_mangle]
+pub extern "C" fn Java_com_swithun_lantian_FrontEndSDK_getStorageList(
+    mut env: JNIEnv,
+    _: JClass,
+) -> jobjectArray {
+    // 找到 Java 中的 String 类
+    let java_string_class = env.find_class("java/lang/String").unwrap();
+    let array = env.new_object_array(0, java_string_class, JObject::null()).unwrap();
     array.into_raw()
 }

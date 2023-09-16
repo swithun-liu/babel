@@ -19,7 +19,7 @@ import java.lang.Exception
 import java.nio.ByteBuffer
 
 class ConnectKernelViewModel :
-    BaseViewModel<ConnectKernelViewModel.Action, Unit, Unit>() {
+    BaseViewModel<ConnectKernelViewModel.Action, Unit, Unit, BaseViewModel.AEvent>() {
 
     private var remoteWordFlow: Flow<RawDataBase>? = null
     private val repository = WebSocketRepository()

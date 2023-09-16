@@ -21,16 +21,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.lantian_front.model.ViewModelProviderFactories
 import com.example.lantian_front.ui.view.*
 import com.example.lantian_front.viewmodel.BusViewModel
 
-
-@RequiresApi(Build.VERSION_CODES.M)
-@Preview
-@Composable
-fun PreviewMyApp() {
-    Myapp()
-}
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)

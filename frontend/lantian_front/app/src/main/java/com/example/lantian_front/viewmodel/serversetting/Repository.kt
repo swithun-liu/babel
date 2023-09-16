@@ -12,7 +12,7 @@ import com.example.lantian_front.model.StorageType
 import com.example.lantian_front.model.toObject
 import com.swithun.lantian.JsonCallback
 
-class Repository(viewModelScope: CoroutineScope) {
+class Repository() {
 
     fun searchServer(action: Action.SearchServer): Result<Array<String>, Unit> {
         val result = FrontEndSDK.request(Request.SearchServer(action.lanIp))
@@ -22,10 +22,8 @@ class Repository(viewModelScope: CoroutineScope) {
     }
 
     fun connectServer(action: Action.ConnectServer, jsonCallback: JsonCallback): Result<Unit, Unit> {
-
         val result = FrontEndSDK.request(Request.ConnectServer(action.ip,  jsonCallback))
         return result.result.toResult()
-
     }
 
     fun getServerStorage(): List<Storage> {
@@ -39,7 +37,7 @@ class Repository(viewModelScope: CoroutineScope) {
                 innerLocalBasePath
             )
         )
-        val result = FrontEndSDK.request(Request.GetStorage())
+        val result = FrontEndSDK.request(Request.GetStorageList())
         val sdkStorage = result.storages.mapNotNull {  json ->
             json.toObject<Storage>()
         }
