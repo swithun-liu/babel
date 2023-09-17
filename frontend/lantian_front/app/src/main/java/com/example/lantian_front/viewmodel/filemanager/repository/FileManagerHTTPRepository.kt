@@ -2,6 +2,7 @@ package com.example.lantian_front.viewmodel.filemanager.repository
 
 import com.example.lantian_front.SwithunLog
 import com.example.lantian_front.model.ServerConfig
+import com.example.lantian_front.model.Storage
 import com.example.lantian_front.nullCheck
 import com.example.lantian_front.util.UrlEncodeParams
 import com.example.lantian_front.util.getRequestWithOriginalResponse
@@ -45,10 +46,10 @@ class FileManagerHTTPRepository() {
             val path = it.getString("path")
             val item = when (fileType) {
                 LocalPathItem.PathType.FILE -> {
-                    PathItem.FileItem(path)
+                    PathItem.FileItem(path,path, Storage.getPreview())
                 }
                 LocalPathItem.PathType.Folder -> {
-                    PathItem.FolderItem(path, emptyList())
+                    PathItem.FolderItem(path, path, Storage.getPreview(), emptyList())
                 }
             }
             pathItemList.add(item)

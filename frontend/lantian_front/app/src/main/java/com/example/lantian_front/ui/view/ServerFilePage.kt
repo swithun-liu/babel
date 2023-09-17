@@ -35,17 +35,17 @@ fun ServerFilePage(
     fileManagerViewModel: FileManagerViewModel = viewModel(),
 ) {
     val actFileClick = { it: PathItem.FileItem ->
-        fileManagerViewModel.reduce(Action.ClickFile(it))
+        fileManagerViewModel.reduce(Action.ClickFileV2(it))
     }
     val actFolderClick = { it: PathItem.FolderItem ->
-        fileManagerViewModel.reduce(Action.ClickFolder(it))
+        fileManagerViewModel.reduce(Action.ClickFolderV2(it))
     }
     val funGeneratePathMoreAction: (PathItem) -> List<Pair<Pair<String, ImageVector>, (pathItem: PathItem) -> Unit>> =
         { emptyList() }
 
     val storageList = fileManagerViewModel.uiState.storageList
     val onStorageClick = { s: Storage ->
-        fileManagerViewModel.reduce(Action.GetBaseFileListOfStorage(s))
+        fileManagerViewModel.reduce(Action.GetFileListOfStorage(s, s.basePath))
     }
 
     Row {
@@ -95,9 +95,9 @@ fun FileManagerView(
     actFileClick: (file: PathItem.FileItem) -> Unit = {},
     actFolderClick: (folder: PathItem.FolderItem) -> Unit = {},
     dataPathItemList: List<PathItem> = listOf(
-        PathItem.FolderItem("hahah", listOf(PathItem.FileItem("1"), PathItem.FileItem("1"))),
-        PathItem.FileItem("1"),
-        PathItem.FileItem("2"),
+        PathItem.FolderItem.getPreview(),
+        PathItem.FileItem.getPreview(),
+        PathItem.FileItem.getPreview(),
     ),
 ) {
     LazyColumn(
@@ -126,7 +126,7 @@ fun FileManagerView(
 
 @Composable
 fun FileItemView(
-    file: PathItem.FileItem = PathItem.FileItem("hahahah"),
+    file: PathItem.FileItem = PathItem.FileItem.getPreview(),
     itemCL: (file: PathItem.FileItem) -> Unit = {},
 ) {
     Surface(
@@ -151,7 +151,7 @@ fun FileItemView(
 @RequiresApi(Build.VERSION_CODES.M)
 @Composable
 fun FolderItemView(
-    data4Folder: PathItem.FolderItem = PathItem.FolderItem("haha", emptyList()),
+    data4Folder: PathItem.FolderItem = PathItem.FolderItem.getPreview(),
     funGeneratePathMoreAction: (PathItem) -> List<Pair<Pair<String, ImageVector>, (pathItem: PathItem) -> Unit>> = { emptyList() },
     actFileClick: (PathItem.FileItem) -> Unit = {},
     actFolderClick: (folder: PathItem.FolderItem) -> Unit = {},
@@ -233,8 +233,8 @@ fun FolderItemView(
 @Composable
 fun NestedPathListView(
     data4PathList: List<PathItem> = listOf(
-        PathItem.FolderItem("haha", emptyList()),
-        PathItem.FileItem("sdfsdf")
+        PathItem.FolderItem.getPreview(),
+        PathItem.FileItem.getPreview()
     ),
     funGeneratePathMoreAction: (PathItem) -> List<Pair<Pair<String, ImageVector>, (pathItem: PathItem) -> Unit>> = { emptyList() },
     actFileClick: (PathItem.FileItem) -> Unit = {},

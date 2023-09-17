@@ -1,0 +1,11 @@
+prefix=/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/lantian-frontend-lib/target/aarch64-linux-android/release/build/openssl-sys-f1ecd846fa010127/out/openssl-build/install
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: OpenSSL-libssl
+Description: Secure Sockets Layer and cryptography libraries
+Version: 3.1.2
+Requires.private: libcrypto
+Libs: -L${libdir} -lssl
+Cflags: -I${includedir}

@@ -2,11 +2,7 @@ mod bridge_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not
 use jni::objects::{JClass, JObject, JString};
 use jni::JNIEnv;
 
-use std::{
-    panic,
-    sync::{atomic::AtomicUsize, Arc},
-    time::Instant,
-};
+use std::{fs, panic, sync::{atomic::AtomicUsize, Arc}, time::Instant};
 
 use crate::model::option_code;
 use actix::{Actor, Addr};
@@ -32,6 +28,7 @@ use std::{
     time::Duration,
 };
 use std::fs::{File, read_dir};
+use std::path::Path;
 use std::sync::RwLock;
 use serde_json::json;
 use usbd_mass_storage::MscClass;
@@ -42,9 +39,12 @@ mod connect;
 pub mod logger;
 mod model;
 mod session;
+mod util;
 
 use crate::model::communicate_models;
 use crate::model::communicate_models::{MessageBinaryDTO, MessageTextDTO};
+use crate::model::dto::{FileItem, Storage, StorageType};
+use crate::util::file_util::list_children_files;
 
 extern crate core;
 extern crate log;
@@ -287,7 +287,10 @@ fn testUsb() {
 
 
 #[no_mangle]
-pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever(env: JNIEnv, _: JClass) {
+pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever(
+    env: JNIEnv,
+    _: JClass
+) {
 
 
     let config = Config::default().with_min_level(Level::Debug);
@@ -316,6 +319,7 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever(env: JNIEnv, _: JCla
                         )
                         .service(web::resource("/get-video").to(get_video))
                         .service(web::resource("/get-file-list").to(get_file_list))
+                        .service(web::resource("/get-storage-list").to(get_storage_list))
                 })
                 .workers(100)
                 .bind(("0.0.0.0", 8088));
@@ -337,6 +341,49 @@ pub extern "C" fn Java_com_swithun_liu_ServerSDK_startSever(env: JNIEnv, _: JCla
     }
 }
 
+async fn get_storage_list(
+    query: web::Query<HashMap<String, String>>,
+    req: HttpRequest,
+) -> Result<HttpResponse, Error> {
+    debug!("server # get_storage_list");
+    let path = "/storage/emulated/0/documents";
+
+    let mut result = Vec::new();
+    let children = list_children_files(path);
+    // 打印children
+
+    // 在path下新建lantian目录
+    let lantian_path = format!("{}/lantian", path);
+    if !Path::new(lantian_path.as_str()).exists() {
+        let create_result = fs::create_dir(lantian_path.clone());
+        match create_result {
+            Ok(result) => {
+                debug!("create dir suc")
+            }
+            Err(e) => {
+                debug!("create dir err: {:?}", e)
+            }
+        }
+    }
+
+    let storage = Storage {
+        name: "内部文件目录".to_string(),
+        id: "0".to_string(),
+        type_: StorageType::LOCAL_INNER as i32,
+        base_path: lantian_path,
+    };
+
+
+
+    for child in children {
+        debug!("child: {:?}", child);
+    }
+
+    result.push(storage);
+    Ok(HttpResponse::Ok().json(result))
+}
+
+
 const MAX_FRAME_SIZE: usize = 1224 * 1024; // 16Ki
 
 async fn get_file_list(
@@ -354,7 +401,7 @@ async fn get_file_list(
     match s_type {
         local_inner_type => {
             // 根据 s_parent_path 获取 child file list
-            debug!("1");
+            debug!("get_file_list # s_type : local_inner_type");
             let child_files = read_dir(s_parent_path);
             match child_files {
                 Ok(child_files) => {
@@ -362,15 +409,17 @@ async fn get_file_list(
                     for (i, entry) in child_files.enumerate() {
                         let entry = entry.unwrap();
                         let entry_path = entry.path();
-                        let entry_type = if entry_path.is_dir() {
-                            "directory"
-                        } else {
-                            "file"
+
+                        let file_path = entry_path.to_str().unwrap_or("非法").to_string();
+                        let file_name = file_path.split('/').last().unwrap_or("非法").to_string();
+
+                        let file_item = FileItem {
+                            name: file_name,
+                            path: file_path,
+                            is_dir: entry_path.is_dir(),
                         };
-                        result.push(json!({
-                    "path": entry_path.to_str(),
-                    "type": entry_type,
-                }));
+
+                        result.push(file_item);
                     }
                 }
                 Err(e) => {
@@ -378,20 +427,11 @@ async fn get_file_list(
                 }
             }
         }
-        _ => { }
+        _ => {
+            debug!("get_file_list # s_type : unknown");
+        }
     };
 
-
-    /// {
-    ///     {
-    ///         "path": ""
-    ///         "type": ""
-    ///     },
-    ///     {
-    ///         "path": ""
-    ///         "type": ""
-    ///     },
-    /// }
     Ok(HttpResponse::Ok().json(result))
 
 }

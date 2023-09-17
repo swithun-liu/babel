@@ -130,9 +130,9 @@ fun RootDirSelectedPage(
     actFolderClick: (folder: PathItem.FolderItem) -> Unit = {},
     actChooseFile: () -> Unit = {},
     dataPathItemList: List<PathItem> = listOf(
-        PathItem.FolderItem("hahah", listOf(PathItem.FileItem("1"), PathItem.FileItem("1"))),
-        PathItem.FileItem("1"),
-        PathItem.FileItem("2"),
+//        PathItem.FolderItem("hahah", listOf(PathItem.FileItem("1"), PathItem.FileItem("1"))),
+//        PathItem.FileItem("1"),
+//        PathItem.FileItem("2"),
     ),
 ) {
     // 圆角矩形

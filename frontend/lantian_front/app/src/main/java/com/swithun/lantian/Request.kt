@@ -19,9 +19,10 @@ sealed interface Request<R> {
 
     class GetStorageList : Request<Response.GetStorageRsp>
 
-    class GetBaseFileOfStorage(
-        val storage: Storage
-    ) : Request<Response.GetBaseFileOfStorageRsp>
+    class GetFileOfStorage(
+        val storage: Storage,
+        val path: String,
+    ) : Request<Response.GetFileOfStorageRsp>
 
     fun createResponse(response: R): R = response
 }
@@ -38,7 +39,7 @@ sealed class Response {
         val storages: Array<String>
     ) : Response()
 
-    class GetBaseFileOfStorageRsp(
-        val fileList: Array<String>
+    class GetFileOfStorageRsp(
+        val fileList: String
     ) : Response()
 }

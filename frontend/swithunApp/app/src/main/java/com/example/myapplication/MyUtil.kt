@@ -40,6 +40,12 @@ object SwithunLog {
         Log.d("swithun-xxxx", generateMsg(msg.convert2Json()))
     }
 
+    fun d(msg: Any?, vararg description: String) {
+        val description = description.joinToString(separator = " # ")
+        Log.d("swithun-xxxx", generateMsg(description + " : " + msg.convert2Json()))
+    }
+
+
     fun d(msg: Any?, description: String) {
         Log.d("swithun-xxxx", generateMsg(description + " : " + msg.convert2Json()))
     }

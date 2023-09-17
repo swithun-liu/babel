@@ -12,5 +12,7 @@ sealed class Action : BaseViewModel.AAction() {
     class FindUsbFile(val path: String, val uuid: String) : Action()
     class GetUsbFileByPiece(val data: MessageTextDTO) : Action()
     object GetStorageList : Action()
-    class GetBaseFileListOfStorage(val s: Storage) : Action()
+    class GetFileListOfStorage(val s: Storage, val filePath: String) : Action()
+    class ClickFolderV2(val folder: PathItem.FolderItem) : Action()
+    class ClickFileV2(val file: PathItem.FileItem) : Action()
 }

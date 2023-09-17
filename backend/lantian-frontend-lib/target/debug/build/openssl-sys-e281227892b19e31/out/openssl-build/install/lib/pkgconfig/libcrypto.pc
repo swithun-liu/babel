@@ -1,0 +1,13 @@
+prefix=/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/lantian-frontend-lib/target/debug/build/openssl-sys-e281227892b19e31/out/openssl-build/install
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+enginesdir=${libdir}/engines-3
+modulesdir=${libdir}/ossl-modules
+
+Name: OpenSSL-libcrypto
+Description: OpenSSL cryptography library
+Version: 3.1.2
+Libs: -L${libdir} -lcrypto
+Libs.private:  
+Cflags: -I${includedir}

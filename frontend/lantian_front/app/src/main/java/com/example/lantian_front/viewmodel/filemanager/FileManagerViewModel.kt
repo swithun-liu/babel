@@ -10,6 +10,7 @@ import com.example.lantian_front.Config
 import com.example.lantian_front.model.VMCollection
 import com.example.lantian_front.SwithunLog
 import com.example.lantian_front.framework.BaseViewModel
+import com.example.lantian_front.model.FileItem
 import com.example.lantian_front.model.ServerConfig
 import com.example.lantian_front.model.Storage
 import com.example.lantian_front.model.VideoExtension
@@ -61,9 +62,9 @@ class FileManagerViewModel : BaseViewModel<Action, FileManagerViewModel.UIState,
 
         val appExternalPath = Config.pathConfig.appExternalPath
 
-        innerUISate.uploadRootPathList = listOf(
-            PathItem.FolderItem(appExternalPath, emptyList())
-        )
+//        innerUISate.uploadRootPathList = listOf(
+//            PathItem.FolderItem(appExternalPath, emptyList())
+//        )
     }
 
     fun initUsbDevices(currentFs: FileSystem) {
@@ -121,13 +122,43 @@ class FileManagerViewModel : BaseViewModel<Action, FileManagerViewModel.UIState,
             is Action.FindUsbFile -> findUsbFileForName(action)
             is Action.GetUsbFileByPiece -> getUsbFileByPiece(action)
             Action.GetStorageList -> getStorageList()
-            is Action.GetBaseFileListOfStorage -> getBaseFileListOfStorage(action)
+            is Action.GetFileListOfStorage -> getBaseFileListOfStorage(action)
+            is Action.ClickFileV2 -> clickFileV2(action)
+            is Action.ClickFolderV2 -> clickFolderV2(action)
         }
     }
 
-    private fun getBaseFileListOfStorage(action: Action.GetBaseFileListOfStorage) {
+    private fun clickFolderV2(action: Action.ClickFolderV2) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val folder = action.folder
+            if (folder.isOpening) {
+                action.folder.isOpening = false
+            } else {
+                val fileList = repository.getBaseFileListOfStorage(
+                    Action.GetFileListOfStorage(
+                        action.folder.storage,
+                        action.folder.path
+                    )
+                )
+                action.folder.isOpening = true
+                action.folder.children = fileList.toList().toPathItem(action.folder.storage)
+            }
+
+            val rememberPathList = innerUISate.pathList
+            innerUISate.pathList = mutableListOf()
+            innerUISate.pathList = rememberPathList
+
+        }
+    }
+
+    private fun clickFileV2(action: Action.ClickFileV2) {
+    }
+
+    private fun getBaseFileListOfStorage(action: Action.GetFileListOfStorage) {
         viewModelScope.launch(Dispatchers.IO) {
             val fileList = repository.getBaseFileListOfStorage(action)
+            val uiFileList = fileList.toList().toPathItem(action.s)
+            innerUISate.pathList = uiFileList
         }
     }
 
@@ -258,3 +289,25 @@ class FileManagerViewModel : BaseViewModel<Action, FileManagerViewModel.UIState,
 
 }
 
+fun List<FileItem>.toPathItem(s: Storage): List<PathItem> {
+    return this.map { item ->
+        item.toPathItem(s)
+    }
+}
+
+fun FileItem.toPathItem(s: Storage): PathItem {
+    return if (this.isDir) {
+        PathItem.FolderItem(
+            this.name,
+            this.path,
+            s,
+            emptyList()
+        )
+    } else {
+        PathItem.FileItem(
+            this.name,
+            this.path,
+            s,
+        )
+    }
+}

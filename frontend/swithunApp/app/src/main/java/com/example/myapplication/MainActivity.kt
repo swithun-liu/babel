@@ -167,9 +167,22 @@ class MainActivity : ComponentActivity() {
         getSDCardPath()
 
         testLegle()
+        test()
 
     }
 
+    private fun test() {
+        val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+        SwithunLog.d("path: $path", "MainActivity", "test")
+        // 打印path所有文件
+        path.listFiles()?.forEach {
+            SwithunLog.d("file: $it", "MainActivity", "test")
+        }
+    }
+
+    /**
+     * 检查是否没有使用 分区存储
+     */
     private fun testLegle() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val isLegacy = Environment.isExternalStorageLegacy()

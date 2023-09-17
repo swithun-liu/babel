@@ -38,9 +38,9 @@ object FrontEndSDK {
                 Response.GetStorageRsp(getStorageList())
             ) as R
 
-            is Request.GetBaseFileOfStorage -> request.createResponse(
-                Response.GetBaseFileOfStorageRsp(
-                    getBaseFileListOfStorage(request.storage.type, request.storage.basePath)
+            is Request.GetFileOfStorage -> request.createResponse(
+                Response.GetFileOfStorageRsp(
+                    getFileListOfStorage(request.storage.type, request.path)
                 )
             ) as R
         }
@@ -49,7 +49,7 @@ object FrontEndSDK {
     private external fun connectServer(serverIp: String, callback: JsonCallback): Boolean
     private external fun searchServer(lanIp: String): Array<String>
     private external fun getStorageList(): Array<String>
-    private external fun getBaseFileListOfStorage(type: Int, basePath: String): Array<String>
+    private external fun getFileListOfStorage(type: Int, basePath: String): String
 
 }
 

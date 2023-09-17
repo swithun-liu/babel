@@ -1,0 +1,12 @@
+/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/lantian-frontend-lib/target/debug/deps/tempfile-fc532f19569b7a35.rmeta: /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/lib.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/dir.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/error.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/file/mod.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/file/imp/mod.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/spooled.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/util.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/file/imp/unix.rs
+
+/Users/swithun/projects/remoteRepo/Android_phone_monitor_for_computer/backend/lantian-frontend-lib/target/debug/deps/tempfile-fc532f19569b7a35.d: /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/lib.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/dir.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/error.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/file/mod.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/file/imp/mod.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/spooled.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/util.rs /Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/file/imp/unix.rs
+
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/lib.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/dir.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/error.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/file/mod.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/file/imp/mod.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/spooled.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/util.rs:
+/Users/swithun/.cargo/registry/src/github.com-1ecc6299db9ec823/tempfile-3.8.0/src/file/imp/unix.rs:

@@ -2,6 +2,7 @@ package com.example.lantian_front
 
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -64,6 +65,16 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         initView()
         initAuth()
+        test()
+    }
+
+    private fun test() {
+        val path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+        SwithunLog.d("path: $path", "MainActivity", "test")
+        // 打印path所有文件
+        path.listFiles()?.forEach {
+            SwithunLog.d("file: $it", "MainActivity", "test")
+        }
     }
 
     private fun initAuth() {

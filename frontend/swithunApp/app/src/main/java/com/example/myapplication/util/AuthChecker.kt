@@ -25,15 +25,8 @@ object AuthChecker {
             val permissions = arrayOf<String>(
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.MOUNT_UNMOUNT_FILESYSTEMS,
-                Manifest.permission.MANAGE_EXTERNAL_STORAGE
             )
 
-
-            activity.requestPermissions(
-                arrayOf<String>(Manifest.permission.MOUNT_UNMOUNT_FILESYSTEMS),
-                REQUEST_CODE_CONTACT
-            )
             //验证是否许可权限
             for (str in permissions) {
                 if (activity.checkSelfPermission(str!!) != PackageManager.PERMISSION_GRANTED) {
