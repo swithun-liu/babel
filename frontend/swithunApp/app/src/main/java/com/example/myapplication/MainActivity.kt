@@ -11,8 +11,10 @@ import android.os.Environment
 import android.os.storage.StorageManager
 import android.provider.MediaStore
 import android.provider.MediaStore.Audio.Media
+import android.provider.Settings
 import android.util.Log
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -34,6 +36,7 @@ import com.example.myapplication.util.StorageUtils
 import com.example.myapplication.viewmodel.*
 import com.example.myapplication.viewmodel.connectserver.ConnectServerViewModel
 import com.example.myapplication.viewmodel.filemanager.FileManagerViewModel
+import com.google.zxing.integration.android.IntentIntegrator.REQUEST_CODE
 import com.swithun.usb_mass_storage_exfat.UsbMassStorage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -161,7 +164,7 @@ class MainActivity : ComponentActivity() {
         testMyUsb()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            testMediaUsb()
+//            testMediaUsb()
         }
 
         getSDCardPath()
@@ -169,6 +172,29 @@ class MainActivity : ComponentActivity() {
         testLegle()
         test()
 
+        requestmanageexternalstorage_Permission()
+    }
+
+    private fun requestmanageexternalstorage_Permission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // 先判断有没有权限
+            if (Environment.isExternalStorageManager()) {
+                Toast.makeText(
+                    this,
+                    "Android VERSION  R OR ABOVE，HAVE MANAGE_EXTERNAL_STORAGE GRANTED!",
+                    Toast.LENGTH_LONG
+                ).show()
+            } else {
+                Toast.makeText(
+                    this,
+                    "Android VERSION  R OR ABOVE，NO MANAGE_EXTERNAL_STORAGE GRANTED!",
+                    Toast.LENGTH_LONG
+                ).show()
+                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                intent.data = Uri.parse("package:" + this.packageName)
+                startActivityForResult(intent, REQUEST_CODE)
+            }
+        }
     }
 
     private fun test() {
@@ -264,7 +290,7 @@ class MainActivity : ComponentActivity() {
 
         }
 
-        val file = File("mnt/media_rw/64EA-D541")
+        val file = File("mnt/media_rw/64EA-D541/")
         // 打印所有子目录名字
         file.listFiles()?.forEach {
             Log.d("swithun-xxxx", "media_rw  file.listFiles(): ${it.name}")
