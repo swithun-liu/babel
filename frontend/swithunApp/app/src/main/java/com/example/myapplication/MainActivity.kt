@@ -37,11 +37,14 @@ import com.example.myapplication.viewmodel.*
 import com.example.myapplication.viewmodel.connectserver.ConnectServerViewModel
 import com.example.myapplication.viewmodel.filemanager.FileManagerViewModel
 import com.google.zxing.integration.android.IntentIntegrator.REQUEST_CODE
+import com.koushikdutta.async.future.Continuation
 import com.swithun.usb_mass_storage_exfat.UsbMassStorage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.jahnen.libaums.core.UsbMassStorageDevice
 import java.io.File
+import kotlin.coroutines.resume
 
 
 /**
@@ -56,6 +59,7 @@ class MainActivity : ComponentActivity() {
     private val nasViewModel: NasViewModel by viewModels()
     private val fileViewModel: FileManagerViewModel by viewModels()
     private val shareViewModel: ShareViewModel by viewModels()
+    private val continuationStore = mutableMapOf<Int, kotlin.coroutines.Continuation<*>>()
 
     private val vmCollection by lazy {
         VMCollection(
@@ -106,8 +110,114 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        AuthChecker.checkWriteExternalStorage(this)
 
+        printExternalPaht()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            SwithunLog.d("usb begin readWriteExternalResult")
+            val readWriteExternalResult = AuthChecker.checkWriteExternalStorageV2(this@MainActivity) { code, continuation ->
+                continuationStore.put(code, continuation)
+            }
+            SwithunLog.d("usb readWriteExternalResult")
+            val managerExternal = AuthChecker.checkManagerExternalStorage(this@MainActivity) { code, continuation ->
+                continuationStore.put(code, continuation)
+            }
+
+            val path = StorageUtils.getUsbDir(this@MainActivity).nullCheck("usb new path", true)
+            val externalUsb = AuthChecker.checkUsb(this@MainActivity, path ?: "") { code, continuation ->
+                continuationStore.put(code, continuation)
+            }
+            SwithunLog.d("usb readWriteExternalResult")
+
+            testFile()
+            document()
+            testLegle()
+        }
+
+        lifecycleScope.launch {
+            delay(10000)
+            document()
+        }
+
+//        liamus()
+//        testMyUsb()
+
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//            testMediaUsb()
+        }
+
+//        getSDCardPath()
+
+//        test()
+
+//        requestmanageexternalstorage_Permission()
+    }
+
+    private fun printExternalPaht() {
+        val path = Environment.getExternalStorageDirectory().absolutePath
+        // 打印path
+        Log.d("swithun-xxxx", "usb inner out path: $path")
+    }
+
+    private fun testFile() {
+        val file = File("/storage/emulated/0/documents/")
+        val children = file.listFiles().nullCheck("usb file.listFiles()", true)
+        // 打印
+        children?.forEach {
+            Log.d("swithun-xxxx", "usb file.listFiles(): ${it.name}")
+        }
+    }
+
+    private fun document() {
+
+        val path = StorageUtils.getUsbDir(this).nullCheck("usb new path", true)
+
+
+        path?.let { path ->
+
+            lifecycleScope.launch {
+//                showOpenDocumentTree(path)
+//                delay(10000)
+
+                val files = File(path).listFiles().nullCheck("usb new list files", true)
+                files?.forEach {
+                    SwithunLog.d("usb file: ${it.name}")
+                }
+            }
+
+        }
+
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        SwithunLog.d("usb onActivityResult: $requestCode resultCode: $resultCode data: $data");
+        when (requestCode) {
+            AuthChecker.ExternalManager -> {
+                (continuationStore.remove(requestCode) as? kotlin.coroutines.Continuation<Boolean>)?.resume(true)
+            }
+            AuthChecker.ExternalUsb -> {
+                (continuationStore.remove(requestCode) as? kotlin.coroutines.Continuation<Boolean>)?.resume(true)
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        SwithunLog.d("usb onRequestPermissionsResult: $requestCode")
+        when (requestCode) {
+            AuthChecker.REQUEST_CODE_CONTACT -> {
+                (continuationStore.remove(requestCode) as? kotlin.coroutines.Continuation<Boolean>)?.resume(true)
+            }
+        }
+    }
+
+    private fun liamus() {
         val usbManager = getSystemService(Context.USB_SERVICE) as UsbManager
         val devices = UsbMassStorageDevice.getMassStorageDevices(this)
 
@@ -143,58 +253,6 @@ class MainActivity : ComponentActivity() {
                 SwithunLog.d("usb exception: $e")
             }
         }
-
-        val path = StorageUtils.getUsbDir(this).nullCheck("usb new path", true)
-
-
-        path?.let { path ->
-
-            lifecycleScope.launch {
-                showOpenDocumentTree(path)
-                delay(10000)
-
-                val files = File(path).listFiles().nullCheck("usb new list files", true)
-                files?.forEach {
-                    SwithunLog.d("usb file: ${it.name}")
-                }
-            }
-
-        }
-
-        testMyUsb()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-//            testMediaUsb()
-        }
-
-        getSDCardPath()
-
-        testLegle()
-        test()
-
-        requestmanageexternalstorage_Permission()
-    }
-
-    private fun requestmanageexternalstorage_Permission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // 先判断有没有权限
-            if (Environment.isExternalStorageManager()) {
-                Toast.makeText(
-                    this,
-                    "Android VERSION  R OR ABOVE，HAVE MANAGE_EXTERNAL_STORAGE GRANTED!",
-                    Toast.LENGTH_LONG
-                ).show()
-            } else {
-                Toast.makeText(
-                    this,
-                    "Android VERSION  R OR ABOVE，NO MANAGE_EXTERNAL_STORAGE GRANTED!",
-                    Toast.LENGTH_LONG
-                ).show()
-                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                intent.data = Uri.parse("package:" + this.packageName)
-                startActivityForResult(intent, REQUEST_CODE)
-            }
-        }
     }
 
     private fun test() {
@@ -213,7 +271,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val isLegacy = Environment.isExternalStorageLegacy()
             // 打印日志
-            Log.d("swithun-xxxx", "isLegacy: $isLegacy")
+            Log.d("swithun-xxxx", "usb isLegacy: $isLegacy")
         }
     }
 

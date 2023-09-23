@@ -669,7 +669,12 @@ async fn add_session(
         .start()
 }
 
+fn testUsbStorage() {
+
+}
+
 async fn test() -> String {
+
     debug!("somebody test 2");
 
     debug!("somebody test 2-1");
